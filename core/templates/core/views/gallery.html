@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name }} · {{ table.name }}{% endblock %}
+{% block main %}
+{% include "core/_table_head.html" %}
+<div class="gallery">
+  {% for c in cards %}
+    <a class="gcard" href="{{ c.record.get_absolute_url }}">
+      <div class="pic">{% if c.cover %}<img src="{{ c.cover }}" alt="" loading="lazy">{% else %}{{ table.icon|default:"▦" }}{% endif %}</div>
+      <div class="body">
+        <div class="t">{{ c.title }}</div>
+        {% for f, html in c.fields %}{% if html %}<div class="f"><b>{{ f.name }}</b>{{ html }}</div>{% endif %}{% endfor %}
+      </div>
+    </a>
+  {% empty %}
+    <div class="empty">No records.</div>
+  {% endfor %}
+</div>
+{% if more %}<p class="muted" style="padding:0 16px">… and {{ more }} more. Search or filter to find them.</p>{% endif %}
+{{ meta|json_script:"osmia-meta" }}
+{% endblock %}

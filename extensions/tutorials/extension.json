@@ -1,0 +1,8 @@
+{
+  "name": "tutorials",
+  "title": "Tutorials",
+  "version": "1.0.0",
+  "icon": "📖",
+  "description": "A tutorial for everything Osmia does, with animations of the workflows recorded from the app itself. Opened with 📖 Tutorials in the top bar.",
+  "blueprints": []
+}

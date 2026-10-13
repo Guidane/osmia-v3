@@ -1,0 +1,2 @@
+{% load osmia %}
+<td class="cell {{ c.field|align }}{% if cell_editing and c.field.editable %} editable{% endif %}" data-record="{{ record.pk }}" data-field="{{ c.field.pk }}" data-raw="{{ c.raw }}">{{ c.html }}</td>

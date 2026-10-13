@@ -1,0 +1,14 @@
+{% load osmia %}<a class="item {% if app and a.pk == app.pk %}active{% endif %}" href="{{ a.get_absolute_url }}" title="{{ a.name }}{% if from_elsewhere %} (from {{ a.space.name }}){% endif %}">{% app_icon a %} {{ a.name }}{% if from_elsewhere %} <span class="muted small">↗</span>{% endif %}</a>
+{% if app and a.pk == app.pk %}
+  <div class="tables">
+    {% for t in tables %}<a class="item {% if table and t.pk == table.pk %}active{% endif %}" href="{{ t.get_absolute_url }}">{{ t.icon|default:"▦" }} {{ t.name }}</a>{% endfor %}
+    {% if can_build %}<a class="item muted" href="{% url 'core:table_create' app.slug %}">＋ Table</a>{% endif %}
+    {% for p in app_pages %}<a class="item" href="{% url p.url_name %}">{{ p.icon }} {{ p.title }}</a>{% endfor %}
+    <div class="app-tools">
+      {% if can_build %}<a class="item" href="{% url 'core:automations' app.slug %}">⚡ Automations</a>{% endif %}
+      {% if can_edit %}<a class="item" href="{% url 'core:automation_runs' app.slug %}">≡ Run log</a>{% endif %}
+      <a class="item" href="{% url 'core:app_history' app.slug %}">↺ History</a>
+      {% if can_build %}<a class="item" href="{% url 'core:app_settings' app.slug %}">⚙ App settings</a>{% endif %}
+    </div>
+  </div>
+{% endif %}

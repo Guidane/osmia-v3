@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}New · {{ table.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>New {{ table.name|lower }} <span class="muted small">in {{ app.name }}</span></h1>
+<form method="post" enctype="multipart/form-data" class="form card" id="record-form">{% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <input type="hidden" name="link_field" value="{{ link_field }}"><input type="hidden" name="link_to" value="{{ link_to }}">
+  {% for i in items %}{% include "core/_input.html" %}{% empty %}<p class="muted">This table has no fields you can fill in yet.</p>{% endfor %}
+  <div class="actions">
+    <button class="btn primary">Save</button>
+    <button class="btn" name="add_another" value="1">Save and add another</button>
+    <a class="btn ghost" href="{{ next|default:table.get_absolute_url }}">Cancel</a>
+  </div>
+</form>
+{{ meta|json_script:"osmia-meta" }}
+{% endblock %}

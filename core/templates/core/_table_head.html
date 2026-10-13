@@ -1,0 +1,62 @@
+<div class="table-head">
+  <div class="title">
+    <h1>{{ table.icon|default:"▦" }} {{ table.name }}</h1>
+    <span class="crumb small">{{ app.name }}</span>
+    <div style="flex:1"></div>
+    {% if can_build %}
+      <a class="btn small ghost" href="{% url 'core:fields' app.slug table.slug %}">⚙ Fields</a>
+      <a class="btn small ghost" href="{% url 'core:automations' app.slug %}">⚡ Automations</a>
+    {% endif %}
+    <details class="menu toolbar-menu">
+      <summary class="btn small ghost">⋯</summary>
+      <div class="menu-panel">
+        <a href="{% url 'core:table_csv' app.slug table.slug %}?view={{ view.pk }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">⬇ Download CSV</a>
+        {% if can_edit_records %}<a href="{% url 'core:table_import' app.slug table.slug %}">⬆ Import CSV</a>{% endif %}
+        {% if can_build %}
+          <div class="sep"></div>
+          <a href="{% url 'core:view_settings' app.slug table.slug view.pk %}">⚙ View settings</a>
+          <a href="{% url 'core:table_settings' app.slug table.slug %}">⚙ Table settings</a>
+        {% endif %}
+      </div>
+    </details>
+    {% if can_edit_records %}<a class="btn small primary" href="{% url 'core:record_new' app.slug table.slug %}?next={{ request.get_full_path|urlencode }}">＋ New</a>{% endif %}
+  </div>
+  <nav class="tabs">
+    {% for v in views %}
+      <a href="{{ v.get_absolute_url }}" class="{% if v.pk == view.pk %}active{% endif %}">{% with t=v.type %}{% for key, vtype in view_types.items %}{% if key == t %}{{ vtype.icon }}{% endif %}{% endfor %}{% endwith %} {{ v.name }}</a>
+    {% endfor %}
+    {% if can_build %}
+    <details class="menu left">
+      <summary class="muted">＋ View</summary>
+      <div class="menu-panel">
+        {% for key, vtype in new_view_types %}{% if True %}
+          <form method="post" action="{% url 'core:view_create' app.slug table.slug %}">{% csrf_token %}
+            <input type="hidden" name="type" value="{{ key }}">
+            <button title="{{ vtype.help }}">{{ vtype.icon }} {{ vtype.label }}</button>
+          </form>
+        {% endif %}{% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </nav>
+</div>
+{% if not can_edit_records %}<div class="flash warning" style="margin:8px 16px 0">You can look at {{ app.name }} but not change it. An administrator can give you access.</div>{% endif %}
+{% if vt.toolbar %}
+<div class="toolbar" id="toolbar">
+  <span style="position:relative"><button type="button" class="tool" data-pop="fields">◫ Fields</button></span>
+  <span style="position:relative"><button type="button" class="tool {% if state.filters.rules or state.filters.formula %}on{% endif %}" data-pop="filter">⚲ Filter{% if state.filters.rules %} ({{ state.filters.rules|length }}){% endif %}</button></span>
+  <span style="position:relative"><button type="button" class="tool {% if state.sorts %}on{% endif %}" data-pop="sort">⇅ Sort{% if state.sorts %} ({{ state.sorts|length }}){% endif %}</button></span>
+  {% if view.type == 'grid' or view.type == 'gantt' %}<span style="position:relative"><button type="button" class="tool {% if state.group_by %}on{% endif %}" data-pop="group">☰ Group</button></span>{% endif %}
+  {% if state.temporary %}
+    <a class="tool" href="{{ request.path }}">✕ Reset</a>
+    {% if can_build %}<button type="button" class="tool" id="save-view">💾 Save for everyone</button>{% endif %}
+  {% endif %}
+  <div class="grow"></div>
+  {% if count is not None %}<span class="count">{{ count }} record{{ count|pluralize }}</span>{% endif %}
+  <form method="get" id="search-form">
+    {% for k, v in request.GET.items %}{% if k != 'q' and k != 'page' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+    <input type="search" name="q" value="{{ state.q }}" placeholder="Search…">
+  </form>
+</div>
+{% endif %}
+{% if missing %}<div class="content"><div class="card empty">{{ missing }} {% if can_build %}<a href="{% url 'core:view_settings' app.slug table.slug view.pk %}">Open the settings</a>{% endif %}</div></div>{% endif %}

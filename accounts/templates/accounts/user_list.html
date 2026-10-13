@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="record-head"><h1>👤 Users</h1>
+  <form><input type="search" name="q" value="{{ q }}" placeholder="Search…"></form>
+  <a class="btn" href="{% url 'accounts:team_list' %}">👥 Teams</a>
+  <a class="btn primary" href="{% url 'accounts:user_create' %}">＋ New user</a></div>
+<table class="list">
+  <thead><tr><th>Name</th><th>User name</th><th>Email</th><th>Job</th><th>Teams</th><th></th></tr></thead>
+  {% for u in users %}
+    <tr><td><a href="{{ u.get_absolute_url }}"><b>{{ u }}</b></a></td><td>{{ u.username }}</td><td>{{ u.email }}</td><td>{{ u.job_title }}</td>
+      <td class="small">{% for g in u.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+      <td class="small">{% if u.is_superuser %}<span class="badge ok">administrator</span>{% endif %}{% if not u.is_active %}<span class="badge failed">can't log in</span>{% endif %}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

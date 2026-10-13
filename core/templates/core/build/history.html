@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load osmia %}
+{% block title %}History · {{ app.name }}{% endblock %}
+{% block content %}
+<div class="record-head">
+  <h1>↺ History of {{ app.name }}</h1>
+  <form><select name="table" onchange="this.form.submit()"><option value="">Every table</option>{% for t in tables %}<option value="{{ t.pk }}" {% if table_filter == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></form>
+</div>
+<table class="list">
+  <thead><tr><th>When</th><th>Who</th><th>Record</th><th>What changed</th></tr></thead>
+  {% for c in changes %}
+    <tr>
+      <td class="nowrap small">{{ c.created_at|date:"j M Y H:i" }}</td>
+      <td class="small">{{ c.user|default:"Osmia" }}{% if c.source %}<div class="muted">⚡ {{ c.source }}</div>{% endif %}</td>
+      <td class="small">{{ c.get_action_display }} {% if c.action != 'delete' %}<a href="/r/{{ c.record_id }}/">{{ c.record_label }}</a>{% else %}<b>{{ c.record_label }}</b>{% endif %}<div class="muted">{{ c.table.name }}</div></td>
+      <td class="small feed" style="padding:8px 12px"><div class="diff">{% diff c.changes %}</div></td>
+    </tr>
+  {% empty %}<tr><td colspan="4" class="empty">No changes yet.</td></tr>{% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,9 @@
+<div class="embed-view live">
+  <div class="embed-head"><a href="{{ view.get_absolute_url }}">⊞ {{ view.table.app.name }} › {{ view.table.name }} › {{ view.name }}</a><span class="muted small">{{ total }} record{{ total|pluralize }} · live</span></div>
+  <div style="overflow-x:auto"><table class="sub">
+    <thead><tr>{% for f in columns %}<th>{{ f.name }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in rows %}<tr>{% for c in row.cells %}<td>{% if forloop.first %}<a href="{{ row.record.get_absolute_url }}">{{ c }}</a>{% else %}{{ c }}{% endif %}</td>{% endfor %}</tr>
+    {% empty %}<tr><td class="muted" colspan="{{ columns|length }}">No records.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if more %}<div class="muted small embed-more"><a href="{{ view.get_absolute_url }}">… and {{ more }} more</a></div>{% endif %}
+</div>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Run log · {{ app.name }}{% endblock %}
+{% block content %}
+<div class="record-head">
+  <h1>≡ Automation run log</h1>
+  <a class="btn small {% if not status %}primary{% endif %}" href="?">All</a>
+  <a class="btn small {% if status == 'failed' %}primary{% endif %}" href="?status=failed">Failed</a>
+  <a class="btn small {% if status == 'skipped' %}primary{% endif %}" href="?status=skipped">Skipped</a>
+</div>
+<table class="list">
+  <thead><tr><th>When</th><th>Automation</th><th>Record</th><th>What it did</th></tr></thead>
+  {% for r in runs %}
+    <tr>
+      <td class="nowrap"><span class="badge {{ r.status }}">{{ r.get_status_display }}</span><div class="muted small">{{ r.created_at|date:"j M H:i" }}</div></td>
+      <td>{% if can_build %}<a href="{% url 'core:automation_edit' app.slug r.automation.pk %}">{{ r.automation.name }}</a>{% else %}{{ r.automation.name }}{% endif %}<div class="muted small">{{ r.trigger }}{% if r.user %} · {{ r.user }}{% endif %}</div></td>
+      <td>{% if r.record_id %}<a href="/r/{{ r.record_id }}/">{{ r.record_label|default:r.record_id }}</a>{% endif %}</td>
+      <td><pre class="log">{{ r.log }}</pre></td>
+    </tr>
+  {% empty %}<tr><td colspan="4" class="empty">Nothing has run yet.</td></tr>{% endfor %}
+</table>
+{% endblock %}

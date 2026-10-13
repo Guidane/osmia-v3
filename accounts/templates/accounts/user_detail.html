@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ person }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="record-head"><div class="crumbs"><a href="{% url 'accounts:user_list' %}">Users</a></div><h1>{{ person }}</h1>
+  <a class="btn" href="{% url 'accounts:user_edit' person.pk %}">Edit</a>
+  <a class="btn" href="{% url 'accounts:user_password' person.pk %}">Set password</a></div>
+<div class="card"><div class="props">
+  <div class="k">User name</div><div class="v">{{ person.username }}</div>
+  <div class="k">Email</div><div class="v">{{ person.email }}</div>
+  <div class="k">Job</div><div class="v">{{ person.job_title }}</div>
+  <div class="k">Phone</div><div class="v">{{ person.phone }}</div>
+  <div class="k">Teams</div><div class="v">{% for g in person.groups.all %}<span class="link-chip">{{ g.name }}</span>{% endfor %}</div>
+  <div class="k">Access</div><div class="v">{% if person.is_superuser %}Administrator{% else %}As set per app{% endif %}{% if not person.is_active %} · can't log in{% endif %}</div>
+  <div class="k">Last login</div><div class="v">{{ person.last_login|default:"never" }}</div>
+</div></div>
+{% endblock %}

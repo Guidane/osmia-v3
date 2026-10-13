@@ -1,0 +1,8 @@
+{
+  "name": "harness",
+  "title": "Harness designer",
+  "version": "1.0.0",
+  "icon": "🧵",
+  "description": "The wire harness designer: place devices on a canvas and wire their connectors pin to pin, with signal rules, pinout tables, versions and ordering the plugs. It works on the Devices app (devices, connectors, pins, signals) and the Harness app (projects, signal rules), which come with it as templates.",
+  "blueprints": ["devices", "harness"]
+}

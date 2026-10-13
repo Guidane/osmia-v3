@@ -1,0 +1,749 @@
+{
+  "key": "orders",
+  "name": "Orders",
+  "icon": "🧾",
+  "color": "#ea580c",
+  "version": "1.0.0",
+  "position": 35,
+  "description": "Purchase orders (PO-0001) from a vendor, charged to a budget, with lines of parts. Place, receive line by line or all at once (booked into stock at the location picked for each line), or cancel: all done by automations behind buttons.",
+  "requires": [
+    "parts",
+    "vendors"
+  ],
+  "after": [
+    "budgets",
+    "stock"
+  ],
+  "tables": [
+    {
+      "key": "orders",
+      "name": "Orders",
+      "icon": "🧾",
+      "display": "number",
+      "fields": [
+        {
+          "key": "number",
+          "name": "Number",
+          "type": "autonumber",
+          "options": {
+            "prefix": "PO-",
+            "digits": 4
+          }
+        },
+        {
+          "key": "supplier",
+          "name": "Supplier",
+          "type": "link",
+          "options": {
+            "target": "vendors.vendors",
+            "multiple": false,
+            "inverse": {
+              "key": "orders",
+              "name": "Orders",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "budget",
+          "name": "Budget",
+          "type": "link",
+          "options": {
+            "target": "budgets.budgets",
+            "optional": true,
+            "multiple": false,
+            "inverse": {
+              "key": "orders",
+              "name": "Orders",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "status",
+          "name": "Status",
+          "type": "select",
+          "options": {
+            "default": "Draft",
+            "readonly": true,
+            "choices": [
+              {
+                "value": "Draft",
+                "color": "#e5e7eb"
+              },
+              {
+                "value": "Placed",
+                "color": "#bfdbfe"
+              },
+              {
+                "value": "Partly received",
+                "color": "#fde68a"
+              },
+              {
+                "value": "Received",
+                "color": "#bbf7d0"
+              },
+              {
+                "value": "Cancelled",
+                "color": "#fecaca"
+              }
+            ],
+            "transitions": {
+              "Draft": [
+                "Placed",
+                "Cancelled"
+              ],
+              "Placed": [
+                "Partly received",
+                "Received",
+                "Cancelled"
+              ],
+              "Partly received": [
+                "Received"
+              ],
+              "Received": [],
+              "Cancelled": []
+            }
+          }
+        },
+        {
+          "key": "notes",
+          "name": "Notes",
+          "type": "longtext"
+        },
+        {
+          "key": "documents",
+          "name": "Shipping documents",
+          "type": "attachment"
+        },
+        {
+          "key": "placed_at",
+          "name": "Placed at",
+          "type": "datetime",
+          "options": {
+            "readonly": true
+          }
+        },
+        {
+          "key": "received_at",
+          "name": "Received at",
+          "type": "datetime",
+          "options": {
+            "readonly": true
+          }
+        },
+        {
+          "key": "requested_by",
+          "name": "Requested by",
+          "type": "created_by"
+        },
+        {
+          "key": "place",
+          "name": "Place",
+          "type": "button",
+          "options": {
+            "label": "Place order",
+            "color": "#2563eb",
+            "automation": "place"
+          }
+        },
+        {
+          "key": "receive_all",
+          "name": "Receive",
+          "type": "button",
+          "options": {
+            "label": "Receive everything",
+            "color": "#16a34a",
+            "automation": "receive_all"
+          }
+        },
+        {
+          "key": "cancel",
+          "name": "Cancel",
+          "type": "button",
+          "options": {
+            "label": "Cancel order",
+            "color": "#c62828",
+            "automation": "cancel"
+          }
+        }
+      ],
+      "views": [
+        {
+          "name": "Orders",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "number",
+              "supplier",
+              "budget",
+              "status",
+              "line_count",
+              "total",
+              "open_lines",
+              "placed_at",
+              "requested_by"
+            ],
+            "sorts": [
+              {
+                "field": "number",
+                "dir": "desc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "By status",
+          "type": "kanban",
+          "config": {
+            "group_field": "status",
+            "fields": [
+              "number",
+              "supplier",
+              "total",
+              "open_lines"
+            ]
+          }
+        },
+        {
+          "name": "Order pages",
+          "type": "detail",
+          "config": {
+            "fields": [
+              "number",
+              "supplier",
+              "status"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "lines",
+      "name": "Order lines",
+      "icon": "≡",
+      "display": "label",
+      "fields": [
+        {
+          "key": "label",
+          "name": "Line",
+          "type": "formula",
+          "options": {
+            "format": "text",
+            "expression": "{Order} & \" · \" & {Quantity} & \" × \" & {Part}"
+          }
+        },
+        {
+          "key": "order",
+          "name": "Order",
+          "type": "link",
+          "required": true,
+          "options": {
+            "target": "orders",
+            "multiple": false,
+            "inverse": {
+              "key": "lines",
+              "name": "Lines",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "part",
+          "name": "Part",
+          "type": "link",
+          "required": true,
+          "options": {
+            "target": "parts.parts",
+            "multiple": false,
+            "inverse": {
+              "key": "order_lines",
+              "name": "Order lines",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "description",
+          "name": "Description",
+          "type": "lookup",
+          "options": {
+            "link": "part",
+            "field": "description"
+          }
+        },
+        {
+          "key": "quantity",
+          "name": "Quantity",
+          "type": "number",
+          "required": true,
+          "options": {
+            "decimals": 2
+          }
+        },
+        {
+          "key": "unit_price",
+          "name": "Unit price",
+          "type": "currency",
+          "options": {
+            "decimals": 4
+          }
+        },
+        {
+          "key": "total",
+          "name": "Total",
+          "type": "formula",
+          "options": {
+            "format": "currency",
+            "expression": "{Quantity} * {Unit price}"
+          }
+        },
+        {
+          "key": "location",
+          "name": "Put away at",
+          "type": "link",
+          "options": {
+            "target": "stock.locations",
+            "optional": true,
+            "multiple": false,
+            "inverse": {
+              "key": "order_lines",
+              "name": "Order lines arriving",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "received",
+          "name": "Received",
+          "type": "checkbox",
+          "options": {
+            "readonly": true
+          }
+        },
+        {
+          "key": "received_at",
+          "name": "Received at",
+          "type": "datetime",
+          "options": {
+            "readonly": true
+          }
+        },
+        {
+          "key": "receive",
+          "name": "Receive",
+          "type": "button",
+          "options": {
+            "label": "Receive",
+            "color": "#16a34a",
+            "automation": "receive_line"
+          }
+        }
+      ],
+      "views": [
+        {
+          "name": "Open lines",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "order",
+              "part",
+              "description",
+              "quantity",
+              "unit_price",
+              "total",
+              "location",
+              "receive"
+            ],
+            "filters": {
+              "match": "all",
+              "rules": [
+                {
+                  "field": "received",
+                  "op": "unchecked"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "All lines",
+          "type": "grid",
+          "config": {
+            "group_by": "order"
+          }
+        }
+      ]
+    }
+  ],
+  "extend": [
+    {
+      "table": "orders",
+      "fields": [
+        {
+          "key": "line_count",
+          "name": "Line count",
+          "type": "rollup",
+          "options": {
+            "link": "lines",
+            "func": "count"
+          }
+        },
+        {
+          "key": "open_lines",
+          "name": "Open lines",
+          "type": "rollup",
+          "options": {
+            "link": "lines",
+            "func": "count",
+            "filter": "NOT({Received})"
+          }
+        },
+        {
+          "key": "total",
+          "name": "Total",
+          "type": "rollup",
+          "options": {
+            "link": "lines",
+            "field": "total",
+            "func": "sum",
+            "format": "currency"
+          }
+        }
+      ]
+    },
+    {
+      "table": "budgets.budgets",
+      "optional": true,
+      "fields": [
+        {
+          "key": "ordered",
+          "name": "Ordered",
+          "type": "rollup",
+          "optional": true,
+          "options": {
+            "link": "orders",
+            "field": "total",
+            "func": "sum",
+            "format": "currency",
+            "filter": "IN({Status}, \"Placed\", \"Partly received\", \"Received\")"
+          }
+        }
+      ]
+    },
+    {
+      "table": "vendors.vendors",
+      "fields": [
+        {
+          "key": "open_orders",
+          "name": "Open orders",
+          "type": "rollup",
+          "optional": true,
+          "options": {
+            "link": "orders",
+            "func": "count",
+            "filter": "IN({Status}, \"Placed\", \"Partly received\")"
+          }
+        }
+      ]
+    }
+  ],
+  "automations": [
+    {
+      "key": "place",
+      "table": "orders",
+      "name": "Place order",
+      "trigger": "button",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "status",
+            "op": "is",
+            "value": "Draft"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "block",
+          "if": "{Line count} = 0",
+          "message": "{Number} has no lines to order."
+        },
+        {
+          "type": "block",
+          "if": "ISBLANK({Supplier})",
+          "message": "Pick the supplier of {Number} first."
+        },
+        {
+          "type": "update_record",
+          "target": "this",
+          "values": {
+            "status": "Placed",
+            "placed_at": "=NOW()"
+          }
+        }
+      ]
+    },
+    {
+      "key": "receive_line",
+      "table": "lines",
+      "name": "Receive a line",
+      "description": "Books the line into stock at its location (with Stock installed), marks it received and moves the order on: Partly received, or Received when it was the last open line.",
+      "trigger": "button",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "received",
+            "op": "unchecked"
+          }
+        ],
+        "formula": "IN({Order.Status}, \"Placed\", \"Partly received\")"
+      },
+      "actions": [
+        {
+          "type": "create_record",
+          "table": "stock.moves",
+          "values": {
+            "type": "Receipt",
+            "part": "={Part}",
+            "location": "={Put away at}",
+            "quantity": "={Quantity}",
+            "unit_cost": "={Unit price}",
+            "note": "Received with {Order}"
+          }
+        },
+        {
+          "type": "update_record",
+          "target": "this",
+          "values": {
+            "received": "1",
+            "received_at": "=NOW()"
+          }
+        },
+        {
+          "type": "update_record",
+          "target": "link:order",
+          "values": {
+            "status": "=IF({Order.Open lines} > 0, \"Partly received\", \"Received\")",
+            "received_at": "=IF({Order.Open lines} > 0, BLANK(), NOW())"
+          }
+        }
+      ],
+      "optional": true
+    },
+    {
+      "key": "receive_line_no_stock",
+      "table": "lines",
+      "name": "Receive a line",
+      "description": "Without Stock: marks the line received and moves the order on.",
+      "trigger": "button",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "received",
+            "op": "unchecked"
+          }
+        ],
+        "formula": "IN({Order.Status}, \"Placed\", \"Partly received\")"
+      },
+      "actions": [
+        {
+          "type": "update_record",
+          "target": "this",
+          "values": {
+            "received": "1",
+            "received_at": "=NOW()"
+          }
+        },
+        {
+          "type": "update_record",
+          "target": "link:order",
+          "values": {
+            "status": "=IF({Order.Open lines} > 0, \"Partly received\", \"Received\")",
+            "received_at": "=IF({Order.Open lines} > 0, BLANK(), NOW())"
+          }
+        }
+      ],
+      "instead_of": "receive_line"
+    },
+    {
+      "key": "receive_all",
+      "table": "orders",
+      "name": "Receive everything",
+      "trigger": "button",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "status",
+            "op": "is_any_of",
+            "value": "Placed, Partly received"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "run_automation",
+          "automation": "receive_line",
+          "target": "link:lines"
+        }
+      ]
+    },
+    {
+      "key": "cancel",
+      "table": "orders",
+      "name": "Cancel order",
+      "trigger": "button",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "status",
+            "op": "is_any_of",
+            "value": "Draft, Placed"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "update_record",
+          "target": "this",
+          "values": {
+            "status": "Cancelled"
+          }
+        }
+      ]
+    },
+    {
+      "key": "lines_of_drafts_only",
+      "table": "lines",
+      "name": "Only change the lines of draft orders",
+      "trigger": "record_created_or_updated",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "received",
+            "op": "unchecked"
+          }
+        ],
+        "formula": "NOT(IN({Order.Status}, \"Draft\", \"\"))"
+      },
+      "actions": [
+        {
+          "type": "block",
+          "message": "{Order} is {Order.Status}: only the lines of a draft order can be changed."
+        }
+      ]
+    },
+    {
+      "key": "tell_requester",
+      "table": "orders",
+      "name": "Tell the requester when it's all in",
+      "trigger": "record_updated",
+      "trigger_config": {
+        "fields": [
+          "status"
+        ]
+      },
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "status",
+            "op": "changed_to",
+            "value": "Received"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "notify",
+          "user_fields": [
+            "requested_by"
+          ],
+          "message": "{Number} from {Supplier} has arrived ({Total})"
+        }
+      ]
+    }
+  ],
+  "records": {
+    "orders": [
+      {
+        "Supplier": "Acme Components",
+        "Budget": "FY26-ENG-TE · Test equipment",
+        "Notes": "Connectors for the burn-in rack"
+      },
+      {
+        "Supplier": "Volt Supply",
+        "Budget": "FY26-OPS-WH · Warehouse",
+        "Notes": "Wire restock"
+      },
+      {
+        "Supplier": "Acme Components",
+        "Budget": "FY26-ENG · Engineering",
+        "Notes": "Passives"
+      }
+    ],
+    "lines": [
+      {
+        "Order": "PO-0001",
+        "Part": "DSUB-9-PLUG",
+        "Quantity": 20,
+        "Unit price": 1.15,
+        "Put away at": "Warehouse › Rack A › Shelf 2"
+      },
+      {
+        "Order": "PO-0001",
+        "Part": "DSUB-9-CONTACT",
+        "Quantity": 200,
+        "Unit price": 0.14,
+        "Put away at": "Warehouse › Rack A › Shelf 2"
+      },
+      {
+        "Order": "PO-0002",
+        "Part": "WIRE-22-RED",
+        "Quantity": 200,
+        "Unit price": 0.28,
+        "Put away at": "Warehouse › Rack B › Shelf 1"
+      },
+      {
+        "Order": "PO-0002",
+        "Part": "WIRE-22-BLK",
+        "Quantity": 200,
+        "Unit price": 0.28,
+        "Put away at": "Warehouse › Rack B › Shelf 1"
+      },
+      {
+        "Order": "PO-0003",
+        "Part": "RES-10K-0603",
+        "Quantity": 5000,
+        "Unit price": 0.008
+      }
+    ]
+  },
+  "after_records": [
+    {
+      "table": "orders",
+      "find": {
+        "Number": "PO-0001"
+      },
+      "press": [
+        "place"
+      ]
+    },
+    {
+      "table": "orders",
+      "find": {
+        "Number": "PO-0002"
+      },
+      "press": [
+        "place",
+        "receive_all"
+      ]
+    }
+  ]
+}

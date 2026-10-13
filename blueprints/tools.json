@@ -1,0 +1,52 @@
+{
+  "key": "tools",
+  "name": "Tools",
+  "icon": "🛠️",
+  "color": "#7c3aed",
+  "version": "1.0.0",
+  "position": 28,
+  "description": "Crimp tools, insertion tools, strippers, meters: where they're kept, who looks after them and when they're due for calibration.",
+  "tables": [
+    {
+      "key": "tools",
+      "name": "Tools",
+      "icon": "🛠️",
+      "display": "name",
+      "fields": [
+        {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "type", "name": "Type", "type": "select", "options": {"choices": [
+          {"value": "Crimp tool", "color": "#ddd6fe"}, {"value": "Insertion / extraction", "color": "#bfdbfe"}, {"value": "Stripper", "color": "#bbf7d0"},
+          {"value": "Meter", "color": "#fde68a"}, {"value": "Other", "color": "#e5e7eb"}]}},
+        {"key": "part_number", "name": "Part number", "type": "text"},
+        {"key": "manufacturer", "name": "Manufacturer", "type": "text"},
+        {"key": "asset_tag", "name": "Asset tag", "type": "text"},
+        {"key": "kept_at", "name": "Kept at", "type": "text"},
+        {"key": "keeper", "name": "Looked after by", "type": "user"},
+        {"key": "calibrated", "name": "Calibrated on", "type": "date"},
+        {"key": "interval", "name": "Calibration every (months)", "type": "number", "options": {"default": "12"}},
+        {"key": "calibration_due", "name": "Calibration due", "type": "formula", "options": {"format": "date",
+          "expression": "IF(ISBLANK({Calibrated on}), BLANK(), DATEADD({Calibrated on}, {Calibration every (months)}, \"months\"))"}},
+        {"key": "pictures", "name": "Pictures", "type": "attachment", "options": {"images_only": true}},
+        {"key": "notes", "name": "Notes", "type": "longtext"}
+      ],
+      "views": [
+        {"name": "Tools", "type": "grid", "config": {"fields": ["name", "type", "part_number", "manufacturer", "asset_tag", "kept_at", "keeper", "calibration_due"]}},
+        {"name": "Pictures", "type": "gallery", "config": {"cover_field": "pictures", "fields": ["name", "type", "kept_at", "keeper"]}},
+        {"name": "Calibration", "type": "calendar", "config": {"date_field": "calibration_due", "color_field": "type"}}
+      ]
+    }
+  ],
+  "automations": [
+    {"key": "calibration_reminder", "table": "tools", "name": "Two weeks before calibration is due",
+     "trigger": "date_reached", "trigger_config": {"field": "calibration_due", "offset": -14, "at": "08:00"},
+     "actions": [{"type": "notify", "user_fields": ["keeper"], "message": "{Name} ({Asset tag}) is due for calibration on {Calibration due}"}]}
+  ],
+  "records": {
+    "tools": [
+      {"Name": "D-sub crimp tool", "Type": "Crimp tool", "Part number": "M22520/2-01", "Manufacturer": "Daniels", "Asset tag": "T-001", "Kept at": "Bench 2", "Looked after by": "alice", "Calibrated on": "=TODAY()-350", "Calibration every (months)": 12},
+      {"Name": "Contact extraction tool", "Type": "Insertion / extraction", "Part number": "M81969/1-04", "Asset tag": "T-002", "Kept at": "Bench 2", "Looked after by": "alice"},
+      {"Name": "Precision wire stripper", "Type": "Stripper", "Manufacturer": "Knipex", "Asset tag": "T-003", "Kept at": "Bench 1", "Looked after by": "bob"},
+      {"Name": "Bench multimeter", "Type": "Meter", "Manufacturer": "Keysight", "Part number": "34465A", "Asset tag": "M-010", "Kept at": "Test bench", "Looked after by": "alice", "Calibrated on": "=TODAY()-200", "Calibration every (months)": 12}
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name }} · {{ table.name }}{% endblock %}
+{% block main %}
+{% include "core/_table_head.html" %}
+{% if not missing %}
+<div class="toolbar" style="padding-top:4px;padding-bottom:4px">
+  <span class="muted small">Scale</span>
+  {% for z, label in zooms %}<a class="tool {% if zoom == z %}on{% endif %}" href="?zoom={{ z }}">{{ label }}</a>{% endfor %}
+  <button type="button" class="tool" id="gantt-today">⌖ Today</button>
+  <span class="muted small">{{ start_field.name }}{% if end_field %} → {{ end_field.name }}{% endif %}{% if unscheduled %} · {{ unscheduled|length }} without dates{% endif %}</span>
+</div>
+<div class="gantt" id="gantt" data-px="{{ px }}" data-origin="{{ origin }}" data-start="{{ start_field.pk }}" data-end="{{ end_field.pk|default:'' }}" data-drag="{% if can_drag and can_edit_records %}1{% endif %}" data-today="{{ today_left }}">
+  <div class="names">
+    <div class="hdr">{{ table.name }}</div>
+    <div class="names-body">
+    {% for g in groups %}
+      {% if g.label %}<div class="r g">{{ g.label }}</div>{% endif %}
+      {% for i in g.items %}<div class="r"><a href="{{ i.record.get_absolute_url }}">{{ i.label }}</a></div>{% endfor %}
+    {% endfor %}
+    </div>
+  </div>
+  <div class="chart" id="gantt-chart">
+    <div class="scale" style="width:{{ width }}px">
+      <div class="months">{% for m in months %}<div style="width:{{ m.width }}px">{{ m.label }}</div>{% endfor %}</div>
+      <div class="ticks">{% for t in ticks %}<div class="{% if t.weekend %}we{% endif %} {% if t.today %}today{% endif %}" style="width:{{ t.width }}px">{{ t.label }}</div>{% endfor %}</div>
+    </div>
+    <div class="rows" style="width:{{ width }}px;height:{{ height }}px">
+      {% for g in groups %}
+        {% if g.label %}<div class="line g"></div>{% endif %}
+        {% for i in g.items %}<div class="line"></div>{% endfor %}
+      {% endfor %}
+      <svg class="arrows" width="{{ width }}" height="{{ height }}">
+        {% for a in arrows %}<path d="M{{ a.x1 }},{{ a.y1 }} h8 V{{ a.y2 }} H{{ a.x2 }}" marker-end="url(#arrowhead)"/>{% endfor %}
+        <defs><marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="currentColor"/></marker></defs>
+      </svg>
+      <div class="today-line" style="left:{{ today_left }}px"></div>
+      {% for g in groups %}{% for i in g.items %}
+        <a class="bar" href="{{ i.record.get_absolute_url }}" data-record="{{ i.record.pk }}" data-start="{{ i.start|date:'Y-m-d' }}" data-end="{{ i.end|date:'Y-m-d' }}"
+           style="left:{{ i.left }}px;width:{{ i.width }}px;top:{% widthratio i.row 1 34 %}px;{% if i.color %}--bar:{{ i.color }}{% endif %}" title="{{ i.label }}: {{ i.start|date:'j M' }} – {{ i.end|date:'j M Y' }}">
+          {% if i.progress is not None %}<span class="prog" style="width:{{ i.progress|floatformat:0 }}%"></span>{% endif %}
+          <span>{{ i.label }}</span>{% if end_field %}<i class="grip"></i>{% endif %}
+        </a>
+      {% endfor %}{% endfor %}
+    </div>
+  </div>
+</div>
+{% if unscheduled %}
+<div class="content wide"><details><summary class="muted">{{ unscheduled|length }} without dates</summary>
+  <p>{% for r in unscheduled %}<a class="link-chip" href="{{ r.get_absolute_url }}">{{ r }}</a>{% endfor %}</p></details></div>
+{% endif %}
+{% endif %}
+{{ meta|json_script:"osmia-meta" }}
+{% endblock %}

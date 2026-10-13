@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}New app{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>{% if personal %}A new app of your own{% else %}A new app in {{ target.icon }} {{ target.name }}{% endif %}</h1>
+<p class="muted">{% if personal %}It goes in your personal space. You build it as you like. Only you see it, until you let others look at it in its settings; nobody else can change it unless an administrator allows them.{% else %}The space's members work with it as their role in the space allows; other spaces can add it as a shortcut and link to its tables.{% endif %}</p>
+<form method="post" class="form card">{% csrf_token %}<input type="hidden" name="space" value="{{ target.key }}">
+  <div class="grid2">
+    <div class="field"><label for="name" class="required">Name</label><input id="name" name="name" required autofocus placeholder="e.g. Maintenance"></div>
+    <div class="field"><label for="icon">Icon</label><input id="icon" name="icon" maxlength="8" placeholder="an emoji, e.g. 🔧"></div>
+  </div>
+  <div class="field"><label>Colour</label>
+    <div class="inline">{% for c in colors %}<label><input type="radio" name="color" value="{{ c }}" {% if forloop.first %}checked{% endif %}> <span class="swatch" style="background:{{ c }}"></span></label>{% endfor %}<input type="color" name="color" value="#2e7d5b" title="Another colour"></div>
+  </div>
+  <div class="field"><label for="description">What it's for</label><textarea id="description" name="description" rows="2"></textarea></div>
+  <div class="field"><label for="table">First table</label><input id="table" name="table" placeholder="e.g. Machines (you can add more later)"></div>
+  <div class="actions"><button class="btn primary">Make the app</button>{% if user.is_superuser %}<a class="btn ghost" href="{% url 'core:templates' %}">Or start from a template</a>{% endif %}</div>
+</form>
+{% endblock %}

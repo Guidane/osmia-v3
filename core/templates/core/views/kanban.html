@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% load osmia %}
+{% block title %}{{ view.name }} · {{ table.name }}{% endblock %}
+{% block main %}
+{% include "core/_table_head.html" %}
+{% if not missing %}
+<div class="board" id="board" data-field="{{ group_field.pk }}" data-drag="{% if can_drag and can_edit_records %}1{% endif %}">
+  {% for col in columns %}
+    <section class="column" data-value="{{ col.value }}">
+      <header>{% if col.color %}<span class="chip" style="background:{{ col.color }}">{{ col.label }}</span>{% else %}{{ col.label }}{% endif %}<span class="n">{{ col.cards|length }}</span></header>
+      <div class="cards">
+        {% for c in col.cards %}
+          <a class="kcard" href="{{ c.record.get_absolute_url }}" data-record="{{ c.record.pk }}" draggable="{% if can_drag and can_edit_records %}true{% else %}false{% endif %}">
+            {% if c.cover %}<img class="cover" src="{{ c.cover }}" alt="" loading="lazy">{% endif %}
+            <div class="t">{{ c.title }}</div>
+            {% for f, html in c.fields %}{% if html %}<div class="f"><b>{{ f.name }}</b>{{ html }}</div>{% endif %}{% endfor %}
+          </a>
+        {% endfor %}
+      </div>
+      {% if can_edit_records %}<a class="add" href="{% url 'core:record_new' app.slug table.slug %}?next={{ request.get_full_path|urlencode }}">＋ Add</a>{% endif %}
+    </section>
+  {% endfor %}
+</div>
+{% endif %}
+{{ meta|json_script:"osmia-meta" }}
+{% endblock %}

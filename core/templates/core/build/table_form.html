@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}New table · {{ app.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>New table in {{ app.name }}</h1>
+<form method="post" class="form card">{% csrf_token %}
+  <div class="grid2">
+    <div class="field"><label for="name" class="required">Name</label><input id="name" name="name" required autofocus placeholder="e.g. Machines"></div>
+    <div class="field"><label for="icon">Icon</label><input id="icon" name="icon" maxlength="8" placeholder="an emoji"></div>
+  </div>
+  <div class="field"><label for="primary">First field</label><input id="primary" name="primary" value="Name"><div class="help">Names each record (in links, titles, ...). You can pick another field later.</div></div>
+  <div class="actions"><button class="btn primary">Make the table</button></div>
+</form>
+{% endblock %}

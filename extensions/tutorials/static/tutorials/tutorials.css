@@ -1,0 +1,20 @@
+.tut-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.tut-card { display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; color: var(--text); }
+.tut-card:hover { text-decoration: none; box-shadow: var(--shadow); }
+.tut-icon { font-size: 26px; width: 40px; flex: 0 0 40px; text-align: center; }
+.tut-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tut-title { font-weight: 700; }
+.tut-done { display: none; color: var(--ok); }
+.tut-card.read .tut-done { display: inline; }
+.tut-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.tut-summary { font-size: 16px; color: var(--muted); margin-top: -6px; }
+.tut-gif { margin: 0 0 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+.tut-gif img { width: 100%; height: auto; display: block; border-radius: 6px; }
+.tut-gif figcaption { color: var(--muted); font-size: 12px; padding: 6px 4px 0; }
+.tut-steps { padding-left: 22px; }
+.tut-steps > li { margin-bottom: 12px; line-height: 1.6; }
+.tut-steps ul { margin: 6px 0; }
+kbd { font: 12px ui-monospace, Consolas, monospace; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--panel-2); }
+.tut-tips { background: var(--brand-soft); border-color: transparent; }
+.tut-tips ul { margin: 6px 0 0; padding-left: 18px; }
+.tut-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--border); }

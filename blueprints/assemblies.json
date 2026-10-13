@@ -1,0 +1,443 @@
+{
+  "key": "assemblies",
+  "name": "Assemblies",
+  "icon": "🧩",
+  "color": "#9333ea",
+  "version": "1.0.0",
+  "position": 40,
+  "description": "Bills of materials from parts and sub-assemblies: what it costs, how many builds the stock covers, a revision that goes up when the components change, and build tasks.",
+  "requires": [
+    "parts"
+  ],
+  "after": [
+    "stock",
+    "tasks"
+  ],
+  "tables": [
+    {
+      "key": "assemblies",
+      "name": "Assemblies",
+      "icon": "🧩",
+      "display": "name",
+      "fields": [
+        {
+          "key": "name",
+          "name": "Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "type",
+          "name": "Type",
+          "type": "select",
+          "options": {
+            "default": "Generic",
+            "choices": [
+              {
+                "value": "Generic"
+              },
+              {
+                "value": "Device",
+                "color": "#bfdbfe"
+              },
+              {
+                "value": "Harness",
+                "color": "#fde68a"
+              },
+              {
+                "value": "Plate stack",
+                "color": "#ddd6fe"
+              }
+            ]
+          }
+        },
+        {
+          "key": "status",
+          "name": "Status",
+          "type": "select",
+          "options": {
+            "default": "Design",
+            "choices": [
+              {
+                "value": "Design",
+                "color": "#e5e7eb"
+              },
+              {
+                "value": "Released",
+                "color": "#bbf7d0"
+              },
+              {
+                "value": "Obsolete",
+                "color": "#fecaca"
+              }
+            ]
+          }
+        },
+        {
+          "key": "version",
+          "name": "Version",
+          "type": "text"
+        },
+        {
+          "key": "revision",
+          "name": "Revision",
+          "type": "number",
+          "options": {
+            "readonly": true,
+            "default": "1"
+          }
+        },
+        {
+          "key": "build_instructions",
+          "name": "Build instructions",
+          "type": "longtext"
+        },
+        {
+          "key": "usage",
+          "name": "Usage instructions",
+          "type": "longtext"
+        },
+        {
+          "key": "pictures",
+          "name": "Pictures and drawings",
+          "type": "attachment"
+        },
+        {
+          "key": "new_build_task",
+          "name": "New build task",
+          "type": "button",
+          "options": {
+            "label": "New build task",
+            "automation": "build_task"
+          }
+        }
+      ],
+      "views": [
+        {
+          "name": "Assemblies",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "name",
+              "type",
+              "status",
+              "version",
+              "revision",
+              "component_count",
+              "cost",
+              "builds"
+            ]
+          }
+        },
+        {
+          "name": "Pictures",
+          "type": "gallery",
+          "config": {
+            "cover_field": "pictures",
+            "fields": [
+              "name",
+              "type",
+              "status",
+              "cost"
+            ]
+          }
+        },
+        {
+          "name": "Assembly pages",
+          "type": "detail",
+          "config": {
+            "fields": [
+              "name",
+              "type",
+              "status"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "components",
+      "name": "Components",
+      "icon": "🔩",
+      "display": "label",
+      "fields": [
+        {
+          "key": "label",
+          "name": "Component",
+          "type": "formula",
+          "options": {
+            "format": "text",
+            "expression": "{Quantity} & \" × \" & IF(ISBLANK({Part}), {Sub-assembly}, {Part})"
+          }
+        },
+        {
+          "key": "assembly",
+          "name": "Assembly",
+          "type": "link",
+          "required": true,
+          "options": {
+            "target": "assemblies",
+            "multiple": false,
+            "inverse": {
+              "key": "components",
+              "name": "Components",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "part",
+          "name": "Part",
+          "type": "link",
+          "options": {
+            "target": "parts.parts",
+            "multiple": false,
+            "inverse": {
+              "key": "used_in",
+              "name": "Used in assemblies",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "sub_assembly",
+          "name": "Sub-assembly",
+          "type": "link",
+          "options": {
+            "target": "assemblies",
+            "multiple": false,
+            "inverse": {
+              "key": "used_in",
+              "name": "Used in",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "quantity",
+          "name": "Quantity",
+          "type": "number",
+          "required": true,
+          "options": {
+            "default": "1",
+            "decimals": 2
+          }
+        },
+        {
+          "key": "designators",
+          "name": "Reference designators",
+          "type": "text"
+        },
+        {
+          "key": "unit_cost",
+          "name": "Unit cost",
+          "type": "formula",
+          "options": {
+            "format": "currency",
+            "expression": "IF(ISBLANK({Part}), IFERROR({Sub-assembly.Cost}, 0), IFERROR({Part.Average cost}, 0))"
+          }
+        },
+        {
+          "key": "cost",
+          "name": "Cost",
+          "type": "formula",
+          "options": {
+            "format": "currency",
+            "expression": "{Quantity} * {Unit cost}"
+          }
+        },
+        {
+          "key": "builds",
+          "name": "Builds possible",
+          "type": "formula",
+          "options": {
+            "format": "number",
+            "expression": "IF(ISBLANK({Part}), IFERROR(INT({Sub-assembly.Stock covers} / {Quantity}), BLANK()), IFERROR(INT({Part.On hand} / {Quantity}), BLANK()))"
+          }
+        }
+      ],
+      "views": [
+        {
+          "name": "Components",
+          "type": "grid",
+          "config": {
+            "group_by": "assembly"
+          }
+        }
+      ]
+    }
+  ],
+  "extend": [
+    {
+      "table": "assemblies",
+      "fields": [
+        {
+          "key": "component_count",
+          "name": "Components count",
+          "type": "rollup",
+          "options": {
+            "link": "components",
+            "func": "count"
+          }
+        },
+        {
+          "key": "cost",
+          "name": "Cost",
+          "type": "rollup",
+          "options": {
+            "link": "components",
+            "field": "cost",
+            "func": "sum",
+            "format": "currency"
+          }
+        },
+        {
+          "key": "builds",
+          "name": "Stock covers",
+          "type": "rollup",
+          "options": {
+            "link": "components",
+            "field": "builds",
+            "func": "min",
+            "format": "number"
+          },
+          "description": "How many builds the parts in stock are enough for."
+        }
+      ]
+    },
+    {
+      "table": "tasks.tasks",
+      "optional": true,
+      "fields": [
+        {
+          "key": "assembly",
+          "name": "Assembly",
+          "type": "link",
+          "options": {
+            "target": "assemblies.assemblies",
+            "multiple": false,
+            "inverse": {
+              "key": "build_tasks",
+              "name": "Build tasks",
+              "multiple": true
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "automations": [
+    {
+      "key": "revision_up",
+      "table": "components",
+      "name": "Raise the revision when the components change",
+      "trigger": "record_created_or_updated",
+      "actions": [
+        {
+          "type": "update_record",
+          "target": "link:assembly",
+          "values": {
+            "revision": "=IF(ISBLANK({Assembly.Revision}), 1, {Assembly.Revision}) + 1"
+          }
+        }
+      ]
+    },
+    {
+      "key": "revision_up_delete",
+      "table": "components",
+      "name": "Raise the revision when a component is removed",
+      "trigger": "record_deleted",
+      "actions": [
+        {
+          "type": "update_record",
+          "target": "link:assembly",
+          "values": {
+            "revision": "=IF(ISBLANK({Assembly.Revision}), 1, {Assembly.Revision}) + 1"
+          }
+        }
+      ]
+    },
+    {
+      "key": "no_circles",
+      "table": "components",
+      "name": "An assembly can't contain itself",
+      "trigger": "record_created_or_updated",
+      "conditions": {
+        "match": "all",
+        "rules": [],
+        "formula": "AND(NOT(ISBLANK({Sub-assembly})), {Sub-assembly} = {Assembly})"
+      },
+      "actions": [
+        {
+          "type": "block",
+          "message": "{Assembly} can't be a component of itself."
+        }
+      ]
+    },
+    {
+      "key": "build_task",
+      "table": "assemblies",
+      "name": "New build task",
+      "optional": true,
+      "trigger": "button",
+      "actions": [
+        {
+          "type": "create_record",
+          "table": "tasks.tasks",
+          "values": {
+            "title": "Build {Name} (rev {Revision})",
+            "assembly": "=RECORD_ID()",
+            "description": "{Build instructions}",
+            "status": "To do"
+          }
+        }
+      ]
+    }
+  ],
+  "records": {
+    "assemblies": [
+      {
+        "Name": "D-sub 9 cable end",
+        "Type": "Harness",
+        "Status": "Released",
+        "Version": "A",
+        "Build instructions": "Crimp 9 contacts, insert into the housing, check continuity."
+      },
+      {
+        "Name": "Burn-in load board",
+        "Type": "Device",
+        "Status": "Design",
+        "Version": "0.3"
+      }
+    ],
+    "components": [
+      {
+        "Assembly": "D-sub 9 cable end",
+        "Part": "DSUB-9-PLUG",
+        "Quantity": 1
+      },
+      {
+        "Assembly": "D-sub 9 cable end",
+        "Part": "DSUB-9-CONTACT",
+        "Quantity": 9
+      },
+      {
+        "Assembly": "Burn-in load board",
+        "Part": "RES-10K-0603",
+        "Quantity": 24,
+        "Reference designators": "R1-R24"
+      },
+      {
+        "Assembly": "Burn-in load board",
+        "Part": "CAP-100N-0603",
+        "Quantity": 12,
+        "Reference designators": "C1-C12"
+      },
+      {
+        "Assembly": "Burn-in load board",
+        "Sub-assembly": "D-sub 9 cable end",
+        "Quantity": 2
+      }
+    ]
+  }
+}

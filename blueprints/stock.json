@@ -1,0 +1,870 @@
+{
+  "key": "stock",
+  "name": "Stock",
+  "icon": "🏷️",
+  "color": "#16a34a",
+  "version": "1.0.0",
+  "position": 32,
+  "description": "How many of each part are where: nested locations with codes (A1A), every receipt, issue, count and transfer, average cost, reorder levels and refusing to issue more than is on the shelf.",
+  "requires": [
+    "parts"
+  ],
+  "after": [
+    "tasks",
+    "budgets"
+  ],
+  "tables": [
+    {
+      "key": "locations",
+      "name": "Locations",
+      "icon": "📍",
+      "display": "path",
+      "fields": [
+        {
+          "key": "path",
+          "name": "Location",
+          "type": "formula",
+          "options": {
+            "format": "text",
+            "expression": "IF(ISBLANK({Part of}), {Name}, {Part of.Location} & \" › \" & {Name})"
+          }
+        },
+        {
+          "key": "name",
+          "name": "Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "label",
+          "name": "Label",
+          "type": "text",
+          "description": "Short code, e.g. A or 1. The code joins the labels down the tree: rack row A, rack 1, shelf A is A1A."
+        },
+        {
+          "key": "parent",
+          "name": "Part of",
+          "type": "link",
+          "options": {
+            "target": "locations",
+            "multiple": false,
+            "inverse": {
+              "key": "sub_locations",
+              "name": "Sub-locations",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "code",
+          "name": "Code",
+          "type": "formula",
+          "options": {
+            "format": "text",
+            "expression": "{Part of.Code} & {Label}"
+          }
+        },
+        {
+          "key": "pictures",
+          "name": "Pictures",
+          "type": "attachment",
+          "options": {
+            "images_only": true
+          }
+        },
+        {
+          "key": "notes",
+          "name": "Notes",
+          "type": "text"
+        }
+      ],
+      "views": [
+        {
+          "name": "Locations",
+          "type": "tree",
+          "config": {
+            "parent_field": "parent",
+            "fields": [
+              "name",
+              "code",
+              "label",
+              "stock_here",
+              "quantity_here"
+            ]
+          }
+        },
+        {
+          "name": "All locations",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "path",
+              "code",
+              "label",
+              "pictures"
+            ],
+            "sorts": [
+              {
+                "field": "path",
+                "dir": "asc"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "levels",
+      "name": "Stock",
+      "icon": "🏷️",
+      "display": "label",
+      "fields": [
+        {
+          "key": "label",
+          "name": "Stock",
+          "type": "formula",
+          "options": {
+            "format": "text",
+            "expression": "{Part} & \" @ \" & IF(ISBLANK({Location}), \"not put away\", {Location.Code})"
+          }
+        },
+        {
+          "key": "part",
+          "name": "Part",
+          "type": "link",
+          "options": {
+            "target": "parts.parts",
+            "multiple": false,
+            "inverse": {
+              "key": "stock",
+              "name": "Stock",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "location",
+          "name": "Location",
+          "type": "link",
+          "options": {
+            "target": "locations",
+            "multiple": false,
+            "inverse": {
+              "key": "stock_here",
+              "name": "Stock here",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "description",
+          "name": "Description",
+          "type": "lookup",
+          "options": {
+            "link": "part",
+            "field": "description"
+          }
+        },
+        {
+          "key": "move_to",
+          "name": "Move to",
+          "type": "link",
+          "description": "Pick a location to move all of this stock there.",
+          "options": {
+            "target": "locations",
+            "multiple": false,
+            "inverse": {
+              "key": "arriving",
+              "name": "Being moved here",
+              "multiple": true
+            }
+          }
+        }
+      ],
+      "views": [
+        {
+          "name": "Stock",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "part",
+              "description",
+              "location",
+              "quantity",
+              "value",
+              "move_to"
+            ],
+            "filters": {
+              "match": "all",
+              "rules": [
+                {
+                  "field": "quantity",
+                  "op": "is_not",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "By location",
+          "type": "grid",
+          "config": {
+            "group_by": "location",
+            "fields": [
+              "part",
+              "description",
+              "quantity",
+              "value"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "moves",
+      "name": "Stock moves",
+      "icon": "⇅",
+      "display": "number",
+      "fields": [
+        {
+          "key": "number",
+          "name": "Move",
+          "type": "autonumber",
+          "options": {
+            "prefix": "MV-",
+            "digits": 5
+          }
+        },
+        {
+          "key": "type",
+          "name": "Type",
+          "type": "select",
+          "required": true,
+          "options": {
+            "default": "Receipt",
+            "choices": [
+              {
+                "value": "Receipt",
+                "color": "#bbf7d0"
+              },
+              {
+                "value": "Issue",
+                "color": "#fecaca"
+              },
+              {
+                "value": "Count",
+                "color": "#fde68a"
+              },
+              {
+                "value": "Transfer out",
+                "color": "#e5e7eb"
+              },
+              {
+                "value": "Transfer in",
+                "color": "#dbeafe"
+              }
+            ]
+          }
+        },
+        {
+          "key": "part",
+          "name": "Part",
+          "type": "link",
+          "required": true,
+          "options": {
+            "target": "parts.parts",
+            "multiple": false,
+            "inverse": {
+              "key": "stock_moves",
+              "name": "Stock moves",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "location",
+          "name": "Location",
+          "type": "link",
+          "options": {
+            "target": "locations",
+            "multiple": false,
+            "inverse": {
+              "key": "moves_here",
+              "name": "Moves here",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "quantity",
+          "name": "Quantity",
+          "type": "number",
+          "required": true,
+          "options": {
+            "decimals": 2
+          },
+          "description": "How many came in or went out. For a count: the difference found (negative if fewer)."
+        },
+        {
+          "key": "change",
+          "name": "Change",
+          "type": "formula",
+          "options": {
+            "format": "number",
+            "expression": "IF(IN({Type}, \"Issue\", \"Transfer out\"), 0 - {Quantity}, {Quantity})"
+          }
+        },
+        {
+          "key": "unit_cost",
+          "name": "Unit cost",
+          "type": "currency",
+          "options": {
+            "decimals": 4
+          },
+          "description": "Receipts: the price paid. Left empty: the part's average cost."
+        },
+        {
+          "key": "value",
+          "name": "Value",
+          "type": "formula",
+          "options": {
+            "format": "currency",
+            "expression": "{Change} * {Unit cost}"
+          }
+        },
+        {
+          "key": "task",
+          "name": "For task",
+          "type": "link",
+          "options": {
+            "target": "tasks.tasks",
+            "optional": true,
+            "multiple": false,
+            "inverse": {
+              "key": "stock_moves",
+              "name": "Stock moves",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "note",
+          "name": "Note",
+          "type": "text"
+        },
+        {
+          "key": "level",
+          "name": "Stock line",
+          "type": "link",
+          "options": {
+            "target": "levels",
+            "multiple": false,
+            "inverse": {
+              "key": "moves",
+              "name": "Moves",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "when",
+          "name": "When",
+          "type": "created_time"
+        },
+        {
+          "key": "by",
+          "name": "By",
+          "type": "created_by"
+        }
+      ],
+      "views": [
+        {
+          "name": "Moves",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "number",
+              "when",
+              "type",
+              "part",
+              "location",
+              "quantity",
+              "unit_cost",
+              "value",
+              "task",
+              "note",
+              "by"
+            ],
+            "sorts": [
+              {
+                "field": "number",
+                "dir": "desc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "New move",
+          "type": "form",
+          "config": {
+            "title": "Book a stock move",
+            "description": "A receipt, an issue (to a task, if you like) or a count difference.",
+            "fields": [
+              "type",
+              "part",
+              "location",
+              "quantity",
+              "unit_cost",
+              "task",
+              "note"
+            ],
+            "submit_label": "Book it"
+          }
+        }
+      ]
+    }
+  ],
+  "extend": [
+    {
+      "table": "levels",
+      "fields": [
+        {
+          "key": "quantity",
+          "name": "Quantity",
+          "type": "rollup",
+          "options": {
+            "link": "moves",
+            "field": "change",
+            "func": "sum"
+          }
+        },
+        {
+          "key": "value",
+          "name": "Value",
+          "type": "formula",
+          "options": {
+            "format": "currency",
+            "expression": "{Quantity} * {Part.Average cost}"
+          }
+        }
+      ]
+    },
+    {
+      "table": "locations",
+      "fields": [
+        {
+          "key": "quantity_here",
+          "name": "Quantity here",
+          "type": "rollup",
+          "options": {
+            "link": "stock_here",
+            "field": "quantity",
+            "func": "sum"
+          }
+        }
+      ]
+    },
+    {
+      "table": "parts.parts",
+      "fields": [
+        {
+          "key": "reorder_level",
+          "name": "Reorder level",
+          "type": "number",
+          "description": "Low stock at or below this quantity (all locations together)."
+        },
+        {
+          "key": "average_cost",
+          "name": "Average cost",
+          "type": "currency",
+          "options": {
+            "decimals": 4,
+            "readonly": true
+          }
+        },
+        {
+          "key": "on_hand",
+          "name": "On hand",
+          "type": "rollup",
+          "options": {
+            "link": "stock_moves",
+            "field": "change",
+            "func": "sum"
+          }
+        },
+        {
+          "key": "low_stock",
+          "name": "Low stock",
+          "type": "formula",
+          "options": {
+            "format": "checkbox",
+            "expression": "AND({Reorder level} > 0, {On hand} <= {Reorder level})"
+          }
+        },
+        {
+          "key": "stock_value",
+          "name": "Stock value",
+          "type": "formula",
+          "options": {
+            "format": "currency",
+            "expression": "{On hand} * {Average cost}"
+          }
+        }
+      ]
+    },
+    {
+      "table": "tasks.tasks",
+      "optional": true,
+      "fields": [
+        {
+          "key": "materials_cost",
+          "name": "Materials cost",
+          "type": "formula",
+          "optional": true,
+          "options": {
+            "format": "currency",
+            "expression": "0 - SUM({Stock moves.Value})"
+          }
+        }
+      ]
+    },
+    {
+      "table": "budgets.budgets",
+      "optional": true,
+      "fields": [
+        {
+          "key": "materials",
+          "name": "Materials",
+          "type": "rollup",
+          "optional": true,
+          "options": {
+            "link": "tasks",
+            "field": "materials_cost",
+            "func": "sum"
+          }
+        }
+      ]
+    }
+  ],
+  "automations": [
+    {
+      "key": "book_move",
+      "table": "moves",
+      "name": "Book the move on its stock line",
+      "description": "Finds (or makes) the stock line of the part at the location and adds the move to it.",
+      "trigger": "record_created",
+      "actions": [
+        {
+          "type": "find_or_create",
+          "table": "levels",
+          "match": {
+            "part": "={Part}",
+            "location": "={Location}"
+          },
+          "save_to": "level"
+        }
+      ]
+    },
+    {
+      "key": "average_cost_for_issues",
+      "table": "moves",
+      "name": "Book issues, counts and transfers at the average cost",
+      "trigger": "record_created",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "unit_cost",
+            "op": "is_empty"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "update_record",
+          "target": "this",
+          "values": {
+            "unit_cost": "={Part.Average cost}"
+          }
+        }
+      ]
+    },
+    {
+      "key": "keep_average_cost",
+      "table": "moves",
+      "name": "Keep the part's average cost",
+      "description": "A receipt at a price changes the moving average: what was in stock at the old average plus this receipt at its price.",
+      "trigger": "record_created",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "type",
+            "op": "is",
+            "value": "Receipt"
+          },
+          {
+            "field": "unit_cost",
+            "op": "gt",
+            "value": "0"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "update_record",
+          "target": "link:part",
+          "values": {
+            "average_cost": "=IF(MAX({Part.On hand} - {Quantity}, 0) + {Quantity} > 0, (MAX({Part.On hand} - {Quantity}, 0) * {Part.Average cost} + {Quantity} * {Unit cost}) / (MAX({Part.On hand} - {Quantity}, 0) + {Quantity}), {Unit cost})"
+          }
+        }
+      ]
+    },
+    {
+      "key": "not_more_than_there",
+      "table": "moves",
+      "name": "Don't take out more than is there",
+      "trigger": "record_created",
+      "conditions": {
+        "match": "all",
+        "rules": [],
+        "formula": "{Stock line.Quantity} < 0"
+      },
+      "actions": [
+        {
+          "type": "block",
+          "message": "There isn't enough {Part} at {Location} for this move: it would leave {Stock line.Quantity}."
+        }
+      ]
+    },
+    {
+      "key": "move_stock",
+      "table": "levels",
+      "name": "Move stock to another location",
+      "description": "Picking a location in \"Move to\" moves all of the stock line there, as a transfer out and a transfer in.",
+      "trigger": "record_updated",
+      "trigger_config": {
+        "fields": [
+          "move_to"
+        ]
+      },
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "move_to",
+            "op": "not_empty"
+          },
+          {
+            "field": "quantity",
+            "op": "gt",
+            "value": "0"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "create_record",
+          "table": "moves",
+          "values": {
+            "type": "Transfer out",
+            "part": "={Part}",
+            "location": "={Location}",
+            "quantity": "={Quantity}",
+            "note": "To {Move to}"
+          }
+        },
+        {
+          "type": "create_record",
+          "table": "moves",
+          "values": {
+            "type": "Transfer in",
+            "part": "={Part}",
+            "location": "={Move to}",
+            "quantity": "={Quantity}",
+            "note": "From {Location}"
+          }
+        },
+        {
+          "type": "update_record",
+          "target": "this",
+          "values": {
+            "move_to": ""
+          }
+        }
+      ]
+    },
+    {
+      "key": "reorder",
+      "table": "parts.parts",
+      "name": "Ask for a reorder when stock runs low",
+      "optional": true,
+      "trigger": "condition_met",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "low_stock",
+            "op": "checked"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "create_record",
+          "table": "tasks.tasks",
+          "values": {
+            "title": "Reorder {Part number} ({On hand} left)",
+            "priority": "High",
+            "description": "{Description}: {On hand} on hand, reorder level {Reorder level}."
+          }
+        }
+      ]
+    }
+  ],
+  "records": {
+    "locations": [
+      {
+        "Name": "Warehouse",
+        "Label": "W"
+      },
+      {
+        "Name": "Rack A",
+        "Label": "A",
+        "Part of": "Warehouse"
+      },
+      {
+        "Name": "Shelf 1",
+        "Label": "1",
+        "Part of": "Warehouse › Rack A"
+      },
+      {
+        "Name": "Shelf 2",
+        "Label": "2",
+        "Part of": "Warehouse › Rack A"
+      },
+      {
+        "Name": "Rack B",
+        "Label": "B",
+        "Part of": "Warehouse"
+      },
+      {
+        "Name": "Shelf 1",
+        "Label": "1",
+        "Part of": "Warehouse › Rack B"
+      },
+      {
+        "Name": "Test lab",
+        "Label": "T"
+      }
+    ],
+    "moves": [
+      {
+        "Type": "Receipt",
+        "Part": "RES-10K-0603",
+        "Location": "Warehouse › Rack A › Shelf 1",
+        "Quantity": 1000,
+        "Unit cost": 0.01,
+        "Note": "Opening stock"
+      },
+      {
+        "Type": "Receipt",
+        "Part": "CAP-100N-0603",
+        "Location": "Warehouse › Rack A › Shelf 1",
+        "Quantity": 500,
+        "Unit cost": 0.02,
+        "Note": "Opening stock"
+      },
+      {
+        "Type": "Receipt",
+        "Part": "DSUB-9-CONTACT",
+        "Location": "Warehouse › Rack A › Shelf 2",
+        "Quantity": 200,
+        "Unit cost": 0.15,
+        "Note": "Opening stock"
+      },
+      {
+        "Type": "Receipt",
+        "Part": "DSUB-9-CONTACT",
+        "Location": "Warehouse › Rack A › Shelf 2",
+        "Quantity": 100,
+        "Unit cost": 0.18,
+        "Note": "Second delivery"
+      },
+      {
+        "Type": "Receipt",
+        "Part": "DSUB-9-PLUG",
+        "Location": "Warehouse › Rack A › Shelf 2",
+        "Quantity": 30,
+        "Unit cost": 1.2,
+        "Note": "Opening stock"
+      },
+      {
+        "Type": "Receipt",
+        "Part": "DSUB-9-RECEPT",
+        "Location": "Warehouse › Rack B › Shelf 1",
+        "Quantity": 20,
+        "Unit cost": 2.5,
+        "Note": "Opening stock"
+      },
+      {
+        "Type": "Receipt",
+        "Part": "WIRE-22-RED",
+        "Location": "Warehouse › Rack B › Shelf 1",
+        "Quantity": 100,
+        "Unit cost": 0.3,
+        "Note": "Opening stock"
+      },
+      {
+        "Type": "Receipt",
+        "Part": "WIRE-22-BLK",
+        "Location": "Warehouse › Rack B › Shelf 1",
+        "Quantity": 100,
+        "Unit cost": 0.3,
+        "Note": "Opening stock"
+      },
+      {
+        "Type": "Issue",
+        "Part": "DSUB-9-CONTACT",
+        "Location": "Warehouse › Rack A › Shelf 2",
+        "Quantity": 40,
+        "For task": "Wire the power distribution",
+        "Note": "Burn-in rack harness"
+      },
+      {
+        "Type": "Issue",
+        "Part": "WIRE-22-RED",
+        "Location": "Warehouse › Rack B › Shelf 1",
+        "Quantity": 25,
+        "For task": "Wire the power distribution"
+      }
+    ],
+    "parts.parts": [
+      {
+        "_find": {
+          "Part number": "DSUB-9-CONTACT"
+        },
+        "Reorder level": 50
+      },
+      {
+        "_find": {
+          "Part number": "DSUB-9-PLUG"
+        },
+        "Reorder level": 10
+      },
+      {
+        "_find": {
+          "Part number": "WIRE-22-RED"
+        },
+        "Reorder level": 20
+      },
+      {
+        "_find": {
+          "Part number": "WIRE-22-BLK"
+        },
+        "Reorder level": 150
+      }
+    ]
+  }
+}

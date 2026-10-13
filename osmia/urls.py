@@ -1,10 +1,15 @@
-from django.contrib import admin
+from django.conf import settings
 from django.urls import include, path
 
-from core.modules import module_urlpatterns
-
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('core.urls')),
-    *module_urlpatterns(),
+    path('accounts/', include('accounts.urls')),
 ]
+
+# Each extension's urls.py, at /x/<name>/ (namespace <name>).
+for _name in settings.OSMIA_EXTENSIONS:
+    try:
+        urlpatterns.append(path(f'x/{_name}/', include((f'extensions.{_name}.urls', _name), namespace=_name)))
+    except ModuleNotFoundError:
+        pass
+
+urlpatterns.append(path('', include('core.urls')))

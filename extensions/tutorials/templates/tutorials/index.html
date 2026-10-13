@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Tutorials{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'tutorials/tutorials.css' %}">{% endblock %}
+{% block content %}
+<div class="record-head">
+  <h1>📖 Tutorials</h1>
+  <form><input type="search" name="q" value="{{ q }}" placeholder="Find a tutorial…"></form>
+</div>
+<p class="muted">How to do everything in Osmia, step by step. The ones marked ▶ have an animation of the workflow. Tutorials you've read get a ✓.</p>
+{% for g in groups %}
+  <h2>{{ g.label }}</h2>
+  <div class="tut-grid">
+    {% for i in g.items %}
+      <a class="tut-card" href="{% url 'tutorials:detail' i.t.slug %}" data-slug="{{ i.t.slug }}">
+        <span class="tut-icon">{{ i.t.icon }}</span>
+        <span class="tut-body">
+          <span class="tut-title">{{ i.t.title }} <span class="tut-done" title="Read">✓</span></span>
+          <span class="muted small">{{ i.t.summary }}</span>
+          <span class="tut-tags">{% if i.gif %}<span class="badge ok">▶ animation</span>{% endif %}{% if i.t.audience != 'everyone' %}<span class="badge">{% if i.t.audience == "admins" %}Administrators{% else %}App builders{% endif %}</span>{% endif %}</span>
+        </span>
+      </a>
+    {% endfor %}
+  </div>
+{% empty %}<p class="muted">No tutorial matches "{{ q }}".</p>{% endfor %}
+{% endblock %}
+{% block scripts %}<script>
+  let read = [];
+  try { read = JSON.parse(localStorage.getItem('osmia-tutorials-read') || '[]'); } catch (e) {}
+  document.querySelectorAll('.tut-card').forEach((c) => c.classList.toggle('read', read.includes(c.dataset.slug)));
+</script>{% endblock %}

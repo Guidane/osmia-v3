@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ table.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>⚙ {{ table.name }}</h1>
+<form method="post" class="form card">{% csrf_token %}
+  <div class="grid2">
+    <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ table.name }}" required></div>
+    <div class="field"><label for="icon">Icon</label><input id="icon" name="icon" value="{{ table.icon }}" maxlength="8"></div>
+  </div>
+  <div class="field"><label for="display_field">Records are named by</label>
+    <select id="display_field" name="display_field"><option value="">the first field</option>{% for f in fields %}<option value="{{ f.pk }}" {% if f.pk == table.display_field_id %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="description">Description</label><textarea id="description" name="description" rows="2">{{ table.description }}</textarea></div>
+  <h2>Order of the tables in {{ app.name }}</h2>
+  <ul class="plain sortable">{% for t in tables %}<li class="link-chip" style="display:block;max-width:none;cursor:grab" draggable="true"><input type="hidden" name="table_order" value="{{ t.pk }}">☰ {{ t.name }}</li>{% endfor %}</ul>
+  <div class="actions"><button class="btn primary">Save</button><a class="btn" href="{% url 'core:fields' app.slug table.slug %}">Fields</a></div>
+</form>
+<form method="post" class="form card" style="border-color:var(--danger)">{% csrf_token %}
+  <h2 style="margin-top:0">Delete the table</h2>
+  <p class="muted">Deletes its records, files, views and automations, and the link fields in other tables that point at it.</p>
+  <div class="field"><label for="confirm">Type {{ table.name }} to confirm</label><input id="confirm" name="confirm" autocomplete="off"></div>
+  <button class="btn danger" name="delete" value="1">Delete {{ table.name }}</button>
+</form>
+{% endblock %}

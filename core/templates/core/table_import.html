@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Import · {{ table.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>Import into {{ table.name }}</h1>
+{% if report %}
+  <div class="card"><p><b>{{ report.added }}</b> record{{ report.added|pluralize }} added.</p>
+    {% if report.skipped %}<p class="muted">Columns that match no field were left out: {{ report.skipped|join:", " }}</p>{% endif %}
+    {% for e in report.errors %}<div class="flash error">{{ e }}</div>{% endfor %}
+    <a class="btn" href="{{ table.get_absolute_url }}">Open {{ table.name }}</a>
+  </div>
+{% endif %}
+<form method="post" enctype="multipart/form-data" class="form card">{% csrf_token %}
+  <p class="muted">A CSV file whose first row names the fields. Links take the names of the linked records (several separated by commas). Fields: {% for f in fields %}{% if f.editable %}<code>{{ f.name }}</code> {% endif %}{% endfor %}</p>
+  <div class="field"><label for="file">CSV file</label><input type="file" id="file" name="file" accept=".csv,text/csv" required></div>
+  <label class="inline"><input type="checkbox" name="automations" value="1"> Run the table's automations for each new record</label>
+  <div class="actions"><button class="btn primary">Import</button><a class="btn ghost" href="{{ table.get_absolute_url }}">Cancel</a></div>
+</form>
+{% endblock %}

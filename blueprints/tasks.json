@@ -1,0 +1,603 @@
+{
+  "key": "tasks",
+  "name": "Tasks",
+  "icon": "✅",
+  "color": "#2563eb",
+  "version": "1.0.0",
+  "position": 20,
+  "description": "Plan and track work: a board, a list, my tasks, a Gantt chart with dependencies, a calendar and subtasks.",
+  "after": [
+    "departments"
+  ],
+  "tables": [
+    {
+      "key": "tasks",
+      "name": "Tasks",
+      "icon": "✅",
+      "display": "title",
+      "fields": [
+        {
+          "key": "title",
+          "name": "Title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "status",
+          "name": "Status",
+          "type": "select",
+          "options": {
+            "default": "To do",
+            "choices": [
+              {
+                "value": "To do",
+                "color": "#e5e7eb"
+              },
+              {
+                "value": "In progress",
+                "color": "#bfdbfe"
+              },
+              {
+                "value": "Blocked",
+                "color": "#fecaca"
+              },
+              {
+                "value": "Done",
+                "color": "#bbf7d0"
+              }
+            ]
+          }
+        },
+        {
+          "key": "priority",
+          "name": "Priority",
+          "type": "select",
+          "options": {
+            "default": "Normal",
+            "choices": [
+              {
+                "value": "Low",
+                "color": "#e5e7eb"
+              },
+              {
+                "value": "Normal",
+                "color": "#dbeafe"
+              },
+              {
+                "value": "High",
+                "color": "#fed7aa"
+              },
+              {
+                "value": "Urgent",
+                "color": "#fecaca"
+              }
+            ]
+          }
+        },
+        {
+          "key": "assignee",
+          "name": "Assignee",
+          "type": "user"
+        },
+        {
+          "key": "department",
+          "name": "Department",
+          "type": "link",
+          "options": {
+            "target": "departments.departments",
+            "optional": true,
+            "multiple": false,
+            "inverse": {
+              "key": "tasks",
+              "name": "Tasks",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "group",
+          "name": "Group",
+          "type": "link",
+          "options": {
+            "target": "groups",
+            "multiple": false,
+            "inverse": {
+              "key": "tasks",
+              "name": "Tasks",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "parent",
+          "name": "Parent task",
+          "type": "link",
+          "options": {
+            "target": "tasks",
+            "multiple": false,
+            "inverse": {
+              "key": "subtasks",
+              "name": "Subtasks",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "depends_on",
+          "name": "Depends on",
+          "type": "link",
+          "options": {
+            "target": "tasks",
+            "multiple": true,
+            "inverse": {
+              "key": "blocks",
+              "name": "Blocks",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "start",
+          "name": "Start",
+          "type": "date"
+        },
+        {
+          "key": "due",
+          "name": "Due",
+          "type": "date"
+        },
+        {
+          "key": "estimate",
+          "name": "Estimate (h)",
+          "type": "number",
+          "options": {
+            "decimals": 1
+          }
+        },
+        {
+          "key": "description",
+          "name": "Description",
+          "type": "longtext"
+        },
+        {
+          "key": "files",
+          "name": "Files",
+          "type": "attachment"
+        },
+        {
+          "key": "completed_at",
+          "name": "Completed at",
+          "type": "datetime",
+          "options": {
+            "readonly": true
+          }
+        },
+        {
+          "key": "subtask_count",
+          "name": "Subtask count",
+          "type": "rollup",
+          "options": {
+            "link": "subtasks",
+            "func": "count"
+          }
+        },
+        {
+          "key": "subtasks_done",
+          "name": "Subtasks done",
+          "type": "rollup",
+          "options": {
+            "link": "subtasks",
+            "func": "count",
+            "filter": "{Status} = \"Done\""
+          }
+        },
+        {
+          "key": "progress",
+          "name": "Progress",
+          "type": "formula",
+          "options": {
+            "format": "percent",
+            "decimals": 0,
+            "expression": "IF({Status} = \"Done\", 100, IF({Subtask count} > 0, {Subtasks done} / {Subtask count} * 100, IF({Status} = \"In progress\", 50, 0)))"
+          }
+        },
+        {
+          "key": "overdue",
+          "name": "Overdue",
+          "type": "formula",
+          "options": {
+            "format": "checkbox",
+            "expression": "AND(NOT(ISBLANK({Due})), {Due} < TODAY(), {Status} != \"Done\")"
+          }
+        },
+        {
+          "key": "created",
+          "name": "Created",
+          "type": "created_time"
+        }
+      ],
+      "views": [
+        {
+          "name": "Board",
+          "type": "kanban",
+          "config": {
+            "group_field": "status",
+            "fields": [
+              "title",
+              "assignee",
+              "priority",
+              "due",
+              "progress"
+            ]
+          }
+        },
+        {
+          "name": "List",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "title",
+              "status",
+              "priority",
+              "assignee",
+              "department",
+              "group",
+              "start",
+              "due",
+              "progress",
+              "overdue"
+            ],
+            "sorts": [
+              {
+                "field": "due",
+                "dir": "asc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "My tasks",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "title",
+              "status",
+              "priority",
+              "due",
+              "group",
+              "progress"
+            ],
+            "filters": {
+              "match": "all",
+              "rules": [
+                {
+                  "field": "assignee",
+                  "op": "is_me"
+                },
+                {
+                  "field": "status",
+                  "op": "is_not",
+                  "value": "Done"
+                }
+              ]
+            },
+            "sorts": [
+              {
+                "field": "due",
+                "dir": "asc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Gantt",
+          "type": "gantt",
+          "config": {
+            "start_field": "start",
+            "end_field": "due",
+            "group_by": "group",
+            "color_field": "status",
+            "progress_field": "progress",
+            "dependency_field": "depends_on"
+          }
+        },
+        {
+          "name": "Calendar",
+          "type": "calendar",
+          "config": {
+            "date_field": "due",
+            "color_field": "priority"
+          }
+        },
+        {
+          "name": "Subtasks",
+          "type": "tree",
+          "config": {
+            "parent_field": "parent",
+            "fields": [
+              "title",
+              "status",
+              "assignee",
+              "due",
+              "progress"
+            ]
+          }
+        },
+        {
+          "name": "New task",
+          "type": "form",
+          "config": {
+            "title": "Ask for a task",
+            "description": "Describe what needs doing; it lands on the board as To do.",
+            "fields": [
+              "title",
+              "description",
+              "priority",
+              "due",
+              "files"
+            ],
+            "submit_label": "Add the task"
+          }
+        }
+      ]
+    },
+    {
+      "key": "groups",
+      "name": "Task groups",
+      "icon": "🗂",
+      "display": "name",
+      "fields": [
+        {
+          "key": "name",
+          "name": "Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "color",
+          "name": "Colour",
+          "type": "color"
+        },
+        {
+          "key": "description",
+          "name": "Description",
+          "type": "text"
+        }
+      ],
+      "views": [
+        {
+          "name": "All groups",
+          "type": "grid"
+        }
+      ]
+    }
+  ],
+  "automations": [
+    {
+      "key": "completed_at",
+      "table": "tasks",
+      "name": "Note when a task is done",
+      "description": "Keeps Completed at: set when a task becomes Done, cleared when it's reopened.",
+      "trigger": "record_updated",
+      "trigger_config": {
+        "fields": [
+          "status"
+        ]
+      },
+      "actions": [
+        {
+          "type": "update_record",
+          "target": "this",
+          "values": {
+            "completed_at": "=IF({Status} = \"Done\", NOW(), BLANK())"
+          }
+        }
+      ]
+    },
+    {
+      "key": "tell_assignee",
+      "table": "tasks",
+      "name": "Tell the assignee",
+      "trigger": "record_created_or_updated",
+      "trigger_config": {
+        "fields": [
+          "assignee"
+        ]
+      },
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "assignee",
+            "op": "changed"
+          },
+          {
+            "field": "assignee",
+            "op": "not_empty"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "notify",
+          "user_fields": [
+            "assignee"
+          ],
+          "message": "You have a task: {Title} (due {Due})"
+        }
+      ]
+    },
+    {
+      "key": "due_tomorrow",
+      "table": "tasks",
+      "name": "Remind the day before it's due",
+      "trigger": "date_reached",
+      "trigger_config": {
+        "field": "due",
+        "offset": -1,
+        "at": "08:00"
+      },
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "status",
+            "op": "is_not",
+            "value": "Done"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "notify",
+          "user_fields": [
+            "assignee"
+          ],
+          "message": "{Title} is due tomorrow"
+        }
+      ]
+    },
+    {
+      "key": "parent_done",
+      "table": "tasks",
+      "name": "Finish a task when its subtasks are done",
+      "trigger": "condition_met",
+      "conditions": {
+        "match": "all",
+        "rules": [
+          {
+            "field": "status",
+            "op": "is_not",
+            "value": "Done"
+          }
+        ],
+        "formula": "{Subtask count} > 0 && {Subtasks done} = {Subtask count}"
+      },
+      "actions": [
+        {
+          "type": "update_record",
+          "target": "this",
+          "values": {
+            "status": "Done"
+          }
+        }
+      ]
+    }
+  ],
+  "records": {
+    "groups": [
+      {
+        "Name": "Inventory",
+        "Colour": "#16a34a"
+      },
+      {
+        "Name": "Test bench",
+        "Colour": "#7c3aed"
+      },
+      {
+        "Name": "Purchasing",
+        "Colour": "#ea580c"
+      }
+    ],
+    "tasks": [
+      {
+        "Title": "Count the shelves in rack A",
+        "Status": "In progress",
+        "Priority": "Normal",
+        "Assignee": "bob",
+        "Department": "Warehouse",
+        "Group": "Inventory",
+        "Start": "=TODAY()-3",
+        "Due": "=TODAY()+2",
+        "Estimate (h)": 6
+      },
+      {
+        "Title": "Label the new bins",
+        "Status": "To do",
+        "Priority": "Low",
+        "Assignee": "bob",
+        "Department": "Warehouse",
+        "Group": "Inventory",
+        "Start": "=TODAY()+2",
+        "Due": "=TODAY()+5",
+        "Depends on": [
+          "Count the shelves in rack A"
+        ]
+      },
+      {
+        "Title": "Build the burn-in rack",
+        "Status": "In progress",
+        "Priority": "High",
+        "Assignee": "alice",
+        "Department": "Engineering",
+        "Group": "Test bench",
+        "Start": "=TODAY()-7",
+        "Due": "=TODAY()+14"
+      },
+      {
+        "Title": "Wire the power distribution",
+        "Status": "In progress",
+        "Assignee": "alice",
+        "Group": "Test bench",
+        "Parent task": "Build the burn-in rack",
+        "Start": "=TODAY()-7",
+        "Due": "=TODAY()-2"
+      },
+      {
+        "Title": "Write the test procedure",
+        "Status": "To do",
+        "Assignee": "alice",
+        "Group": "Test bench",
+        "Parent task": "Build the burn-in rack",
+        "Start": "=TODAY()",
+        "Due": "=TODAY()+6",
+        "Depends on": [
+          "Wire the power distribution"
+        ]
+      },
+      {
+        "Title": "Calibrate the electronic load",
+        "Status": "To do",
+        "Priority": "Urgent",
+        "Assignee": "alice",
+        "Group": "Test bench",
+        "Parent task": "Build the burn-in rack",
+        "Start": "=TODAY()+6",
+        "Due": "=TODAY()+9",
+        "Depends on": [
+          "Write the test procedure"
+        ]
+      },
+      {
+        "Title": "Compare connector suppliers",
+        "Status": "To do",
+        "Priority": "Normal",
+        "Assignee": "carla",
+        "Department": "Purchasing",
+        "Group": "Purchasing",
+        "Start": "=TODAY()+1",
+        "Due": "=TODAY()+10"
+      },
+      {
+        "Title": "Renew the calibration contract",
+        "Status": "Blocked",
+        "Priority": "High",
+        "Assignee": "carla",
+        "Department": "Purchasing",
+        "Group": "Purchasing",
+        "Due": "=TODAY()-1"
+      }
+    ]
+  },
+  "after_records": [
+    {
+      "table": "tasks",
+      "find": {
+        "Title": "Wire the power distribution"
+      },
+      "set": {
+        "Status": "Done"
+      }
+    }
+  ]
+}

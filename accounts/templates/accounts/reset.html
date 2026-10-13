@@ -1,0 +1,5 @@
+{% extends "accounts/_simple.html" %}
+{% block title %}Forgot your password{% endblock %}
+{% block box %}<h1>Forgot your password?</h1><p class="muted">Give the email address of your account; you'll get a link to choose a new password.</p>
+<form method="post">{% csrf_token %}{% include "accounts/_form_fields.html" %}<div class="actions"><button class="btn primary">Send the link</button><a href="{% url 'accounts:login' %}">Log in</a></div></form>{% endblock %}
+{% block box2 %}<p>You're logged in. <a href="{% url 'accounts:password_change' %}">Change your password</a>.</p>{% endblock %}

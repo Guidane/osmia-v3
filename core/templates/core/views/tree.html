@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% load osmia %}
+{% block title %}{{ view.name }} · {{ table.name }}{% endblock %}
+{% block main %}
+{% include "core/_table_head.html" %}
+{% if not missing %}
+<div class="toolbar" style="padding-top:4px;padding-bottom:4px">
+  <button type="button" class="tool" data-tree="expand">⊞ Expand all</button>
+  <button type="button" class="tool" data-tree="collapse">⊟ Collapse all</button>
+  <span class="muted small">Nested by “{{ parent_field.name }}”. {% if filtered %}Matching records are shown with the records above them.{% endif %}</span>
+</div>
+<div class="grid-wrap">
+  <table class="grid tree" id="grid" data-view="{{ view.pk }}" data-tree-key="tree-{{ view.pk }}">
+    <thead><tr>
+      <th class="rownum">#</th>
+      {% for f in columns %}<th class="{{ f|align }}{% if forloop.first %} primary{% endif %}"><span class="ficon">{{ f.kind.icon }}</span>{{ f.name }}</th>{% endfor %}
+    </tr></thead>
+    <tbody>
+      {% for row in rows %}
+        <tr data-record="{{ row.record.pk }}" data-parent="{{ row.parent|default:'' }}" data-depth="{{ row.depth }}" class="{% if filtered and not row.match %}dim{% endif %}">
+          <td class="rownum"><span class="num-text">{{ forloop.counter }}</span><a class="open" href="{{ row.record.get_absolute_url }}">⤢</a></td>
+          {% for f, html in row.cells %}
+            <td class="cell {{ f|align }}{% if forloop.first %} primary{% endif %}{% if cell_editing and f.editable %} editable{% endif %}" data-record="{{ row.record.pk }}" data-field="{{ f.pk }}">{% if forloop.first %}<span style="display:inline-block;width:{% widthratio row.depth 1 18 %}px"></span><span class="toggle {% if not row.has_children %}leaf{% endif %}">{% if row.has_children %}▾{% else %}•{% endif %}</span>{% endif %}{{ html }}</td>
+          {% endfor %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="{{ columns|length|add:1 }}" class="empty">No records.</td></tr>
+      {% endfor %}
+      {% if can_edit_records %}<tr class="add-row"><td class="rownum">＋</td><td colspan="{{ columns|length }}" id="add-record" data-table="{{ table.pk }}" data-form="{% url 'core:record_new' app.slug table.slug %}?next={{ request.get_full_path|urlencode }}">Add a record</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{{ meta|json_script:"osmia-meta" }}
+{% endblock %}

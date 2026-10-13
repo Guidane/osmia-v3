@@ -1,0 +1,58 @@
+{
+  "key": "harness",
+  "name": "Harness",
+  "icon": "🧵",
+  "color": "#202634",
+  "version": "1.0.0",
+  "position": 46,
+  "description": "Harness projects drawn in the harness designer (an extension): devices placed on a canvas and wired pin to pin, checked against the signal rules.",
+  "requires": ["devices"],
+  "tables": [
+    {
+      "key": "projects",
+      "name": "Harness projects",
+      "icon": "🧵",
+      "display": "name",
+      "fields": [
+        {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "version", "name": "Version", "type": "number", "options": {"readonly": true}},
+        {"key": "device_count", "name": "Devices", "type": "number", "options": {"readonly": true}},
+        {"key": "harness_count", "name": "Harnesses", "type": "number", "options": {"readonly": true}},
+        {"key": "wire_count", "name": "Wires", "type": "number", "options": {"readonly": true}},
+        {"key": "verified", "name": "Verified wires", "type": "number", "options": {"readonly": true}},
+        {"key": "done", "name": "Verified", "type": "formula", "options": {"format": "percent", "decimals": 0,
+          "expression": "IF({Wires} > 0, {Verified wires} / {Wires} * 100, 0)"}},
+        {"key": "pictures", "name": "Pictures", "type": "attachment"},
+        {"key": "notes", "name": "Notes", "type": "longtext"},
+        {"key": "drawing", "name": "Drawing", "type": "json", "options": {"readonly": true}},
+        {"key": "changed", "name": "Last changed", "type": "modified_time"},
+        {"key": "changed_by", "name": "Changed by", "type": "modified_by"}
+      ],
+      "views": [
+        {"name": "Projects", "type": "grid", "config": {"fields": ["name", "version", "device_count", "harness_count", "wire_count", "done", "pictures", "changed", "changed_by"]}},
+        {"name": "Designer", "type": "harness_designer"}
+      ]
+    },
+    {
+      "key": "signal_rules",
+      "name": "Signal rules",
+      "icon": "⇆",
+      "display": "label",
+      "fields": [
+        {"key": "label", "name": "Rule", "type": "formula", "options": {"format": "text", "expression": "{Signal A} & \" ↔ \" & {Signal B}"}},
+        {"key": "signal_a", "name": "Signal A", "type": "link", "required": true,
+         "options": {"target": "devices.signals", "multiple": false, "inverse": {"key": "rules_a", "name": "Rules (A)", "multiple": true}}},
+        {"key": "signal_b", "name": "Signal B", "type": "link", "required": true,
+         "options": {"target": "devices.signals", "multiple": false, "inverse": {"key": "rules_b", "name": "Rules (B)", "multiple": true}}}
+      ],
+      "views": [{"name": "Signal rules", "type": "grid"}]
+    }
+  ],
+  "records": {
+    "signal_rules": [
+      {"Signal A": "+24V", "Signal B": "+24V"}, {"Signal A": "GND", "Signal B": "GND"},
+      {"Signal A": "CAN_H", "Signal B": "CAN_H"}, {"Signal A": "CAN_L", "Signal B": "CAN_L"},
+      {"Signal A": "TxP", "Signal B": "RxP"}, {"Signal A": "TxN", "Signal B": "RxN"}
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ app.name }}{% endblock %}
+{% block content %}
+<div class="card empty">
+  <h1>{{ app.icon }} {{ app.name }}</h1>
+  <p>This app has no tables yet.</p>
+  {% if can_build %}<a class="btn primary" href="{% url 'core:table_create' app.slug %}">＋ Add a table</a>{% endif %}
+</div>
+{% endblock %}

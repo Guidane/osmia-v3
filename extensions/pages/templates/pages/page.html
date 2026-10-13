@@ -1,0 +1,49 @@
+{% extends "base.html" %}{% load static osmia %}
+{% block title %}{{ page.title }} · {{ space.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'pages/pages.css' %}">{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block content %}
+<div class="pages-layout">
+  {% include "pages/_tree.html" %}
+  <article class="pages-main page-read">
+    <div class="crumbs"><a href="{% url 'pages:space' space.key %}">{{ space.name }}</a>{% for a in ancestors %} › <a href="{{ a.get_absolute_url }}">{{ a.title }}</a>{% endfor %}</div>
+    {% if version %}<div class="flash warning">You're looking at version {{ version.version }} of {{ version.created_at|date:"j M Y H:i" }}. <a href="{{ page.get_absolute_url }}">See the current version</a>{% if can_write %} · <form method="post" action="{% url 'pages:restore' page.pk version.version %}" style="display:inline">{% csrf_token %}<button class="link">Restore this version</button></form>{% endif %}</div>{% endif %}
+    <div class="page-title-row">
+      <h1>{% if page.emoji %}<span class="page-emoji">{{ page.emoji }}</span> {% endif %}{% if version %}{{ version.title }}{% else %}{{ page.title }}{% endif %}</h1>
+      <div class="page-actions">
+        <form method="post" action="{% url 'pages:pin' page.pk %}">{% csrf_token %}<button class="btn small ghost star{% if pinned %} on{% endif %}" title="{% if pinned %}Pinned to your home page; click to unpin{% else %}Pin to your home page{% endif %}">📌</button></form>
+        {% if can_write %}<a class="btn small primary" href="{% url 'pages:edit' page.pk %}">✎ Edit</a>
+          <a class="btn small" href="{% url 'pages:new' space.key %}?parent={{ page.pk }}">＋ Page under it</a>{% endif %}
+        <details class="menu toolbar-menu"><summary class="btn small ghost">⋯</summary>
+          <div class="menu-panel">
+            <button type="button" onclick="navigator.clipboard && navigator.clipboard.writeText(location.origin + '{{ page.get_absolute_url }}'); OSMIA.toast('Link copied')">🔗 Copy link</button>
+            <a href="#history">↺ History ({{ page.version }})</a>
+            {% if can_write %}<div class="sep"></div><div class="label">Move under</div>
+              <form method="post" action="{% url 'pages:move' page.pk %}" style="padding:4px 10px">{% csrf_token %}
+                <select name="parent" onchange="this.form.submit()" style="width:100%"><option value="">—</option><option value="" {% if not page.parent %}selected{% endif %}>The top of {{ space.name }}</option>
+                  {% for p in move_targets %}<option value="{{ p.pk }}" {% if p.pk == page.parent_id %}selected{% endif %}>{{ p.title }}</option>{% endfor %}</select></form>{% endif %}
+            {% if can_delete %}<div class="sep"></div><form method="post" action="{% url 'pages:delete' page.pk %}" data-confirm="Delete “{{ page.title }}” and the pages under it?">{% csrf_token %}<button style="color:var(--danger)">🗑 Delete</button></form>{% endif %}
+          </div>
+        </details>
+      </div>
+    </div>
+    <div class="page-meta muted small">{% if page.updated_by %}{{ page.updated_by }} changed it {% endif %}{{ page.updated_at|timesince }} ago · version {{ page.version }}
+      {% for l in page.label_list %}<a class="chip" href="{% url 'pages:space' space.key %}?label={{ l|urlencode }}">{{ l }}</a>{% endfor %}</div>
+    <div class="page-body">{{ body|safe }}</div>
+    {% if children %}<div class="card child-pages"><h3>Pages under it</h3>{% for c in children %}<a class="side-link" href="{{ c.get_absolute_url }}">{{ c.emoji|default:"📄" }} {{ c.title }}</a>{% endfor %}</div>{% endif %}
+
+    <section class="card" id="comments"><h3>Comments ({{ comments|length }})</h3>
+      {% for c in comments %}<div class="entry feed"><span class="who">{{ c.user|default:"Someone" }}</span> <span class="when">{{ c.created_at|timesince }} ago</span><div style="white-space:pre-line">{{ c.text }}</div></div>{% endfor %}
+      <form method="post" action="{% url 'pages:comment' page.pk %}" class="comment-form">{% csrf_token %}<textarea name="text" placeholder="Write a comment…" required></textarea>
+        <div class="actions"><button class="btn small primary">Comment</button></div></form>
+    </section>
+    <section class="card" id="history"><h3>History</h3>
+      {% for v in versions %}<div class="history-row"><a href="?version={{ v.version }}">Version {{ v.version }}</a> <span class="muted small">{{ v.created_by|default:"" }} · {{ v.created_at|date:"j M Y H:i" }}{% if v.note %} · {{ v.note }}{% endif %}</span>{% if v.version == page.version %} <span class="badge ok">current</span>{% endif %}</div>{% endfor %}
+    </section>
+  </article>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+  // task lists: ticking a box on a page you can edit saves it
+  document.querySelectorAll('.page-body li.task').forEach((li) => li.setAttribute('title', 'Edit the page to tick it off'));
+</script>{% endblock %}

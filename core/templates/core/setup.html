@@ -1,23 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Set up · Osmia{% endblock %}
-{% block content %}
-<div class="card narrow setup">
-  <span class="brand">▦ Osmia</span>
-  <h1>Welcome</h1>
-  <p class="muted">Make the administrator account. The administrator can add people, and install, update and remove modules.</p>
-  <form method="post" class="form">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for field in form %}{% if field.name != 'modules' and field.name != 'demo' %}{% include "core/_field.html" %}{% endif %}{% endfor %}
-    {% if form.modules %}
-      <fieldset>
-        <legend>Modules to install</legend>
-        <div class="module-checks">{{ form.modules }}</div>
-        <small class="muted">{{ form.modules.help_text }}</small>
-      </fieldset>
-    {% endif %}
-    {% include "core/_field.html" with field=form.demo %}
-    <div class="actions"><button class="btn primary">Set up Osmia</button></div>
+{% block title %}Welcome · Osmia{% endblock %}
+{% block anonymous %}
+<div class="auth" style="max-width:720px">
+  <div class="brand">▦ Osmia</div>
+  <form method="post" class="form card">{% csrf_token %}
+    <h1>Welcome</h1>
+    <p class="muted">Make the administrator account. Administrators make apps, install templates and extensions, and manage users.</p>
+    {% for e in errors %}<div class="flash error">{{ e }}</div>{% endfor %}
+    <div class="grid2">
+      <div class="field"><label for="username" class="required">User name</label><input id="username" name="username" value="{{ values.username }}" required autofocus></div>
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="{{ values.email }}"></div>
+      <div class="field"><label for="first_name">First name</label><input id="first_name" name="first_name" value="{{ values.first_name }}"></div>
+      <div class="field"><label for="last_name">Last name</label><input id="last_name" name="last_name" value="{{ values.last_name }}"></div>
+      <div class="field"><label for="password1" class="required">Password</label><input id="password1" name="password1" type="password" required></div>
+      <div class="field"><label for="password2" class="required">Repeat it</label><input id="password2" name="password2" type="password" required></div>
+    </div>
+    <h2>Start with apps from templates</h2>
+    <p class="muted small">Each template is an ordinary app you can change afterwards. Apps that others need are installed with them.</p>
+    <div class="checklist" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr))">
+      {% for key, bp in catalog.items %}
+        <label title="{{ bp.description }}"><input type="checkbox" name="templates" value="{{ key }}" {% if not values %}checked{% endif %}> {{ bp.icon }} {{ bp.name }}</label>
+      {% endfor %}
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label class="inline" style="font-weight:normal"><input type="checkbox" name="sample" value="1" checked> Add sample records, to try Osmia out</label>
+      <label class="inline" style="font-weight:normal"><input type="checkbox" name="demo_users" value="1" checked> Add demo users alice, bob and carla (password <code>demo</code>)</label>
+    </div>
+    <div class="actions"><button class="btn primary">Start Osmia</button></div>
   </form>
 </div>
 {% endblock %}

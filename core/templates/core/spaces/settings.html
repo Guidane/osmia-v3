@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ space.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>⚙ {% if space.is_personal %}My space{% else %}{{ space.name }}{% endif %}</h1>
+<form method="post" class="form card">{% csrf_token %}<input type="hidden" name="action" value="save">
+  <div class="grid2">
+    <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ space.name }}" required></div>
+    <div class="field"><label for="icon">Icon</label><input id="icon" name="icon" value="{{ space.icon }}" maxlength="8"></div>
+    {% if not space.is_personal %}<div class="field"><label for="kind">Kind</label><select id="kind" name="kind">{% for v, l in kinds %}<option value="{{ v }}" {% if v == space.kind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>{% endif %}
+    <div class="field"><label for="visibility">Who can see it</label><select id="visibility" name="visibility">
+      {% if space.is_personal %}<option value="private" {% if space.visibility == 'private' %}selected{% endif %}>Only me</option><option value="internal" {% if space.visibility == 'internal' %}selected{% endif %}>Everyone can look at it (the apps I share)</option>
+      {% else %}{% for v, l in visibilities %}<option value="{{ v }}" {% if v == space.visibility %}selected{% endif %}>{{ l }}</option>{% endfor %}{% endif %}</select>
+      {% if space.is_personal %}<div class="help">Your to-dos and bookmarks always stay yours alone.</div>{% endif %}</div>
+  </div>
+  <div class="field"><label>Colour</label><div class="inline">{% for c in colors %}<label><input type="radio" name="color" value="{{ c }}" {% if c == space.color %}checked{% endif %}> <span class="swatch" style="background:{{ c }}"></span></label>{% endfor %}</div></div>
+  <div class="field"><label for="description">What it's for</label><textarea id="description" name="description" rows="3">{{ space.description }}</textarea></div>
+
+  {% if space.is_personal %}
+    <h2>My home page</h2>
+    <p class="help">Tick what your home page shows, and drag to put it in order.</p>
+    <div class="field-list sortable">{% for key, label, on in home_sections %}<label draggable="true"><span class="muted">☰</span><input type="checkbox" name="home" value="{{ key }}" {% if on %}checked{% endif %}> {{ label }}</label>{% endfor %}</div>
+  {% else %}
+    <h2>Members</h2>
+    <p class="help">Viewers look, editors also change records, space admins also build the space's apps and pages and change these settings.{% if space.visibility == 'internal' %} Everyone else can look.{% endif %}</p>
+    <table class="list">
+      {% for g, role in teams %}<tr><td>👥 {{ g.name }}</td><td><select name="group_{{ g.pk }}"><option value="">—</option>{% for v, l in roles %}<option value="{{ v }}" {% if v == role %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></td></tr>{% endfor %}
+      {% for u, role in users %}<tr><td>👤 {{ u }}</td><td><select name="user_{{ u.pk }}"><option value="">—</option>{% for v, l in roles %}<option value="{{ v }}" {% if v == role %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></td></tr>{% endfor %}
+    </table>
+  {% endif %}
+
+  <h2 id="shortcuts">Apps from other spaces</h2>
+  <p class="help">They stay in their own space and keep their own access; this space shows them in its sidebar and overview.</p>
+  <div class="checklist">{% for a, on in shareable %}<label><input type="checkbox" name="shortcuts" value="{{ a.pk }}" {% if on %}checked{% endif %}> {{ a.icon }} {{ a.name }} <span class="muted small">· {{ a.space.name|default:"" }}</span></label>{% empty %}<span class="muted small">No other apps.</span>{% endfor %}</div>
+  <div class="actions"><button class="btn primary">Save</button><a class="btn ghost" href="{{ space.get_absolute_url }}">Back to the space</a></div>
+</form>
+
+{% if not space.is_personal %}
+<div class="card form">
+  <h2 style="margin-top:0">What the space is about</h2>
+  <p class="help">Link the space to records: its department, its budget, its project, its manager's team ... They show on the overview.</p>
+  {% for x in links %}
+    <form method="post" class="inline" style="margin-bottom:6px">{% csrf_token %}<input type="hidden" name="action" value="remove_link"><input type="hidden" name="link" value="{{ x.l.pk }}">
+      <b style="min-width:110px">{{ x.l.label }}</b> <a class="link-chip" href="{{ x.l.record.get_absolute_url }}">{{ x.title }}</a> <span class="muted small">{{ x.l.record.table.name }}</span> <button class="btn small ghost">✕</button></form>
+  {% endfor %}
+  <form method="post" class="inline" style="flex-wrap:wrap">{% csrf_token %}<input type="hidden" name="action" value="add_link">
+    <input name="label" placeholder="Label, e.g. Department" style="width:170px" required>
+    <select id="link-table" aria-label="Table"><option value="">Table…</option>{% for t in link_tables %}<option value="{{ t.pk }}">{{ t.app.name }} › {{ t.name }}</option>{% endfor %}</select>
+    <input type="hidden" name="record" id="link-record"><button type="button" class="btn small" id="pick-record">Pick a record</button><span id="picked" class="muted small"></span>
+    <button class="btn small primary">Add</button>
+  </form>
+</div>
+<form method="post" class="form card" style="border-color:var(--danger)">{% csrf_token %}<input type="hidden" name="action" value="delete">
+  <h2 style="margin-top:0">Delete the space</h2>
+  <label class="inline"><input type="radio" name="apps" value="move" checked> Move its apps to the Company space</label>
+  <label class="inline"><input type="radio" name="apps" value="delete"> Delete its apps and their records too</label>
+  <div class="field" style="margin-top:8px"><label for="confirm">Type {{ space.name }} to confirm</label><input id="confirm" name="confirm" autocomplete="off"></div>
+  <button class="btn danger">Delete {{ space.name }}</button>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>
+  const pick = document.getElementById('pick-record');
+  if (pick) pick.addEventListener('click', () => {
+    const table = document.getElementById('link-table').value;
+    if (!table) { OSMIA.toast('Pick the table first', true); return; }
+    OSMIA.openPicker({ table, title: 'Pick a record', multiple: false, selected: [], onDone: (items) => {
+      if (!items.length) return;
+      document.getElementById('link-record').value = items[0].id;
+      document.getElementById('picked').textContent = items[0].name;
+    } });
+  });
+</script>{% endblock %}

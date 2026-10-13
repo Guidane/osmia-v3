@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>Search</h1>
+<form class="toolbar" style="background:none;border:0;padding:0 0 12px"><input type="search" name="q" value="{{ q }}" autofocus style="flex:1"><button class="btn primary">Search</button></form>
+{% for heading, items in more %}
+  <div class="card"><h3>{{ heading }}</h3>
+    {% for title, url, where in items %}<div style="padding:3px 0"><a href="{{ url }}">{{ title }}</a> <span class="muted small">{{ where }}</span></div>{% endfor %}
+  </div>
+{% endfor %}
+{% for r in results %}
+  <div class="card"><h3>{{ r.table.app.icon }} {{ r.table.app.name }} › {{ r.table.name }}</h3>
+    {% for rec, label in r.records %}<a class="link-chip" href="{{ rec.get_absolute_url }}">{{ label }}</a>{% endfor %}
+  </div>
+{% empty %}{% if q and not more %}<p class="muted">Nothing found for "{{ q }}".</p>{% endif %}{% endfor %}
+{% endblock %}

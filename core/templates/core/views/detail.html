@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name }} · {{ table.name }}{% endblock %}
+{% block main %}
+{% include "core/_table_head.html" %}
+<div class="split">
+  <div class="list-pane">
+    {% for i in items %}
+      <a href="?r={{ i.record.pk }}{% if state.q %}&q={{ state.q|urlencode }}{% endif %}" class="{% if selected and i.record.pk == selected.pk %}on{% endif %}">
+        <div class="t">{{ i.title }}</div>
+        {% for s in i.sub %}{% if s %}<div class="s">{{ s }}</div>{% endif %}{% endfor %}
+      </a>
+    {% empty %}<div class="empty">No records.</div>{% endfor %}
+  </div>
+  <div class="detail-pane">
+    {% if record %}{% include "core/_record_body.html" with in_view=True %}{% endif %}
+  </div>
+</div>
+{{ meta|json_script:"osmia-meta" }}
+{% endblock %}

@@ -1,0 +1,41 @@
+{
+  "key": "departments",
+  "name": "Organisation",
+  "icon": "🏢",
+  "color": "#475569",
+  "version": "1.0.0",
+  "position": 10,
+  "description": "The organisation as nested departments, with their manager and members.",
+  "tables": [
+    {
+      "key": "departments",
+      "name": "Departments",
+      "icon": "🏢",
+      "display": "name",
+      "fields": [
+        {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "parent", "name": "Part of", "type": "link",
+         "options": {"target": "departments", "multiple": false, "inverse": {"key": "sub_departments", "name": "Sub-departments", "multiple": true}}},
+        {"key": "manager", "name": "Manager", "type": "user"},
+        {"key": "members", "name": "Members", "type": "user", "options": {"multiple": true}},
+        {"key": "member_count", "name": "People", "type": "formula", "options": {"expression": "COUNTA({Members})", "format": "number"}},
+        {"key": "email", "name": "Email", "type": "email"},
+        {"key": "notes", "name": "Notes", "type": "longtext"}
+      ],
+      "views": [
+        {"name": "Organisation", "type": "tree", "config": {"parent_field": "parent", "fields": ["name", "manager", "members", "member_count", "email"]}},
+        {"name": "All departments", "type": "grid"},
+        {"name": "Departments", "type": "detail", "config": {"fields": ["name", "manager"]}}
+      ]
+    }
+  ],
+  "records": {
+    "departments": [
+      {"Name": "Company", "Manager": "alice"},
+      {"Name": "Operations", "Part of": "Company", "Manager": "bob"},
+      {"Name": "Warehouse", "Part of": "Operations", "Members": ["bob"]},
+      {"Name": "Engineering", "Part of": "Company", "Manager": "alice", "Members": ["alice"]},
+      {"Name": "Purchasing", "Part of": "Operations", "Manager": "carla", "Members": ["carla"]}
+    ]
+  }
+}

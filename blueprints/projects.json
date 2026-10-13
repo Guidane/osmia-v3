@@ -1,0 +1,74 @@
+{
+  "key": "projects",
+  "name": "Projects",
+  "icon": "📁",
+  "color": "#0d9488",
+  "version": "1.0.0",
+  "position": 25,
+  "description": "Ties the work together: each project has a manager, a team, dates, its tasks and (with Budgets) its own budget.",
+  "requires": ["tasks"],
+  "after": ["departments", "budgets"],
+  "tables": [
+    {
+      "key": "projects",
+      "name": "Projects",
+      "icon": "📁",
+      "display": "name",
+      "fields": [
+        {"key": "code", "name": "Code", "type": "autonumber", "options": {"prefix": "PRJ-", "digits": 4}},
+        {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "status", "name": "Status", "type": "select", "options": {"default": "Planned", "choices": [
+          {"value": "Planned", "color": "#e5e7eb"}, {"value": "Active", "color": "#bbf7d0"}, {"value": "On hold", "color": "#fde68a"},
+          {"value": "Done", "color": "#bfdbfe"}, {"value": "Cancelled", "color": "#fecaca"}]}},
+        {"key": "department", "name": "Department", "type": "link",
+         "options": {"target": "departments.departments", "optional": true, "multiple": false, "inverse": {"key": "projects", "name": "Projects", "multiple": true}}},
+        {"key": "manager", "name": "Manager", "type": "user"},
+        {"key": "team", "name": "Team", "type": "user", "options": {"multiple": true}},
+        {"key": "start", "name": "Start", "type": "date"},
+        {"key": "end", "name": "End", "type": "date"},
+        {"key": "tasks", "name": "Tasks", "type": "link",
+         "options": {"target": "tasks.tasks", "multiple": true, "inverse": {"key": "project", "name": "Project", "multiple": false}}},
+        {"key": "budget", "name": "Budget", "type": "link",
+         "options": {"target": "budgets.budgets", "optional": true, "multiple": false, "inverse": {"key": "projects", "name": "Projects", "multiple": true}}},
+        {"key": "description", "name": "Description", "type": "longtext"},
+        {"key": "files", "name": "Files", "type": "attachment"},
+        {"key": "task_count", "name": "Task count", "type": "rollup", "options": {"link": "tasks", "func": "count"}},
+        {"key": "tasks_done", "name": "Tasks done", "type": "rollup", "options": {"link": "tasks", "func": "count", "filter": "{Status} = \"Done\""}},
+        {"key": "progress", "name": "Progress", "type": "formula", "options": {"format": "percent", "decimals": 0,
+          "expression": "IF({Task count} > 0, {Tasks done} / {Task count} * 100, 0)"}},
+        {"key": "hours", "name": "Estimated hours", "type": "rollup", "options": {"link": "tasks", "field": "estimate", "func": "sum"}},
+        {"key": "budget_amount", "name": "Budget amount", "type": "lookup", "optional": true, "options": {"link": "budget", "field": "amount"}},
+        {"key": "budget_left", "name": "Budget left", "type": "lookup", "optional": true, "options": {"link": "budget", "field": "remaining"}},
+        {"key": "days_left", "name": "Days left", "type": "formula", "options": {"format": "number",
+          "expression": "IF(OR(ISBLANK({End}), IN({Status}, \"Done\", \"Cancelled\")), BLANK(), DAYS({End}, TODAY()))"}}
+      ],
+      "views": [
+        {"name": "Projects", "type": "grid", "config": {"fields": ["code", "name", "status", "manager", "department", "start", "end", "progress", "task_count", "budget_amount", "budget_left", "days_left"]}},
+        {"name": "By status", "type": "kanban", "config": {"group_field": "status", "fields": ["name", "manager", "end", "progress"]}},
+        {"name": "Timeline", "type": "gantt", "config": {"start_field": "start", "end_field": "end", "color_field": "status", "progress_field": "progress", "zoom": "week"}},
+        {"name": "Project pages", "type": "detail", "config": {"fields": ["name", "status", "manager"]}}
+      ]
+    }
+  ],
+  "automations": [
+    {"key": "own_budget", "table": "projects", "name": "Give a new project its own budget", "optional": true,
+     "description": "Makes a budget named after the project, so what its tasks and orders cost shows on the project.",
+     "trigger": "record_created",
+     "conditions": {"match": "all", "rules": [{"field": "budget", "op": "is_empty"}]},
+     "actions": [{"type": "create_record", "table": "budgets.budgets", "values": {"name": "{Code} {Name}", "amount": "0"}},
+                 {"type": "update_record", "target": "this", "values": {"budget": "={found}"}}]},
+    {"key": "start_project", "table": "projects", "name": "Activate a project when work starts",
+     "trigger": "condition_met",
+     "conditions": {"match": "all", "rules": [{"field": "status", "op": "is", "value": "Planned"}], "formula": "{Tasks done} > 0"},
+     "actions": [{"type": "update_record", "target": "this", "values": {"status": "Active"}}]}
+  ],
+  "records": {
+    "projects": [
+      {"Name": "Burn-in test bench", "Status": "Active", "Manager": "alice", "Team": ["alice", "bob"], "Department": "Engineering",
+       "Start": "=TODAY()-10", "End": "=TODAY()+30", "Tasks": ["Build the burn-in rack", "Wire the power distribution", "Write the test procedure", "Calibrate the electronic load"],
+       "Description": "A rack that runs ten units at full load for 48 hours before they ship."},
+      {"Name": "Warehouse re-layout", "Status": "Planned", "Manager": "bob", "Department": "Warehouse",
+       "Start": "=TODAY()+3", "End": "=TODAY()+40", "Tasks": ["Count the shelves in rack A", "Label the new bins"]}
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Fields · {{ table.name }}{% endblock %}
+{% block content %}
+<div class="record-head">
+  <div class="crumbs"><a href="{{ table.get_absolute_url }}">{{ app.name }} › {{ table.name }}</a></div>
+  <h1>Fields of {{ table.name }}</h1>
+  <a class="btn" href="{% url 'core:table_settings' app.slug table.slug %}">⚙ Table settings</a>
+  <a class="btn primary" href="{% url 'core:field_create' app.slug table.slug %}">＋ New field</a>
+</div>
+<form method="post">{% csrf_token %}
+<table class="list sortable-rows">
+  <thead><tr><th style="width:30px"></th><th>Name</th><th>Type</th><th>Settings</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr class="drag-row" draggable="true">
+      <td class="muted">☰<input type="hidden" name="order" value="{{ r.field.pk }}"></td>
+      <td><a href="{% url 'core:field_edit' app.slug table.slug r.field.pk %}"><b>{{ r.field.name }}</b></a>
+        {% if r.primary %}<span class="badge ok" title="Names the records">name</span>{% endif %}
+        {% if r.field.required %}<span class="badge">required</span>{% endif %}
+        {% if r.field.options.readonly %}<span class="badge" title="Only automations set it">automations only</span>{% endif %}
+        {% if r.field.description %}<div class="muted small">{{ r.field.description }}</div>{% endif %}</td>
+      <td class="nowrap">{{ r.field.kind.icon }} {{ r.field.kind.label }}</td>
+      <td class="muted small"><code style="background:none">{{ r.info|truncatechars:120 }}</code></td>
+      <td class="muted small">{{ r.field.key }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<div class="actions"><button class="btn small">Save the order</button><span class="help">Drag rows to reorder. The key (right) is how templates and automations refer to a field; it doesn't change when you rename it.</span></div>
+</form>
+{% endblock %}

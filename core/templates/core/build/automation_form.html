@@ -1,0 +1,46 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{% if auto %}{{ auto.name }}{% else %}New automation{% endif %} · {{ app.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="record-head">
+  <div class="crumbs"><a href="{% url 'core:automations' app.slug %}">{{ app.name }} › Automations</a></div>
+  <h1>⚡ {% if auto %}{{ auto.name }}{% else %}New automation{% endif %}</h1>
+</div>
+<form method="post" id="automation-form">{% csrf_token %}
+  <input type="hidden" name="spec" id="spec">
+  <div class="card form">
+    <div class="grid2">
+      <div class="field"><label for="a-name" class="required">Name</label><input id="a-name" data-bind="name" required></div>
+      <div class="field"><label for="a-table">About records of</label><select id="a-table" data-bind="table">{% for t in app_tables %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="field"><label for="a-desc">Description</label><input id="a-desc" data-bind="description"></div>
+    <label class="inline"><input type="checkbox" data-bind="active"> On</label>
+  </div>
+  <div class="card">
+    <div class="auto-block"><div class="label">When</div><div id="trigger"></div></div>
+    <div class="auto-block"><div class="label">If</div><div id="conditions"></div></div>
+    <div class="auto-block"><div class="label">Then</div><div id="steps"></div>
+      <div class="actions"><select id="add-step"><option value="">＋ Add a step…</option></select></div>
+    </div>
+    <details class="small"><summary class="muted">How values work</summary>
+      <p>A value is text with <code>{Field}</code> placeholders, or a formula when it starts with <code>=</code>. In both, <code>{Field}</code> is the record the automation runs for, <code>{old.Field}</code> its value before the change, <code>{this.Field}</code> the record a step is changing, <code>{item.Field}</code> the linked record of a "for each" step and <code>{found.Field}</code> the record the last "find or create" found. A path follows links: <code>{Part.Average cost}</code>. To link a new record to this one, set its link field to <code>=RECORD_ID()</code>.</p>
+      <div class="fn-help">{% for sig, desc in functions %}<div><code>{{ sig }}</code> {{ desc }}</div>{% endfor %}</div>
+    </details>
+  </div>
+  <div class="actions">
+    <button class="btn primary">Save</button>
+    <a class="btn ghost" href="{% url 'core:automations' app.slug %}">Cancel</a>
+    {% if auto %}<div style="flex:1"></div><button class="btn danger" name="delete" value="1" formnovalidate data-confirm="Delete the automation {{ auto.name }}?">Delete</button>{% endif %}
+  </div>
+</form>
+{% if runs %}
+<h2>Last runs</h2>
+<table class="list">
+  {% for r in runs %}<tr><td class="nowrap"><span class="badge {{ r.status }}">{{ r.get_status_display }}</span><div class="muted small">{{ r.created_at|timesince }} ago</div></td>
+    <td>{% if r.record_id %}<a href="/r/{{ r.record_id }}/">{{ r.record_label }}</a>{% endif %} <span class="muted small">{{ r.trigger }}{% if r.user %} · {{ r.user }}{% endif %}</span><pre class="log">{{ r.log }}</pre></td></tr>{% endfor %}
+</table>
+{% endif %}
+{{ meta|json_script:"builder-meta" }}
+{{ initial|json_script:"builder-initial" }}
+{% endblock %}
+{% block scripts %}<script src="{% static 'core/automation.js' %}"></script>{% endblock %}

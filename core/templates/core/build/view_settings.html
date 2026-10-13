@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name }} settings · {{ table.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="record-head">
+  <div class="crumbs"><a href="{{ view.get_absolute_url }}">{{ app.name }} › {{ table.name }} › {{ view.name }}</a></div>
+  <h1>{{ vt.icon }} {{ vt.label }} view settings</h1>
+</div>
+<form method="post" class="form card">{% csrf_token %}
+  <p class="muted">{{ vt.help }}</p>
+  <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ view.name }}" required></div>
+  {% for item in settings %}{% with s=item.s %}
+    <div class="field">
+      <label for="s_{{ s.name }}" class="{% if s.required %}required{% endif %}">{{ s.label }}</label>
+      {% if s.kind == 'field' %}
+        <select id="s_{{ s.name }}" name="{{ s.name }}"><option value="">—</option>{% for f in item.options %}<option value="{{ f.key }}" {% if f.key == item.value %}selected{% endif %}>{{ f.kind.icon }} {{ f.name }}</option>{% endfor %}</select>
+        {% if not item.options and s.required %}<div class="help error">{{ table.name }} has no field that fits. <a href="{% url 'core:field_create' app.slug table.slug %}">Add one</a>.</div>{% endif %}
+      {% elif s.kind == 'fields' %}
+        <div class="field-list sortable">{% for f in ordered_fields %}<label draggable="true"><span class="muted">☰</span><input type="checkbox" name="{{ s.name }}" value="{{ f.key }}" {% if f.key in shown %}checked{% endif %}> {{ f.kind.icon }} {{ f.name }}</label>{% endfor %}</div>
+        <div class="help">Tick the fields to show and drag them into order.</div>
+      {% elif s.kind == 'textarea' %}
+        <textarea id="s_{{ s.name }}" name="{{ s.name }}" rows="3">{{ item.value }}</textarea>
+      {% elif s.kind == 'choice' %}
+        <select id="s_{{ s.name }}" name="{{ s.name }}"><option value="">—</option>{% for v, l in s.choices %}<option value="{{ v }}" {% if v == item.value %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      {% else %}
+        <input id="s_{{ s.name }}" name="{{ s.name }}" value="{{ item.value }}">
+      {% endif %}
+      {% if s.help %}<div class="help">{{ s.help }}</div>{% endif %}
+    </div>
+  {% endwith %}{% endfor %}
+  {% if view.type != 'form' and view.type != 'kanban' and view.type != 'gallery' and view.type != 'detail' %}
+    <div class="field"><span class="label">Shown fields</span>
+      <div class="field-list sortable">{% for f in ordered_fields %}<label draggable="true"><span class="muted">☰</span><input type="checkbox" name="fields" value="{{ f.key }}" {% if f.key in shown %}checked{% endif %}> {{ f.kind.icon }} {{ f.name }}</label>{% endfor %}</div>
+      <div class="help">Filters, sorts and grouping are set with the toolbar above the view; "Save for everyone" keeps them.</div>
+    </div>
+  {% endif %}
+  <h2>Order of the views</h2>
+  <ul class="plain sortable">{% for v in views %}<li class="link-chip" style="display:block;max-width:none;cursor:grab" draggable="true"><input type="hidden" name="view_order" value="{{ v.pk }}">☰ {{ v.name }}</li>{% endfor %}</ul>
+  <div class="actions">
+    <button class="btn primary">Save</button>
+    <button class="btn" name="duplicate" value="1" formnovalidate>Duplicate</button>
+    <a class="btn ghost" href="{{ view.get_absolute_url }}">Cancel</a>
+    <div style="flex:1"></div>
+    <button class="btn danger" name="delete" value="1" formnovalidate data-confirm="Delete the view {{ view.name }}? The records stay.">Delete view</button>
+  </div>
+</form>
+{% endblock %}

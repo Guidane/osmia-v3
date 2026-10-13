@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Log in · Osmia{% endblock %}
+{% block anonymous %}
+<div class="auth">
+  <div class="brand">▦ Osmia</div>
+  <form method="post" class="form card">{% csrf_token %}
+    {% if form.errors %}<div class="flash error">The user name or password is not right.</div>{% endif %}
+    <div class="field"><label for="id_username">User name</label><input id="id_username" name="username" autofocus required autocomplete="username"></div>
+    <div class="field"><label for="id_password">Password</label><input id="id_password" name="password" type="password" required autocomplete="current-password"></div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="actions"><button class="btn primary">Log in</button><a class="small" href="{% url 'accounts:reset' %}">Forgot your password?</a></div>
+  </form>
+</div>
+{% endblock %}

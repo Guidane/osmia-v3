@@ -1,0 +1,133 @@
+{% load osmia %}
+<div class="record-head">
+  <div class="crumbs"><a href="{{ record_app.get_absolute_url }}">{{ record_app.name }}</a> › <a href="{{ record_table.get_absolute_url }}">{{ record_table.name }}</a></div>
+  <h1 id="record-title">{{ record_label }}</h1>
+  {% if not in_view %}<form method="post" action="{% url 'core:record_star' record.pk %}" class="star-form">{% csrf_token %}
+    <button class="btn small ghost star{% if starred %} on{% endif %}" title="{% if starred %}Starred: on your home page. Click to unstar{% else %}Star it, to find it on your home page{% endif %}">{% if starred %}★{% else %}☆{% endif %}</button></form>{% endif %}
+  {% for b in buttons %}{{ b.html }}{% endfor %}
+  {% if can_edit_record and manual_automations %}
+  <details class="menu toolbar-menu">
+    <summary class="btn small">▶ Run</summary>
+    <div class="menu-panel">{% for a in manual_automations %}<button type="button" class="run-automation" data-record="{{ record.pk }}" data-automation="{{ a.pk }}" title="{{ a.description }}">{{ a.name }}</button>{% endfor %}</div>
+  </details>
+  {% endif %}
+  {% if not in_view %}
+    {% if prev_id %}<a class="btn small ghost" href="/r/{{ prev_id }}/" title="Previous">↑</a>{% endif %}
+    {% if next_id %}<a class="btn small ghost" href="/r/{{ next_id }}/" title="Next">↓</a>{% endif %}
+  {% else %}
+    <a class="btn small ghost" href="{{ record.get_absolute_url }}" title="Open on its own page">⤢</a>
+  {% endif %}
+  {% if can_edit_record %}
+  <details class="menu toolbar-menu">
+    <summary class="btn small ghost">⋯</summary>
+    <div class="menu-panel">
+      <form method="post" action="{% url 'core:record_delete' record.pk %}" data-confirm="Delete {{ record_label }}? Its files and links go too.">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ record_table.get_absolute_url }}"><button style="color:var(--danger)">🗑 Delete</button>
+      </form>
+    </div>
+  </details>
+  {% endif %}
+</div>
+<div class="record-layout">
+  <div>
+    <div class="card">
+      <div class="props" id="props">
+        {% for c in main_cells %}
+          <div class="k" title="{{ c.field.description }}"><span class="ficon">{{ c.field.kind.icon }}</span>{{ c.field.name }}{% if c.field.required %}<span class="error">*</span>{% endif %}</div>
+          <div class="v cell{% if cell_editing and c.field.editable and can_edit_record %} editable{% endif %}" data-record="{{ record.pk }}" data-field="{{ c.field.pk }}" data-raw="{{ c.raw }}">{{ c.html }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% for s in sections %}
+    <div class="card flush" id="section-{{ s.field.pk }}">
+      <div class="card-head">
+        <h3>{{ s.field.name }} <span class="muted small">· {{ s.rows|length }}</span></h3>
+        {% if can_edit_record and s.field.editable %}
+          <button type="button" class="btn small link-add" data-record="{{ record.pk }}" data-field="{{ s.field.pk }}" data-target="{{ s.target.pk }}" data-target-name="{{ s.target.name }}">⇄ Link</button>
+          {% if s.can_add and s.inverse %}
+            <button type="button" class="btn small quick-add" data-table="{{ s.target.pk }}" data-field="{{ s.inverse.pk }}" data-record="{{ record.pk }}" data-form="{% url 'core:record_new' s.target.app.slug s.target.slug %}?link_field={{ s.inverse.pk }}&link_to={{ record.pk }}&next={{ request.get_full_path|urlencode }}" title="Add a row here and fill it in">＋ Row</button>
+            <a class="btn small ghost" href="{% url 'core:record_new' s.target.app.slug s.target.slug %}?link_field={{ s.inverse.pk }}&link_to={{ record.pk }}&next={{ request.get_full_path|urlencode }}" title="Open the full form">＋ Form</a>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if s.rows %}
+      <div style="overflow-x:auto">
+      <table class="sub">
+        <thead><tr>{% for c in s.columns %}<th class="{{ c|align }}">{{ c.name }}</th>{% endfor %}<th></th></tr></thead>
+        <tbody>
+          {% for row in s.rows %}
+            <tr data-record="{{ row.record.pk }}">
+              {% for c in row.cells %}{% with record=row.record %}{% include "core/_cell.html" %}{% endwith %}{% endfor %}
+              <td class="nowrap" style="width:60px">
+                <a href="{{ row.record.get_absolute_url }}" title="Open">⤢</a>
+                {% if can_edit_record and s.field.editable %}<button type="button" class="link unlink" data-record="{{ record.pk }}" data-field="{{ s.field.pk }}" data-remove="{{ row.record.pk }}" title="Unlink">✕</button>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}<p class="muted small" style="padding:10px 14px;margin:0">None yet.</p>{% endif %}
+    </div>
+    {% endfor %}
+
+    {% for ff in file_fields %}
+    <div class="card flush">
+      <div class="card-head"><h3>📎 {{ ff.field.name }} <span class="muted small">· {{ ff.items|length }}</span></h3></div>
+      <div class="files">
+        {% for a in ff.items %}
+          <div class="file">
+            <a class="pic" href="{% url 'core:attachment' a.pk %}" target="_blank">{% if a.is_image %}<img src="{% url 'core:attachment' a.pk %}?thumb=1" alt="{{ a.name }}" loading="lazy">{% else %}📄{% endif %}</a>
+            <div class="name" title="{{ a.name }}">{{ a.name }}</div>
+            <div class="muted small">{{ a.size|filesizeformat }}</div>
+            {% if can_edit_record %}<form method="post" action="{% url 'core:attachment_delete' a.pk %}" data-confirm="Remove {{ a.name }}?">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn small">✕</button></form>{% endif %}
+          </div>
+        {% empty %}<span class="muted small">No files yet.</span>{% endfor %}
+      </div>
+      {% if can_edit_record %}
+      <form method="post" enctype="multipart/form-data" action="{% url 'core:record_upload' record.pk ff.field.pk %}" class="upload-form">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <label class="dropzone">Drop files here or click to add<input type="file" name="files" multiple hidden></label>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% for p in panels %}<div class="card"><h3>{{ p.title }}</h3>{{ p.html|safe }}</div>{% endfor %}
+  </div>
+
+  <div>
+    <div class="card flush">
+      <div class="side-tabs">
+        <button type="button" class="on" data-side="comments">Comments ({{ comments|length }})</button>
+        <button type="button" data-side="history">History</button>
+        <button type="button" data-side="runs">Automations</button>
+      </div>
+      <div class="feed" data-pane="comments">
+        {% for c in comments %}
+          <div class="entry"><span class="who">{{ c.user|default:"Someone" }}</span> <span class="when">{{ c.created_at|timesince }} ago</span><div style="white-space:pre-line">{{ c.text }}</div></div>
+        {% empty %}<p class="muted small">No comments yet.</p>{% endfor %}
+        {% if can_edit_record %}<form method="post" action="{% url 'core:record_comment' record.pk %}" class="comment-form">{% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <textarea name="text" placeholder="Write a comment…" required></textarea>
+          <div class="actions"><button class="btn small primary">Comment</button></div>
+        </form>{% endif %}
+      </div>
+      <div class="feed hidden" data-pane="history">
+        {% for h in history %}
+          <div class="entry">
+            <span class="who">{{ h.user|default:"Osmia" }}</span> {{ h.get_action_display|lower }} <span class="when">{{ h.created_at|timesince }} ago</span>
+            {% if h.source %}<div class="muted small">⚡ by {{ h.source }}</div>{% endif %}
+            {% if h.action == 'update' or h.action == 'file' or h.action == 'button' %}<div class="diff">{% diff h.changes %}</div>{% endif %}
+          </div>
+        {% empty %}<p class="muted small">No history.</p>{% endfor %}
+      </div>
+      <div class="feed hidden" data-pane="runs">
+        {% for r in runs %}
+          <div class="entry"><span class="badge {{ r.status }}">{{ r.get_status_display }}</span> <b>{{ r.automation.name }}</b> <span class="when">{{ r.created_at|timesince }} ago</span><pre class="log muted">{{ r.log }}</pre></div>
+        {% empty %}<p class="muted small">No automation has run for this record.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>

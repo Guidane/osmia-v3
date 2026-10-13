@@ -1,0 +1,6 @@
+{% load osmia %}<tr data-record="{{ row.record.pk }}" draggable="false">
+  <td class="rownum"><span class="num-text">{{ forloop.counter }}</span><a class="open" href="{{ row.record.get_absolute_url }}" title="Open">⤢</a></td>
+  {% for f, html, w in row.cells %}
+    <td class="cell {{ f|align }}{% if forloop.first %} primary{% endif %}{% if cell_editing and f.editable %} editable{% endif %}" data-record="{{ row.record.pk }}" data-field="{{ f.pk }}" {% if w %}style="max-width:{{ w }}px"{% endif %}>{{ html }}</td>
+  {% endfor %}
+</tr>

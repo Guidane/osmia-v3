@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}App templates{% endblock %}
+{% block content %}
+<div class="record-head"><h1>▤ App templates</h1></div>
+<p class="muted">A template is a ready-made app: its tables, fields, views and automations, and sample records to try it with. Once installed it's an ordinary app you can change. Download any app as a template from its settings to install it on another Osmia.</p>
+<form method="post" class="card flush">{% csrf_token %}
+  <table class="list" style="border:0">
+    <thead><tr><th style="width:30px"></th><th>Template</th><th>Tables</th><th>Needs</th><th>Installed as</th></tr></thead>
+    {% for r in rows %}
+      <tr>
+        <td><input type="checkbox" name="templates" value="{{ r.key }}" {% if r.apps %}disabled{% endif %}></td>
+        <td><b>{{ r.bp.icon }} {{ r.bp.name }}</b> <span class="muted small">{{ r.bp.version }}</span>{% if r.extension %} <span class="badge">◆ {{ r.extension }}</span>{% endif %}
+          <div class="muted small">{{ r.bp.description }}</div></td>
+        <td class="small">{{ r.tables|join:", " }}{% if r.automations %}<div class="muted">⚡ {{ r.automations }} automation{{ r.automations|pluralize }}</div>{% endif %}</td>
+        <td class="small">{{ r.requires|join:", "|default:"—" }}</td>
+        <td class="small">{% for a in r.apps %}<a href="{{ a.get_absolute_url }}">{{ a.name }}</a> {% empty %}—{% endfor %}</td>
+      </tr>
+    {% endfor %}
+  </table>
+  <div class="actions" style="padding:12px 14px">
+    <button class="btn primary">Install the ticked templates</button>
+    <label class="inline">in <select name="space">{% for s in spaces %}<option value="{{ s.pk }}" {% if s.pk == company.pk %}selected{% endif %}>{{ s.icon }} {{ s.name }}</option>{% endfor %}</select></label>
+    <label class="inline"><input type="checkbox" name="sample" value="1" checked> with sample records</label>
+    <span class="help">What they need is installed with them.</span>
+  </div>
+</form>
+<form method="post" enctype="multipart/form-data" class="card form">{% csrf_token %}
+  <h2 style="margin-top:0">Install a template file</h2>
+  <div class="inline"><input type="file" name="file" accept=".json,application/json" required>
+    <label class="inline"><input type="checkbox" name="sample" value="1"> with its records</label>
+    <label class="inline">in <select name="space">{% for s in spaces %}<option value="{{ s.pk }}" {% if s.pk == company.pk %}selected{% endif %}>{{ s.icon }} {{ s.name }}</option>{% endfor %}</select></label>
+    <button class="btn">Install</button></div>
+</form>
+{% endblock %}

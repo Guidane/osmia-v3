@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Automations · {{ app.name }}{% endblock %}
+{% block content %}
+<div class="record-head">
+  <h1>⚡ Automations in {{ app.name }}</h1>
+  <a class="btn" href="{% url 'core:automation_runs' app.slug %}">≡ Run log</a>
+  <a class="btn primary" href="{% url 'core:automation_create' app.slug %}">＋ New automation</a>
+</div>
+<p class="muted">Every change to a record (by people, buttons, imports, extensions or other automations) goes through these rules: <b>when</b> something happens to a record, <b>if</b> it meets the conditions, <b>then</b> the steps run, all together or not at all.</p>
+<table class="list">
+  <thead><tr><th>Name</th><th>When</th><th>If</th><th>Then</th><th>Last run</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td><a href="{% url 'core:automation_edit' app.slug r.a.pk %}"><b>{{ r.a.name }}</b></a>{% if not r.a.active %} <span class="badge">off</span>{% endif %}
+        <div class="muted small">{{ r.a.table.name }}</div></td>
+      <td class="small">{{ r.trigger }}</td>
+      <td class="small muted">{{ r.conditions|default:"always" }}</td>
+      <td class="small">{% for s in r.steps %}<div>{{ forloop.counter }}. {{ s }}</div>{% endfor %}</td>
+      <td class="small">{% if r.last %}<span class="badge {{ r.last.status }}">{{ r.last.get_status_display }}</span> <span class="muted">{{ r.last.created_at|timesince }} ago</span>{% else %}<span class="muted">never</span>{% endif %}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5" class="empty">No automations yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

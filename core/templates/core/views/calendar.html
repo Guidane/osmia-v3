@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name }} · {{ table.name }}{% endblock %}
+{% block main %}
+{% include "core/_table_head.html" %}
+{% if not missing %}
+<div class="cal-head">
+  <h2>{{ month|date:"F Y" }}</h2>
+  <a class="btn small" href="?month={{ prev }}">←</a>
+  <a class="btn small" href="?month={{ this_month }}">Today</a>
+  <a class="btn small" href="?month={{ next }}">→</a>
+  <span class="muted small">by {{ date_field.name }}{% if end_field %} until {{ end_field.name }}{% endif %}{% if undated %} · {{ undated }} without a date{% endif %}</span>
+</div>
+<div class="calendar" id="calendar" data-field="{{ date_field.pk }}" data-end="{{ end_field.pk|default:'' }}" data-drag="{% if can_drag and can_edit_records %}1{% endif %}">
+  {% for d in weekdays %}<div class="dow">{{ d }}</div>{% endfor %}
+  {% for week in weeks %}{% for day in week %}
+    <div class="day {% if day.other %}other{% endif %} {% if day.today %}today{% endif %}" data-date="{{ day.date|date:'Y-m-d' }}">
+      <span class="num">{{ day.date.day }}</span>
+      {% if can_edit_records and date_field.editable %}<a class="add" href="{% url 'core:record_new' app.slug table.slug %}?next={{ request.get_full_path|urlencode }}&f_{{ date_field.pk }}={{ day.date|date:'Y-m-d' }}">＋</a>{% endif %}
+      {% for e in day.events %}
+        <a class="ev {% if not e.start %}cont{% endif %}" href="{{ e.record.get_absolute_url }}" data-record="{{ e.record.pk }}" draggable="{% if can_drag and can_edit_records and e.start %}true{% else %}false{% endif %}" style="{% if e.color %}--ev:{{ e.color }}{% endif %}" title="{{ e.label }}">{{ e.label }}</a>
+      {% endfor %}
+    </div>
+  {% endfor %}{% endfor %}
+</div>
+{% endif %}
+{{ meta|json_script:"osmia-meta" }}
+{% endblock %}

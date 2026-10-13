@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="record-head"><h1>🔔 Notifications</h1>
+  <form method="post">{% csrf_token %}<button class="btn small">Mark all as read</button></form></div>
+<div class="card flush">
+  {% for n in items %}
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);{% if not n.read %}background:var(--brand-soft){% endif %}">
+      <a href="{% url 'core:notification_open' n.pk %}">{{ n.message }}</a>
+      <div class="muted small">{{ n.created_at|timesince }} ago{% if n.automation %} · ⚡ {{ n.automation.name }}{% endif %}</div>
+    </div>
+  {% empty %}<p class="empty">No notifications.</p>{% endfor %}
+</div>
+{% endblock %}

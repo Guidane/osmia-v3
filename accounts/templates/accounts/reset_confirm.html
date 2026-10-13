@@ -1,0 +1,6 @@
+{% extends "accounts/_simple.html" %}
+{% block box %}{% if validlink %}<h1>Choose a new password</h1>
+<form method="post">{% csrf_token %}{% include "accounts/_form_fields.html" %}<div class="actions"><button class="btn primary">Save it</button></div></form>
+{% else %}<h1>This link no longer works</h1><p>It was used already or is too old. <a href="{% url 'accounts:reset' %}">Ask for a new one</a>.</p>{% endif %}{% endblock %}
+{% block box2 %}{% if validlink %}<h1>Choose a new password</h1>
+<form method="post">{% csrf_token %}{% include "accounts/_form_fields.html" %}<div class="actions"><button class="btn primary">Save it</button></div></form>{% else %}<p>This link no longer works.</p>{% endif %}{% endblock %}

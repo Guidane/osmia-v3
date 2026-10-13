@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% load osmia %}
+{% block title %}{{ view.name }} · {{ table.name }}{% endblock %}
+{% block main %}
+{% include "core/_table_head.html" %}
+{% if not missing %}
+<div class="grid-wrap" id="grid-wrap">
+  <table class="grid" id="grid" data-view="{{ view.pk }}" data-table="{{ table.pk }}">
+    <thead><tr>
+      <th class="rownum">#</th>
+      {% for f, w in columns %}
+        <th class="{{ f|align }}{% if forloop.first %} primary{% endif %}" data-key="{{ f.key }}" {% if w %}style="width:{{ w }}px;min-width:{{ w }}px;max-width:{{ w }}px"{% endif %} title="{{ f.name }}{% if f.description %} — {{ f.description }}{% endif %}"><span class="ficon">{{ f.kind.icon }}</span>{{ f.name }}<span class="resize"></span></th>
+      {% endfor %}
+    </tr></thead>
+    <tbody>
+      {% if groups %}
+        {% for g in groups %}
+          <tr class="group"><td colspan="{{ columns|length|add:1 }}">{{ group_field.name }}: {% if g.key %}{{ g.html }}{% else %}<span class="muted">empty</span>{% endif %} <span class="muted small">· {{ g.rows|length }}</span></td></tr>
+          {% for row in g.rows %}{% include "core/views/_grid_row.html" %}{% endfor %}
+        {% endfor %}
+      {% else %}
+        {% for row in rows %}{% include "core/views/_grid_row.html" %}{% endfor %}
+      {% endif %}
+      {% if can_edit_records %}<tr class="add-row"><td class="rownum">＋</td><td colspan="{{ columns|length }}" id="add-record" data-table="{{ table.pk }}" data-form="{% url 'core:record_new' app.slug table.slug %}?next={{ request.get_full_path|urlencode }}">Add a record</td></tr>{% endif %}
+      {% if totals %}<tr class="totals"><td class="rownum">Σ</td>{% for t in totals %}<td class="num">{{ t }}</td>{% endfor %}</tr>{% endif %}
+    </tbody>
+  </table>
+  {% if not rows and not groups %}<div class="empty">No records{% if state.q or state.filters.rules %} match{% endif %}.</div>{% endif %}
+</div>
+{% if pages > 1 %}
+<div class="pager">
+  {% if page > 1 %}<a href="?page={{ page|add:-1 }}{% if state.q %}&q={{ state.q|urlencode }}{% endif %}">← Previous</a>{% endif %}
+  Page {{ page }} of {{ pages }} · {{ total }} records
+  {% if page < pages %}<a href="?page={{ page|add:1 }}{% if state.q %}&q={{ state.q|urlencode }}{% endif %}">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% endif %}
+{{ meta|json_script:"osmia-meta" }}
+{% endblock %}

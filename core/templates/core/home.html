@@ -1,20 +1,126 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load osmia %}
+{% block title %}Home · Osmia{% endblock %}
 {% block content %}
-<section class="app-grid">
-  {% for m in osmia_modules %}{% if m.home_url_name %}
-    <a class="app-tile" href="{% url m.home_url_name %}">
-      <span class="app-icon">{{ m.manifest.icon }}</span>
-      <strong>{{ m.manifest.title }}</strong>
-    </a>
-  {% endif %}{% endfor %}
-  {% if user.is_superuser %}
-    <a class="app-tile" href="{% url 'core:modules' %}">
-      <span class="app-icon">⚙</span>
-      <strong>Modules</strong>
-    </a>
-  {% endif %}
-</section>
-{% if osmia_modules|length <= 1 and user.is_superuser %}
-  <p class="muted" style="text-align:center">No modules are installed yet. Add them on the <a href="{% url 'core:modules' %}">Modules</a> page.</p>
-{% endif %}
+<div class="home-head">
+  <h1>{{ greeting }}, {{ user.first_name|default:user.username }}</h1>
+  <div class="home-quick">
+    {% for icon, title, url in personal_nav %}<a class="btn" href="{{ url }}">{{ icon }} My {{ title|lower }}</a>{% endfor %}
+    <a class="btn" href="{% url 'core:spaces' %}">◼ Spaces</a>
+    <a class="btn" href="{% url 'core:space_settings' personal.key %}" title="What your home page shows, and who can see your space">⚙ Customise</a>
+    <a class="btn primary" href="{% url 'core:app_create' %}?own=1">＋ New app</a>
+  </div>
+</div>
+
+<div class="home-grid">
+  <div>
+    {% for key in shown %}
+    {% if key == 'work' %}
+    <section class="card flush">
+      <div class="card-head"><h2>Your work</h2></div>
+      <div class="side-tabs work-tabs">
+        <button type="button" data-side="assigned" class="{% if tab == 'assigned' %}on{% endif %}">Assigned to me <span class="n">{{ assigned|length }}</span></button>
+        <button type="button" data-side="recent" class="{% if tab == 'recent' %}on{% endif %}">Recent</button>
+        <button type="button" data-side="starred" class="{% if tab == 'starred' %}on{% endif %}">Starred <span class="n">{{ starred|length }}</span></button>
+      </div>
+      <div class="work-list {% if tab != 'assigned' %}hidden{% endif %}" data-pane="assigned">
+        {% for i in assigned %}
+          <a class="work-row" href="{{ i.record.get_absolute_url }}">{% app_icon i.app %}
+            <span class="w-main"><span class="w-title">{{ i.title }}</span><span class="w-sub">{{ i.app.name }} › {{ i.table.name }} · you're {{ i.as|lower }}</span></span>
+            {% if i.when %}<span class="badge{% if i.late %} failed{% endif %}" title="Due">{% if i.late %}late · {% endif %}{{ i.when|date:"j M" }}</span>{% endif %}</a>
+        {% empty %}<p class="empty small">Nothing open is assigned to you. Records where you're the assignee, owner, keeper, ... show up here.</p>{% endfor %}
+      </div>
+      <div class="work-list {% if tab != 'recent' %}hidden{% endif %}" data-pane="recent">
+        {% for i in recent %}
+          <a class="work-row" href="{{ i.record.get_absolute_url }}">{% app_icon i.app %}
+            <span class="w-main"><span class="w-title">{{ i.title }}</span><span class="w-sub">{{ i.app.name }} › {{ i.table.name }}</span></span>
+            <span class="muted small">{{ i.when|timesince }} ago</span></a>
+        {% empty %}<p class="empty small">The records you open show up here.</p>{% endfor %}
+      </div>
+      <div class="work-list {% if tab != 'starred' %}hidden{% endif %}" data-pane="starred">
+        {% for i in starred %}
+          <a class="work-row" href="{{ i.record.get_absolute_url }}">{% app_icon i.app %}
+            <span class="w-main"><span class="w-title">{{ i.title }}</span><span class="w-sub">{{ i.app.name }} › {{ i.table.name }}</span></span>
+            <span class="star on">★</span></a>
+        {% empty %}<p class="empty small">Click ☆ next to a record's title to star it; starred records stay here.</p>{% endfor %}
+      </div>
+    </section>
+    {% elif key == 'spaces' %}
+    <div class="record-head home-section"><h2>Spaces</h2><a class="small" href="{% url 'core:spaces' %}">All spaces →</a></div>
+    <div class="apps">
+      {% for s in spaces %}<a class="app-card" href="{{ s.get_absolute_url }}"><span class="icon" style="background:{{ s.color }}22;color:{{ s.color }}">{{ s.icon }}</span><span class="name">{{ s.name }} <span class="muted small">{{ s.key }}</span></span>{% if s.description %}<span class="meta">{{ s.description|truncatechars:90 }}</span>{% endif %}</a>
+      {% empty %}<p class="muted small">No spaces you can see yet.</p>{% endfor %}
+    </div>
+    {% elif key == 'apps' %}
+    <div class="record-head home-section"><h2>My apps</h2><span class="muted small">in your space</span></div>
+    <div class="apps">
+      {% for c in mine %}{% include "core/_app_card.html" %}{% endfor %}
+      <a class="app-card new" href="{% url 'core:app_create' %}?own=1">＋ New app</a>
+    </div>
+    <div class="record-head home-section"><h2>Other apps</h2>
+      {% if user.is_superuser %}<a class="btn small" href="{% url 'core:app_create' %}">＋ Company app</a><a class="btn small" href="{% url 'core:templates' %}">▤ From a template</a>{% endif %}</div>
+    <div class="apps">{% for c in cards %}{% include "core/_app_card.html" %}{% endfor %}</div>
+    {% if not cards %}<p class="muted small">No other apps you can see yet.</p>{% endif %}
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <aside>
+    {% for key in shown %}
+    {% if key == 'notifications' and notifications %}
+    <section class="card"><h3>🔔 For you</h3>
+      {% for n in notifications %}<div class="note-row"><a href="{% url 'core:notification_open' n.pk %}">{{ n.message }}</a> <span class="muted small">{{ n.created_at|timesince }} ago</span></div>{% endfor %}
+    </section>
+    {% elif key == 'todos' and todo_table %}
+    <section class="card todos" id="todos" data-table="{{ todo_table.pk }}" data-done="{{ todo_done_field.pk }}">
+      <div class="side-head"><h3>☑ My to-dos <span class="muted small">{{ todo_count }}</span></h3><a class="small" href="{{ todo_table.get_absolute_url }}">All →</a></div>
+      <form class="todo-add"><input type="text" name="title" placeholder="Add a to-do and press Enter" autocomplete="off" aria-label="New to-do"></form>
+      {% for t in todos %}
+        <label class="todo-row"><input type="checkbox" data-record="{{ t.record.pk }}">
+          <span class="todo-title"><a href="{{ t.record.get_absolute_url }}">{{ t.title }}</a></span>
+          {% if t.due %}<span class="badge{% if t.late %} failed{% endif %}">{{ t.due|date:"j M" }}</span>{% endif %}</label>
+      {% empty %}<p class="muted small todo-empty">Nothing to do. Nice.</p>{% endfor %}
+    </section>
+    {% elif key == 'bookmarks' %}
+    <section class="card">
+      <div class="side-head"><h3>🔖 Bookmarks</h3>{% if todo_app %}<a class="small" href="{{ todo_app.get_absolute_url }}">Edit →</a>{% endif %}</div>
+      {% for b in bookmarks %}<a class="side-link" href="{{ b.url }}"{% if '://' in b.url %} target="_blank" rel="noopener"{% endif %}>🔗 {{ b.title }}</a>
+      {% empty %}<p class="muted small">Add bookmarks next to your to-dos.</p>{% endfor %}
+    </section>
+    {% endif %}
+    {% endfor %}
+    {% for p in extra_sections %}<section class="card">{{ p.html|safe }}</section>{% endfor %}
+  </aside>
+</div>
 {% endblock %}
+{% block scripts %}<script>
+(function () {
+  document.querySelectorAll('.work-tabs button').forEach((b) => b.addEventListener('click', () => {
+    const card = b.closest('.card');
+    card.querySelectorAll('.work-tabs button').forEach((x) => x.classList.toggle('on', x === b));
+    card.querySelectorAll('[data-pane]').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== b.dataset.side));
+  }));
+  const box = document.getElementById('todos');
+  if (!box) return;
+  box.querySelector('.todo-add').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = e.target.title;
+    const title = input.value.trim();
+    if (!title) return;
+    input.disabled = true;
+    try {
+      await OSMIA.api(`/api/tables/${box.dataset.table}/create/`, { values: { title } });
+      window.location.reload();
+    } catch (err) { OSMIA.toast(err.message, true); input.disabled = false; }
+  });
+  box.addEventListener('change', async (e) => {
+    const cb = e.target.closest('input[type=checkbox][data-record]');
+    if (!cb) return;
+    const row = cb.closest('.todo-row');
+    row.classList.toggle('done', cb.checked);
+    try {
+      await OSMIA.api(`/api/records/${cb.dataset.record}/`, { values: { [box.dataset.done]: cb.checked } });
+      if (cb.checked) setTimeout(() => { row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }, 600);
+    } catch (err) { OSMIA.toast(err.message, true); cb.checked = !cb.checked; row.classList.toggle('done', cb.checked); }
+  });
+})();
+</script>{% endblock %}

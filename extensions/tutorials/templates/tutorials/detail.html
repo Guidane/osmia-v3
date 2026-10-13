@@ -1,0 +1,45 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{{ t.title }} · Tutorials{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'tutorials/tutorials.css' %}">{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="record-head">
+  <div class="crumbs"><a href="{% url 'tutorials:index' %}">📖 Tutorials</a> › {{ category }}</div>
+  <h1>{{ t.icon }} {{ t.title }}</h1>
+  {% if t.audience != 'everyone' %}<span class="badge">{{ audience }}</span>{% endif %}
+</div>
+<p class="tut-summary">{{ t.summary }}</p>
+
+{% if gif %}
+<figure class="tut-gif">
+  <img src="{% static gif %}" alt="{{ t.gif_caption }}" loading="lazy">
+  <figcaption>▶ {{ t.gif_caption }}</figcaption>
+</figure>
+{% endif %}
+
+<ol class="tut-steps">
+  {% for step in t.steps %}<li>{{ step|safe }}</li>{% endfor %}
+</ol>
+
+{% if t.tips %}<div class="card tut-tips"><b>Good to know</b><ul>{% for tip in t.tips %}<li>{{ tip|safe }}</li>{% endfor %}</ul></div>{% endif %}
+
+<div class="actions">
+  {% if try_href %}<a class="btn primary" href="{{ try_href }}">{{ t.try_label|default:"Try it" }} →</a>{% endif %}
+</div>
+
+{% if related %}
+<h2>See also</h2>
+<p>{% for r in related %}<a class="link-chip" href="{% url 'tutorials:detail' r.slug %}">{{ r.icon }} {{ r.title }}</a>{% endfor %}</p>
+{% endif %}
+
+<div class="tut-nav">
+  {% if prev %}<a href="{% url 'tutorials:detail' prev.slug %}">← {{ prev.title }}</a>{% else %}<span></span>{% endif %}
+  {% if next %}<a href="{% url 'tutorials:detail' next.slug %}">{{ next.title }} →</a>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script>
+  try {
+    const read = JSON.parse(localStorage.getItem('osmia-tutorials-read') || '[]');
+    if (!read.includes('{{ t.slug }}')) { read.push('{{ t.slug }}'); localStorage.setItem('osmia-tutorials-read', JSON.stringify(read)); }
+  } catch (e) {}
+</script>{% endblock %}

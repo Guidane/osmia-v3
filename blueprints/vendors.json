@@ -1,0 +1,70 @@
+{
+  "key": "vendors",
+  "name": "Vendors",
+  "icon": "🏭",
+  "color": "#db2777",
+  "version": "1.0.0",
+  "position": 29,
+  "description": "The companies we buy from: contact details, address, account, payment terms, lead time and their contacts.",
+  "tables": [
+    {
+      "key": "vendors",
+      "name": "Vendors",
+      "icon": "🏭",
+      "display": "name",
+      "fields": [
+        {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "code", "name": "Code", "type": "text"},
+        {"key": "type", "name": "Type", "type": "select", "options": {"choices": [
+          {"value": "Distributor", "color": "#bfdbfe"}, {"value": "Manufacturer", "color": "#bbf7d0"}, {"value": "Service provider", "color": "#fde68a"}]}},
+        {"key": "website", "name": "Website", "type": "url"},
+        {"key": "email", "name": "Email", "type": "email"},
+        {"key": "phone", "name": "Phone", "type": "phone"},
+        {"key": "address", "name": "Address", "type": "longtext"},
+        {"key": "city", "name": "City", "type": "text"},
+        {"key": "country", "name": "Country", "type": "text"},
+        {"key": "account", "name": "Our account number", "type": "text"},
+        {"key": "vat", "name": "VAT / tax ID", "type": "text"},
+        {"key": "terms", "name": "Payment terms", "type": "select", "options": {"choices": [
+          {"value": "Prepaid"}, {"value": "Net 14"}, {"value": "Net 30"}, {"value": "Net 60"}]}},
+        {"key": "currency", "name": "Currency", "type": "select", "options": {"default": "EUR", "choices": [{"value": "EUR"}, {"value": "USD"}, {"value": "GBP"}]}},
+        {"key": "lead_time", "name": "Lead time (days)", "type": "number"},
+        {"key": "rating", "name": "Rating", "type": "rating"},
+        {"key": "active", "name": "Active", "type": "checkbox", "options": {"default": "1"}},
+        {"key": "notes", "name": "Notes", "type": "longtext"}
+      ],
+      "views": [
+        {"name": "Vendors", "type": "grid", "config": {"fields": ["name", "code", "type", "city", "country", "email", "phone", "terms", "lead_time", "rating"],
+          "filters": {"match": "all", "rules": [{"field": "active", "op": "checked"}]}}},
+        {"name": "Vendor pages", "type": "detail", "config": {"fields": ["name", "type", "city"]}},
+        {"name": "All, active or not", "type": "grid"}
+      ]
+    },
+    {
+      "key": "contacts",
+      "name": "Contacts",
+      "icon": "👤",
+      "display": "name",
+      "fields": [
+        {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "vendor", "name": "Vendor", "type": "link",
+         "options": {"target": "vendors", "multiple": false, "inverse": {"key": "contacts", "name": "Contacts", "multiple": true}}},
+        {"key": "role", "name": "Role", "type": "text"},
+        {"key": "email", "name": "Email", "type": "email"},
+        {"key": "phone", "name": "Phone", "type": "phone"}
+      ],
+      "views": [{"name": "Contacts", "type": "grid", "config": {"group_by": "vendor"}}]
+    }
+  ],
+  "records": {
+    "vendors": [
+      {"Name": "Acme Components", "Code": "ACME", "Type": "Distributor", "Website": "acme.example", "Email": "sales@acme.example", "City": "Rotterdam", "Country": "Netherlands", "Payment terms": "Net 30", "Lead time (days)": 5, "Rating": 4},
+      {"Name": "Volt Supply", "Code": "VOLT", "Type": "Distributor", "Email": "orders@volt.example", "City": "Hamburg", "Country": "Germany", "Payment terms": "Net 14", "Lead time (days)": 3, "Rating": 5},
+      {"Name": "Calibration Services Ltd", "Code": "CAL", "Type": "Service provider", "City": "Leeds", "Country": "United Kingdom", "Currency": "GBP", "Payment terms": "Net 30", "Rating": 3}
+    ],
+    "contacts": [
+      {"Name": "Ruth Meyer", "Vendor": "Acme Components", "Role": "Account manager", "Email": "ruth@acme.example"},
+      {"Name": "Tom Kraus", "Vendor": "Volt Supply", "Role": "Sales", "Phone": "+49 40 1234567"}
+    ]
+  }
+}

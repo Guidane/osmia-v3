@@ -1,0 +1,2 @@
+<p><a class="btn primary" href="{{ url }}">✏️ Open in the designer</a></p>
+{% if versions %}<div class="small muted">Versions: {% for v in versions %}<span title="{{ v.created_at }}">v{{ v.version }}{% if v.created_by %} ({{ v.created_by }}){% endif %}</span>{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}

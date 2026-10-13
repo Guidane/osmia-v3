@@ -1,0 +1,66 @@
+{
+  "key": "budgets",
+  "name": "Budgets",
+  "icon": "💰",
+  "color": "#ca8a04",
+  "version": "1.0.0",
+  "position": 50,
+  "description": "Nested budgets (FY2026 › Operations › Warehouse). What's spent rolls up through the sub-budgets: orders placed on a budget and parts issued to its tasks count, when Orders and Stock are installed.",
+  "after": ["departments", "tasks"],
+  "tables": [
+    {
+      "key": "budgets",
+      "name": "Budgets",
+      "icon": "💰",
+      "display": "label",
+      "fields": [
+        {"key": "label", "name": "Budget", "type": "formula", "options": {"format": "text",
+          "expression": "IF(ISBLANK({Number}), {Name}, {Number} & \" · \" & {Name})"}},
+        {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "number", "name": "Number", "type": "text"},
+        {"key": "parent", "name": "Paid from", "type": "link",
+         "options": {"target": "budgets", "multiple": false, "inverse": {"key": "sub_budgets", "name": "Sub-budgets", "multiple": true}}},
+        {"key": "department", "name": "Department", "type": "link",
+         "options": {"target": "departments.departments", "optional": true, "multiple": false, "inverse": {"key": "budgets", "name": "Budgets", "multiple": true}}},
+        {"key": "owner", "name": "Owner", "type": "user"},
+        {"key": "amount", "name": "Amount", "type": "currency"},
+        {"key": "other_costs", "name": "Other costs", "type": "currency", "description": "Spending booked by hand (travel, services, ...)."},
+        {"key": "spent", "name": "Spent", "type": "formula", "options": {"format": "currency",
+          "expression": "IFERROR({Ordered}, 0) + IFERROR({Materials}, 0) + {Other costs} + SUM({Sub-budgets.Spent})"}},
+        {"key": "remaining", "name": "Remaining", "type": "formula", "options": {"format": "currency", "expression": "{Amount} - {Spent}"}},
+        {"key": "used", "name": "Used", "type": "formula", "options": {"format": "percent", "decimals": 0,
+          "expression": "IF({Amount} > 0, {Spent} / {Amount} * 100, IF({Spent} > 0, 100, 0))"}},
+        {"key": "over", "name": "Over budget", "type": "formula", "options": {"format": "checkbox", "expression": "{Spent} > {Amount}"}},
+        {"key": "split_over", "name": "Sub-budgets add up to more", "type": "formula", "options": {"format": "checkbox",
+          "expression": "SUM({Sub-budgets.Amount}) > {Amount}"}},
+        {"key": "notes", "name": "Notes", "type": "longtext"}
+      ],
+      "views": [
+        {"name": "Budgets", "type": "tree", "config": {"parent_field": "parent", "fields": ["name", "number", "department", "amount", "spent", "remaining", "used", "over"]}},
+        {"name": "All budgets", "type": "grid", "config": {"fields": ["label", "parent", "department", "owner", "amount", "spent", "remaining", "used"]}},
+        {"name": "Overspent", "type": "grid", "config": {"fields": ["label", "amount", "spent", "remaining", "owner"],
+          "filters": {"match": "any", "rules": [{"field": "over", "op": "checked"}, {"field": "split_over", "op": "checked"}]}}}
+      ]
+    }
+  ],
+  "extend": [
+    {"table": "tasks.tasks", "optional": true, "fields": [
+      {"key": "budget", "name": "Budget", "type": "link",
+       "options": {"target": "budgets.budgets", "multiple": false, "inverse": {"key": "tasks", "name": "Tasks", "multiple": true}}}
+    ]}
+  ],
+  "automations": [
+    {"key": "overspent", "table": "budgets", "name": "Warn the owner when a budget is overspent",
+     "trigger": "condition_met", "conditions": {"match": "all", "rules": [{"field": "over", "op": "checked"}]},
+     "actions": [{"type": "notify", "user_fields": ["owner"], "message": "{Budget} is overspent: {Spent} of {Amount}"}]}
+  ],
+  "records": {
+    "budgets": [
+      {"Name": "FY2026", "Number": "FY26", "Amount": 250000, "Owner": "alice"},
+      {"Name": "Operations", "Number": "FY26-OPS", "Paid from": "FY26 · FY2026", "Department": "Operations", "Amount": 90000, "Owner": "bob"},
+      {"Name": "Warehouse", "Number": "FY26-OPS-WH", "Paid from": "FY26-OPS · Operations", "Department": "Warehouse", "Amount": 25000, "Other costs": 1200, "Owner": "bob"},
+      {"Name": "Engineering", "Number": "FY26-ENG", "Paid from": "FY26 · FY2026", "Department": "Engineering", "Amount": 120000, "Owner": "alice"},
+      {"Name": "Test equipment", "Number": "FY26-ENG-TE", "Paid from": "FY26-ENG · Engineering", "Department": "Engineering", "Amount": 30000, "Owner": "alice"}
+    ]
+  }
+}

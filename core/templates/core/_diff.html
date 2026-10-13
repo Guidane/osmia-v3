@@ -1,0 +1,1 @@
+{% for name, pair in changes.items %}<div><b>{{ name }}</b>: {% if pair.0 %}<del>{{ pair.0|truncatechars:80 }}</del> {% endif %}{% if pair.0 and pair.1 %}→ {% endif %}{% if pair.1 %}<ins>{{ pair.1|truncatechars:80 }}</ins>{% endif %}</div>{% endfor %}

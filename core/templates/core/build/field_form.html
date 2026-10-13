@@ -1,0 +1,138 @@
+{% extends "base.html" %}{% load static osmia %}
+{% block title %}{% if field %}{{ field.name }}{% else %}New field{% endif %} · {{ table.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="record-head">
+  <div class="crumbs"><a href="{% url 'core:fields' app.slug table.slug %}">{{ app.name }} › {{ table.name }} › Fields</a></div>
+  <h1>{% if field %}{{ field.name }}{% else %}New field in {{ table.name }}{% endif %}</h1>
+</div>
+<form method="post" class="form card" id="field-form">{% csrf_token %}
+  <div class="field"><label for="name" class="required">Name</label><input id="name" name="name" value="{% if field %}{{ field.name }}{% else %}{{ request.POST.name|default:'' }}{% endif %}" required autofocus></div>
+
+  <div class="field"><span class="label">Type</span>
+    <div class="type-pick">
+      {% for group, items in type_choices %}{% for key, label in items %}
+        <label><input type="radio" name="type" value="{{ key }}" {% if field and field.type == key or not field and key == 'text' %}checked{% endif %} {% if field.type == 'link' and key != 'link' or field and field.type != 'link' and key == 'link' %}disabled{% endif %}> {{ label }}</label>
+      {% endfor %}{% endfor %}
+    </div>
+    <div class="help" id="type-help"></div>
+  </div>
+
+  <div class="opt-section" data-types="number currency percent formula rollup">
+    <div class="grid2">
+      <div class="field"><label for="decimals">Decimals</label><input id="decimals" name="decimals" type="number" min="0" max="8" value="{{ field.options.decimals|default_if_none:'' }}"></div>
+      <div class="field" data-types="currency formula rollup"><label for="symbol">Currency symbol</label><input id="symbol" name="symbol" value="{{ field.options.symbol|default:'€' }}" maxlength="4"></div>
+    </div>
+  </div>
+  <div class="opt-section" data-types="number currency percent">
+    <div class="grid2">
+      <div class="field"><label for="min">At least</label><input id="min" name="min" type="number" step="any" value="{{ field.options.min|default_if_none:'' }}"></div>
+      <div class="field"><label for="max_n">At most</label><input id="max_n" name="max" type="number" step="any" value="{{ field.options.max|default_if_none:'' }}"></div>
+    </div>
+  </div>
+  <div class="opt-section" data-types="rating">
+    <div class="field"><label for="max_r">Highest rating</label><input id="max_r" name="max" type="number" min="1" max="10" value="{{ field.options.max|default:5 }}"></div>
+  </div>
+
+  <div class="opt-section" data-types="select multiselect">
+    <div class="field"><span class="label">Choices</span>
+      <div id="choices">
+        {% for c in field.options.choices %}<div class="choice-row"><span class="muted" style="cursor:grab">☰</span><input type="text" name="choice_value" value="{{ c.value }}"><input type="color" name="choice_color" value="{{ c.color|default:'#e5e7eb' }}"><button type="button" class="btn small ghost" data-remove-row>✕</button></div>{% endfor %}
+      </div>
+      <button type="button" class="btn small" id="add-choice">＋ Choice</button>
+      <div class="help">Renaming a choice renames it on every record.</div>
+    </div>
+    <div class="field" data-types="select"><label for="transitions">Which choice may follow which (optional)</label>
+      <textarea id="transitions" name="transitions" rows="3" placeholder="Draft: Placed, Cancelled&#10;Placed: Received, Cancelled">{{ transitions_text }}</textarea>
+      <div class="help">One line per choice. A choice not listed may change to anything. Applies to people and automations.</div>
+    </div>
+  </div>
+
+  <div class="opt-section" data-types="link">
+    {% if not field %}
+      <div class="field"><label for="target">Link to records of</label>
+        <select id="target" name="target"><option value="">—</option>{% for t in all_tables %}<option value="{{ t.pk }}">{{ t.label }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="inverse_name">Name of the matching field in that table</label><input id="inverse_name" name="inverse_name" placeholder="{{ table.name }}"></div>
+      <label class="inline"><input type="checkbox" name="inverse_multiple" value="1" checked> A record there can be linked to several {{ table.name|lower }}</label>
+    {% else %}
+      <input type="hidden" name="target" value="{{ field.options.target }}">
+      <p class="muted">Links to {% for t in all_tables %}{% if t.pk == field.options.target %}<b>{{ t.label }}</b>{% endif %}{% endfor %}.</p>
+    {% endif %}
+  </div>
+  <div class="opt-section" data-types="link user">
+    <label class="inline"><input type="checkbox" name="multiple" value="1" {% if field.options.multiple %}checked{% endif %}> Several at once</label>
+  </div>
+
+  <div class="opt-section" data-types="lookup rollup">
+    <div class="grid2">
+      <div class="field"><label for="link">Through the link</label>
+        <select id="link" name="link"><option value="">—</option></select></div>
+      <div class="field"><label for="target_field">Field of the linked records</label>
+        <select id="target_field" name="target_field" data-value="{{ field.options.field|default_if_none:'' }}"><option value="">—</option></select></div>
+    </div>
+  </div>
+  <div class="opt-section" data-types="rollup">
+    <div class="grid2">
+      <div class="field"><label for="func">Work out</label>
+        <select id="func" name="func">{% for k, l in rollups %}<option value="{{ k }}" {% if field.options.func == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="filter">Only linked records where (formula, optional)</label><input id="filter" name="filter" value="{{ field.options.filter|default:'' }}" placeholder='{Status} = "Placed"'></div>
+    </div>
+  </div>
+
+  <div class="opt-section" data-types="formula">
+    <div class="field"><label for="expression">Formula</label>
+      <textarea id="expression" name="expression" rows="3" style="font-family:ui-monospace,Consolas,monospace" placeholder="{Quantity} * {Unit price}">{{ field.options.expression|default:'' }}</textarea>
+      <div class="help">Click a field or function to insert it.</div>
+      <div class="pills" style="margin:6px 0">{% for f in table_fields %}{% if f != field %}<button type="button" data-insert="{{ '{' }}{{ f.name }}{{ '}' }}">{{ f.name }}</button>{% endif %}{% endfor %}</div>
+      <details><summary class="muted small">Functions</summary><div class="fn-help">{% for sig, desc in functions %}<div><code data-insert="{{ sig }}">{{ sig }}</code> {{ desc }}</div>{% endfor %}</div></details>
+    </div>
+  </div>
+  <div class="opt-section" data-types="formula rollup">
+    <div class="field"><label for="format">Show as</label>
+      <select id="format" name="format">
+        {% with f=field.options.format %}
+        <option value="auto">Automatic</option><option value="number" {% if f == 'number' %}selected{% endif %}>Number</option><option value="currency" {% if f == 'currency' %}selected{% endif %}>Money</option><option value="percent" {% if f == 'percent' %}selected{% endif %}>Percent</option><option value="date" {% if f == 'date' %}selected{% endif %}>Date</option><option value="checkbox" {% if f == 'checkbox' %}selected{% endif %}>Yes / no</option><option value="text" {% if f == 'text' %}selected{% endif %}>Text</option>
+        {% endwith %}
+      </select></div>
+  </div>
+
+  <div class="opt-section" data-types="autonumber">
+    <div class="grid2">
+      <div class="field"><label for="prefix">Before the number</label><input id="prefix" name="prefix" value="{{ field.options.prefix|default:'' }}" placeholder="PO-"></div>
+      <div class="field"><label for="digits">Digits</label><input id="digits" name="digits" type="number" min="1" max="10" value="{{ field.options.digits|default:4 }}"></div>
+    </div>
+  </div>
+  <div class="opt-section" data-types="attachment">
+    <label class="inline"><input type="checkbox" name="images_only" value="1" {% if field.options.images_only %}checked{% endif %}> Pictures only</label>
+  </div>
+  <div class="opt-section" data-types="button">
+    <div class="grid2">
+      <div class="field"><label for="label">Button text</label><input id="label" name="label" value="{{ field.options.label|default:'' }}" placeholder="e.g. Place order"></div>
+      <div class="field"><label for="btn_color">Colour</label><input id="btn_color" name="btn_color" type="color" value="{{ field.options.color|default:'#2e7d5b' }}"></div>
+    </div>
+    <div class="field"><label for="automation">Runs the automation</label>
+      <select id="automation" name="automation"><option value="">—</option>{% for a in automations %}<option value="{{ a.pk }}" {% if a.pk == field.options.automation %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select>
+      <div class="help">Automations of {{ table.name }} with the trigger "A button is pressed". <a href="{% url 'core:automation_create' app.slug %}?table={{ table.pk }}">Make one</a>.</div></div>
+  </div>
+
+  <div class="opt-section" data-types="text longtext email url phone number currency percent select date datetime checkbox">
+    <div class="field"><label for="default">Default for new records</label><input id="default" name="default" value="{{ field.options.default|default:'' }}">
+      <div class="help">For a date: <code>today</code>; for date and time: <code>now</code>; for a checkbox: <code>1</code>.</div></div>
+  </div>
+  <div class="opt-section" data-types="text longtext email url phone number currency percent rating select multiselect checkbox date datetime user color json">
+    <label class="inline"><input type="checkbox" name="readonly" value="1" {% if field.options.readonly %}checked{% endif %}> Set by automations only (people can't change it by hand)</label>
+  </div>
+
+  <hr>
+  <div class="field"><label for="description">Description</label><input id="description" name="description" value="{{ field.description|default:'' }}" placeholder="Shown as a tip"></div>
+  <label class="inline"><input type="checkbox" name="required" value="1" {% if field.required %}checked{% endif %}> Required</label>
+  <label class="inline"><input type="checkbox" name="make_primary" value="1" {% if is_primary %}checked disabled{% endif %}> Names the records</label>
+  <div class="actions">
+    <button class="btn primary">Save</button>
+    <a class="btn ghost" href="{% url 'core:fields' app.slug table.slug %}">Cancel</a>
+    {% if field %}<div style="flex:1"></div><button class="btn danger" name="delete" value="1" formnovalidate data-confirm="Delete the field {{ field.name }} and its values in every record?">Delete field</button>{% endif %}
+  </div>
+</form>
+{{ meta|json_script:"field-meta" }}
+{% endblock %}
+{% block scripts %}<script src="{% static 'core/field_form.js' %}"></script>{% endblock %}

@@ -1,0 +1,31 @@
+<div class="field" data-type="{{ i.f.type }}">
+  <label for="f_{{ i.f.pk }}" class="{% if i.f.required %}required{% endif %}">{{ i.f.name }}</label>
+  {% with t=i.f.type name=i.name %}
+  {% if t == 'longtext' or t == 'json' %}
+    <textarea id="{{ name }}" name="{{ name }}" rows="4">{{ i.value|default:'' }}</textarea>
+  {% elif t == 'checkbox' %}
+    <label class="inline"><input type="checkbox" id="{{ name }}" name="{{ name }}" {% if i.value %}checked{% endif %}> Yes</label>
+  {% elif t == 'number' or t == 'currency' or t == 'percent' or t == 'rating' %}
+    <input type="number" step="any" id="{{ name }}" name="{{ name }}" value="{{ i.value|default_if_none:'' }}">
+  {% elif t == 'date' %}
+    <input type="date" id="{{ name }}" name="{{ name }}" value="{{ i.value|default:'' }}">
+  {% elif t == 'datetime' %}
+    <input type="datetime-local" id="{{ name }}" name="{{ name }}" value="{{ i.value|default:''|slice:':16' }}">
+  {% elif t == 'select' %}
+    <select id="{{ name }}" name="{{ name }}"><option value="">—</option>{% for c in i.f.options.choices %}<option {% if c.value == i.value %}selected{% endif %}>{{ c.value }}</option>{% endfor %}</select>
+  {% elif t == 'multiselect' %}
+    <div class="checklist">{% for c in i.f.options.choices %}<label><input type="checkbox" name="{{ name }}" value="{{ c.value }}" {% if c.value in i.values %}checked{% endif %}> {{ c.value }}</label>{% endfor %}</div>
+  {% elif t == 'user' %}
+    <select id="{{ name }}" name="{{ name }}" {% if i.f.options.multiple %}multiple size="5"{% endif %}><option value="">—</option>{% for u in all_users %}<option value="{{ u.pk }}" {% if u.pk in i.values %}selected{% endif %}>{{ u }}</option>{% endfor %}</select>
+  {% elif t == 'link' %}
+    <div class="link-input" data-field="{{ i.pk }}" data-name="{{ name }}" data-multiple="{% if i.f.options.multiple %}1{% endif %}" data-target="{{ i.f.options.target }}" data-initial="{{ i.json }}"></div>
+  {% elif t == 'attachment' %}
+    <input type="file" id="{{ name }}" name="{{ name }}" multiple>
+  {% elif t == 'color' %}
+    <input type="color" id="{{ name }}" name="{{ name }}" value="{{ i.value|default:'#3b82f6' }}">
+  {% else %}
+    <input type="{% if t == 'email' %}email{% elif t == 'url' %}url{% elif t == 'phone' %}tel{% else %}text{% endif %}" id="{{ name }}" name="{{ name }}" value="{{ i.value|default:'' }}">
+  {% endif %}
+  {% endwith %}
+  {% if i.f.description %}<div class="help">{{ i.f.description }}</div>{% endif %}
+</div>

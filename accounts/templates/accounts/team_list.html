@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Teams{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="record-head"><h1>👥 Teams</h1><a class="btn primary" href="{% url 'accounts:team_create' %}">＋ New team</a></div>
+<p class="muted">Give a team access to apps in each app's settings; automations can notify or email a team.</p>
+<table class="list">{% for t in teams %}<tr><td><a href="{% url 'accounts:team_edit' t.pk %}"><b>{{ t.name }}</b></a></td><td class="small">{% for u in t.user_set.all %}{{ u }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">nobody</span>{% endfor %}</td></tr>
+{% empty %}<tr><td class="empty">No teams yet.</td></tr>{% endfor %}</table>
+{% endblock %}

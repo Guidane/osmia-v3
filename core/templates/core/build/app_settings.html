@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ app.name }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>⚙ {{ app.name }}</h1>
+<form method="post" class="form card">{% csrf_token %}
+  <div class="grid2">
+    <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ app.name }}" required></div>
+    <div class="field"><label for="icon">Icon</label><input id="icon" name="icon" value="{{ app.icon }}" maxlength="8"></div>
+  </div>
+  <div class="field"><label>Colour</label>
+    <div class="inline">{% for c in colors %}<label><input type="radio" name="color" value="{{ c }}" {% if c == app.color %}checked{% endif %}> <span class="swatch" style="background:{{ c }}"></span></label>{% endfor %}<input type="color" name="color_custom" value="{{ app.color }}" onchange="this.form.querySelectorAll('[name=color]').forEach(r=>r.checked=false);this.name='color'"></div>
+  </div>
+  <div class="field"><label for="description">What it's for</label><textarea id="description" name="description" rows="2">{{ app.description }}</textarea></div>
+  {% if movable %}<div class="field"><label for="space">Space</label><select id="space" name="space">{% for s in movable %}<option value="{{ s.pk }}" {% if s.pk == app.space_id %}selected{% endif %}>{{ s.icon }} {% if s.is_personal %}My space{% else %}{{ s.name }}{% endif %}</option>{% endfor %}</select>
+    <div class="help">The space it lives in. Other spaces can still add it as a shortcut.</div></div>{% endif %}
+  {% if app.is_space %}
+    <p class="muted">Your space: only you see it, administrators included.</p>
+  {% elif not user.is_superuser and app.owner == user %}
+    <div class="field"><label for="default_role">Who can see it</label>
+      <select id="default_role" name="default_role"><option value="none" {% if app.default_role == 'none' %}selected{% endif %}>Only me</option>
+        <option value="viewer" {% if app.default_role == 'viewer' %}selected{% endif %}>Everyone can look at it (not change it)</option></select>
+      <div class="help">Letting others change it is up to an administrator.</div></div>
+  {% endif %}
+  {% if user.is_superuser and not app.is_space %}
+    {% if app.owner %}<p class="muted">The own app of <b>{{ app.owner }}</b>.</p>{% endif %}
+    <div class="grid2">
+      <div class="field"><label for="default_role">Everyone who logs in</label>
+        <select id="default_role" name="default_role">{% for v, l in roles %}<option value="{{ v }}" {% if v == app.default_role %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="position">Place in the list</label><input id="position" name="position" type="number" value="{{ app.position }}"></div>
+    </div>
+    <h2>Teams and people with other access</h2>
+    <p class="help">Leave a row on "—" to use the access above. Administrators can do everything everywhere.</p>
+    <table class="list">
+      {% for g, role in teams %}<tr><td>👥 {{ g.name }}</td><td><select name="group_{{ g.pk }}"><option value="">—</option>{% for v, l in roles %}<option value="{{ v }}" {% if v == role %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></td></tr>{% endfor %}
+      {% for u, role in users %}<tr><td>👤 {{ u }}</td><td><select name="user_{{ u.pk }}"><option value="">—</option>{% for v, l in roles %}<option value="{{ v }}" {% if v == role %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></td></tr>{% endfor %}
+    </table>
+  {% endif %}
+  <div class="actions"><button class="btn primary">Save</button>
+    {% if user.is_superuser and not app.is_space %}<a class="btn" href="{% url 'core:template_export' app.slug %}">⬇ Download as template</a>
+    <a class="btn ghost" href="{% url 'core:template_export' app.slug %}?records=1">⬇ … with its records</a>{% endif %}</div>
+</form>
+{% if user.is_superuser or app.owner == user %}
+<form method="post" class="form card" style="border-color:var(--danger)">{% csrf_token %}
+  <h2 style="margin-top:0">Delete the app</h2>
+  <p class="muted">Deletes its tables, records, files, views and automations. Links from other apps to it are removed. This can't be undone.</p>
+  <div class="field"><label for="confirm">Type {{ app.name }} to confirm</label><input id="confirm" name="confirm" autocomplete="off"></div>
+  <button class="btn danger" name="delete" value="1">Delete {{ app.name }}</button>
+</form>
+{% endif %}
+{% endblock %}

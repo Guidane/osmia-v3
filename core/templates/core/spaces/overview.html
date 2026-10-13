@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% load osmia %}
+{% block title %}{{ space.name }}{% endblock %}
+{% block content %}
+<div class="space-hero" style="--space:{{ space.color }}">
+  <span class="space-icon">{{ space.icon }}</span>
+  <div style="flex:1;min-width:0">
+    <h1>{{ space.name }}</h1>
+    <div class="muted small">{{ space.get_kind_display }} space · {{ space.key }} · {% if space.visibility == 'private' %}🔒 members only{% else %}everyone can look{% endif %}</div>
+  </div>
+  {% if can_admin_space %}<a class="btn" href="{% url 'core:space_settings' space.key %}">⚙ Space settings</a>{% endif %}
+</div>
+{% if space.description %}<div class="card space-about">{{ space.description|linebreaks }}</div>{% elif can_admin_space %}<p class="muted">Say what the space is for in its <a href="{% url 'core:space_settings' space.key %}">settings</a>.</p>{% endif %}
+
+<div class="home-grid">
+  <div>
+    {% for p in sections %}<section class="card">{{ p.html|safe }}</section>{% endfor %}
+
+    <div class="record-head" style="margin-top:8px"><h2 style="margin:0">Apps</h2>
+      {% if can_admin_space %}<a class="btn small" href="{% url 'core:app_create' %}?space={{ space.key|urlencode }}">＋ New app</a>
+      <a class="btn small" href="{% url 'core:space_settings' space.key %}#shortcuts">↗ Use an app of another space</a>{% endif %}</div>
+    <div class="apps">
+      {% for a in space_own_apps %}<a class="app-card" href="{{ a.get_absolute_url }}"><span class="icon" style="background:{{ a.color }}22;color:{{ a.color }}">{{ a.icon }}</span><span class="name">{{ a.name }}</span>{% if a.description %}<span class="meta">{{ a.description|truncatechars:90 }}</span>{% endif %}</a>{% endfor %}
+      {% for a in space_added_apps %}<a class="app-card" href="{{ a.get_absolute_url }}"><span class="icon" style="background:{{ a.color }}22;color:{{ a.color }}">{{ a.icon }}</span><span class="name">{{ a.name }}</span><span class="meta">↗ from {{ a.space.name }}</span></a>{% endfor %}
+    </div>
+    {% if not space_own_apps and not space_added_apps %}<p class="muted">No apps yet.</p>{% endif %}
+  </div>
+  <aside>
+    {% if links %}
+    <section class="card"><h3>About</h3>
+      {% for l in links %}<div class="space-link"><span class="muted small">{{ l.label }}</span><a class="link-chip" href="{{ l.record.get_absolute_url }}">{{ l.title }}</a></div>{% endfor %}
+    </section>
+    {% endif %}
+    <section class="card"><h3>Members</h3>
+      {% for m in members %}<div class="space-member">{% if m.user %}<span class="person"><b>{{ m.user|initials }}</b>{{ m.user }}</span>{% else %}👥 {{ m.group.name }}{% endif %}<span class="badge">{{ m.get_role_display|cut:" (builds apps, pages and the space)" }}</span></div>
+      {% empty %}<p class="muted small">{% if space.visibility == 'internal' %}No members yet; everyone can look.{% else %}No members.{% endif %}</p>{% endfor %}
+    </section>
+  </aside>
+</div>
+{% endblock %}
