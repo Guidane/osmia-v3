@@ -3,7 +3,10 @@
 The body is HTML cleaned by ``sanitize.clean`` (an allowlist: no scripts, no
 styles, no event handlers). Live parts are placeholders filled in when the
 page is shown (see ``render``): ``<div class="embed-view" data-view="12">``
-shows a view of an app, ``<a class="record-ref" data-record="5">`` a record.
+shows a view of an app, ``<a class="record-ref" data-record="5">`` a record,
+``<div class="record-card" data-record="5" data-fields="3,4">`` a card with some
+of a record's fields, and ``<span class="record-value" data-record="5" data-field="3">``
+one field's value inside a sentence.
 """
 from django.conf import settings
 from django.db import models
@@ -86,6 +89,16 @@ class PagePin(models.Model):
     class Meta:
         ordering = ['-created_at']
         constraints = [models.UniqueConstraint(fields=['user', 'page'], name='unique_page_pin')]
+
+
+class PageReference(models.Model):
+    """A record a page mentions (a link, a card or a value), so the record can show the pages that mention it.
+    Kept in step with the page's body each time it is saved (see ``references.sync``)."""
+    page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name='references')
+    record = models.ForeignKey('core.Record', on_delete=models.CASCADE, related_name='page_references')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['page', 'record'], name='unique_page_reference')]
 
 
 class PageFile(models.Model):

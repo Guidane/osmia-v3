@@ -13,15 +13,18 @@ ALLOWED = {
     'p': (), 'br': (), 'hr': (), 'h1': (), 'h2': (), 'h3': (), 'h4': (),
     'strong': (), 'b': (), 'em': (), 'i': (), 'u': (), 's': (), 'strike': (), 'sub': (), 'sup': (), 'code': (), 'pre': (),
     'blockquote': (), 'ul': ('class',), 'ol': (), 'li': ('class', 'data-checked'),
-    'a': ('href', 'class', 'data-record', 'title'),
+    'a': ('href', 'class', 'data-record', 'data-name', 'title'),
     'table': (), 'thead': (), 'tbody': (), 'tr': (), 'th': ('colspan', 'rowspan'), 'td': ('colspan', 'rowspan'),
     'img': ('src', 'alt', 'width'),
-    'div': ('class', 'data-view', 'data-title'), 'span': ('class',),
+    'div': ('class', 'data-view', 'data-title', 'data-record', 'data-fields', 'data-name'),
+    'span': ('class', 'data-record', 'data-field', 'data-name', 'data-formula'),
 }
 VOID = {'br', 'hr', 'img'}
 DROP_WITH_CONTENT = {'script', 'style', 'iframe', 'object', 'embed', 'svg', 'math', 'template', 'noscript', 'head', 'title'}
-CLASSES = {'panel', 'info', 'note', 'warning', 'success', 'embed-view', 'record-ref', 'tasks', 'task', 'done', 'mention'}
+CLASSES = {'panel', 'info', 'note', 'warning', 'success', 'embed-view', 'record-ref', 'record-card', 'record-value', 'page-calc', 'tasks', 'task', 'done', 'mention'}
 SAFE_HREF = re.compile(r'^(https?://|mailto:|tel:|/|#)', re.I)
+FIELD_LIST = re.compile(r'^\d+(,\d+)*$')
+NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]{0,30}$')   # a record's or calculation's name in formulas
 SAFE_SRC = re.compile(r'^/(x/pages/files|files)/\d+/', re.I)
 
 
@@ -52,7 +55,13 @@ class _Cleaner(HTMLParser):
                 continue
             if name == 'src' and not SAFE_SRC.match(value.strip()):
                 continue
-            if name in ('data-view', 'data-record', 'colspan', 'rowspan', 'width') and not value.strip().isdigit():
+            if name in ('data-view', 'data-record', 'data-field', 'colspan', 'rowspan', 'width') and not value.strip().isdigit():
+                continue
+            if name == 'data-fields' and not FIELD_LIST.match(value.strip()):
+                continue
+            if name == 'data-name' and not NAME.match(value.strip()):
+                continue
+            if name == 'data-formula' and len(value) > 1000:
                 continue
             if name == 'data-checked' and value not in ('true', 'false'):
                 continue

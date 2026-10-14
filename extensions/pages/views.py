@@ -19,6 +19,7 @@ from core.permissions import can, can_space, require_space, visible_apps
 from core.space_views import get_space, space_sidebar
 
 from .models import Page, PageComment, PageFile, PagePin, PageVersion
+from .references import sync as sync_references
 from .render import TEMPLATES, render as render_body
 from .sanitize import clean, text_of
 
@@ -111,6 +112,7 @@ def _save(request, space, page, parent):
             note = request.POST.get('note', '').strip()[:200]
         PageVersion.objects.create(page=page, version=page.version, title=title, body=body, note=note, created_by=request.user)
         PageFile.objects.filter(space=space, page__isnull=True, uploaded_by=request.user, pk__in=_file_ids(body)).update(page=page)
+        sync_references(page)
     messages.success(request, f'"{page.title}" is saved.')
     return redirect(page)
 
@@ -161,6 +163,7 @@ def page_restore(request, pk, version):
         page.save()
         PageVersion.objects.create(page=page, version=page.version, title=old.title, body=old.body,
                                    note=f'Back to version {version}', created_by=request.user)
+        sync_references(page)
     messages.success(request, f'"{page.title}" is back to version {version}.')
     return redirect(page)
 
@@ -256,18 +259,56 @@ def page_file(request, pk):
 
 @login_required
 def records_for_link(request):
-    """Records to link to from a page: ?q= across the tables the writer can see."""
-    from core.data import Data
+    """Records to link to from a page: ?q= across the tables the writer can see.
+    Big tables are searched in the database (their stored text), not loaded whole."""
+    from core.data import record_ids_with_text
+
+    from .calc import PageData
     q = request.GET.get('q', '').strip()
-    data = Data(request.user)
+    data = PageData(request.user)
     out = []
     if q:
         for app in visible_apps(request.user):
             if app.is_space:
                 continue
             for table in app.tables.all():
-                for r in data.search(table, q, limit=5):
+                if data.is_big(table.pk):
+                    found = data.records_by_ids(list(record_ids_with_text(table.pk, q)[:5]))
+                else:
+                    found = data.search(table, q, limit=5)
+                for r in found:
                     out.append({'id': r.pk, 'label': data.label(r), 'where': f'{app.name} › {table.name}'})
                 if len(out) >= 30:
                     break
     return JsonResponse({'records': out[:30]})
+
+
+@login_required
+def record_for_link(request, pk):
+    """A record and its fields as they are now, for choosing what a card or a value shows."""
+    from core.data import Data
+    from core.models import Record
+
+    from .render import NOT_SHOWN
+    record = get_object_or_404(Record.objects.select_related('table__app'), pk=pk)
+    if not can(request.user, record.table.app, 'viewer'):
+        raise PermissionDenied
+    data = Data(request.user)
+    record = data.record(record.pk)
+    fields = [{'id': f.pk, 'name': f.name, 'text': data.text(record, f)[:80]}
+              for f in data.fields(record.table_id) if f.type not in NOT_SHOWN]
+    table = data.table(record.table_id)
+    return JsonResponse({'id': record.pk, 'label': data.label(record), 'icon': table.icon or '▦',
+                         'where': f'{table.app.name} › {table.name}', 'fields': fields})
+
+
+@login_required
+@require_POST
+def calc_preview(request):
+    """What a calculation being written shows: ?index= of the calculations in the posted body."""
+    from .calc import result
+    try:
+        index = int(request.POST.get('index', ''))
+    except ValueError:
+        return JsonResponse({'error': 'Which calculation?'}, status=400)
+    return JsonResponse({'html': result(clean(request.POST.get('body', '')), request.user, index)})

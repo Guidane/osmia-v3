@@ -94,7 +94,16 @@ Extensions can also add sections to spaces' overviews and to people's home pages
 search results.
 
 `extensions/pages` is pages like Confluence's in every space: a page tree, a rich editor (headings, tables, task lists,
-info/note/warning/success panels, pictures, links), **live views of any app** and links to records inside pages,
+info/note/warning/success panels, pictures, links), **live views of any app**, and records inside pages: a link, a
+**card** with the fields you pick (a budget's amount, spent and remaining), or **one live value in a sentence** ("we have
+€12,400 left"), found with **⇄ Record**, by typing `@` or `[[`, or by pasting a record's address. A record's own page lists
+the pages that mention it. **ƒ Calc** puts a calculation anywhere on a page, also in a page table's cell: a formula
+(the same language as formula fields) over records put on the page with a name (`{budget.Remaining}`,
+`{part.Unit cost}`), the cells of its own table row by their heading (`{Qty}`) and other named calculations, e.g.
+`{part.Unit cost} * {labour.Rate} + {Qty}`. Readers always see the data as it is now, and only what they may see.
+A page stays cheap with big tables: it works out at most 500 rows of a table and 1,000 calculations, follows at most
+10,000 linked records in one step, and never loads a table of more than 50,000 records whole (see
+`extensions/pages/calc.py`). Then
 templates (meeting notes, how-to, decision, retrospective, project plan), labels, comments, version history with
 restore, and pinning pages to your home page. Page HTML is cleaned against an allowlist when it's saved.
 

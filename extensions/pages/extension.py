@@ -47,8 +47,22 @@ def search(request, q):
     return ('Pages', out) if out else None
 
 
+def mentioned_in(request, record, data):
+    """On a record's page: the pages that mention it (the ones the reader can see)."""
+    from core.permissions import can_space
+
+    from .models import PageReference
+    refs = PageReference.objects.filter(record=record).select_related('page__space', 'page__updated_by').order_by('-page__updated_at')
+    pages = [r.page for r in refs if can_space(request.user, r.page.space, 'viewer')]
+    if not pages:
+        return None
+    html = render_to_string('pages/_mentioned_in.html', {'pages': pages[:20], 'more': max(0, len(pages) - 20)}, request=request)
+    return Panel(f'Mentioned in {len(pages)} page{"s" if len(pages) != 1 else ""}', html, order=50)
+
+
 def register(registry):
     registry.space_nav(nav)
     registry.space_section(space_section)
     registry.home_section('pages', 'Pinned pages', home_pinned)
     registry.search(search)
+    registry.record_panel(mentioned_in)

@@ -5,7 +5,7 @@
 {% block content %}
 <div class="pages-layout">
   {% include "pages/_tree.html" %}
-  <form method="post" class="pages-main page-edit" id="page-form" data-upload="{% url 'pages:upload' space.key %}" data-records="{% url 'pages:records' %}">{% csrf_token %}
+  <form method="post" class="pages-main page-edit" id="page-form" data-upload="{% url 'pages:upload' space.key %}" data-records="{% url 'pages:records' %}" data-calc="{% url 'pages:calc' %}">{% csrf_token %}
     <div class="crumbs"><a href="{% url 'pages:space' space.key %}">{{ space.name }}</a>{% if parent %} › <a href="{{ parent.get_absolute_url }}">{{ parent.title }}</a>{% endif %} › {% if page %}editing{% else %}new page{% endif %}</div>
     {% if parent %}<input type="hidden" name="parent" value="{{ parent.pk }}">{% endif %}
     <div class="page-title-row edit">
@@ -35,7 +35,8 @@
       <span class="tb-sep"></span>
       <button type="button" data-action="image" title="Picture or file">🖼 Picture</button>
       <button type="button" data-action="view" title="A live view of an app">⊞ View</button>
-      <button type="button" data-action="record" title="A link to a record">⇄ Record</button>
+      <button type="button" data-action="record" title="A record: a link, a card with its fields, or one live value in your text (or type @ or [[)">⇄ Record</button>
+      <button type="button" data-action="calc" title="A calculation over records on the page and the cells of a table row, worked out live">ƒ Calc</button>
       <span class="tb-sep"></span>
       <button type="button" data-cmd="undo" title="Undo (Ctrl+Z)">↶</button>
       <button type="button" data-cmd="redo" title="Redo (Ctrl+Y)">↷</button>

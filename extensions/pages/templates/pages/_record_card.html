@@ -1,0 +1,5 @@
+<div class="record-card live">
+  <div class="embed-head"><a href="{{ record.get_absolute_url }}">{{ table.icon|default:"▦" }} {{ label }}</a><span class="muted small">{{ table.app.name }} › {{ table.name }} · live</span></div>
+  {% if rows %}<dl class="record-card-fields">{% for r in rows %}<div><dt>{{ r.field.name }}</dt><dd>{{ r.html|default:"—" }}</dd></div>{% endfor %}</dl>{% endif %}
+  {% if gone %}<div class="muted small embed-more">{{ gone }} field{{ gone|pluralize }} on this card {{ gone|pluralize:"was,were" }} deleted.</div>{% endif %}
+</div>

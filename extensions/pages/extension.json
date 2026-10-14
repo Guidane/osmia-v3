@@ -3,6 +3,6 @@
   "title": "Pages",
   "version": "1.0.0",
   "icon": "📄",
-  "description": "Pages in every space, like Confluence: a page tree, a rich editor with headings, tables, task lists, info panels and pictures, live views of any app and links to records inside pages, page templates, labels, comments, version history, and pinning pages to your home page.",
+  "description": "Pages in every space, like Confluence: a page tree, a rich editor with headings, tables, task lists, info panels and pictures, live views of any app, records inside pages (links, cards with chosen fields, and live values in the text, with the pages that mention a record shown on it), calculations over those records and the cells of page tables, page templates, labels, comments, version history, and pinning pages to your home page.",
   "blueprints": []
 }

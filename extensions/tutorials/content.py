@@ -118,7 +118,15 @@ TUTORIALS = [
             'underline, strike, code, links (<kbd>Ctrl</kbd>+<kbd>K</kbd>), lists, <b>☑ task lists</b>, tables, dividers, <b>info, note, '
             'warning and success panels</b> and pictures (or paste one).',
             '<b>⊞ View</b> puts a <b>live view</b> of any app on the page: a list of the project\'s tasks, the open orders, ... Readers see '
-            'it as it is when they open the page, and only if they may see that app. <b>⇄ Record</b> links to a record.',
+            'it as it is when they open the page, and only if they may see that app.',
+            '<b>⇄ Record</b> (or type <kbd>@</kbd> or <kbd>[[</kbd>) finds a record in any app, then puts in a <b>link</b>, a <b>card</b> '
+            'with the fields you tick (double-click a card to change them), or, by clicking a value, that <b>one live value</b> in your '
+            'sentence: "Part 4471 has <b>12</b> in stock". Pasting a record\'s address makes a link. They stay live, and the record\'s '
+            'own page shows <b>Mentioned in</b> with the pages that mention it.',
+            '<b>ƒ Calc</b> does math on that data. Give records a name when you put them on the page (e.g. <i>part</i> and '
+            '<i>labour</i>), then write a formula like <code>{part.Unit cost} * {labour.Rate} + {Qty}</code>: in a page table, '
+            '<code>{Qty}</code> is the cell of the same row under the heading Qty. The dialog shows the result as you type; '
+            'readers see it worked out from the data as it is now. Give a calculation a name to use it in another one.',
             'Add labels and press <b>Publish</b> (or <kbd>Ctrl</kbd>+<kbd>S</kbd>). <b>＋ Page under it</b> makes a child page; the '
             '<b>page tree</b> on the left shows them all. <b>⋯</b> copies the link, moves the page under another, or deletes it.',
             'Every save is a <b>version</b>: History lists them; open an old one and <b>Restore</b> it. Readers can <b>comment</b>, and '

@@ -1,18 +1,33 @@
-"""Showing a page: live views and record links are filled in as it's shown, with
-the reader's permissions (a view they can't see says so instead)."""
+"""Showing a page: calculations, live views, record links, record cards and values are
+filled in as it's shown, with the reader's permissions (what they can't see says so instead)."""
 import re
 
 from django.template.loader import render_to_string
 from django.utils.html import escape
 
-from core.data import Data
+from core.formula import FormulaError
 from core.models import Record, View
 from core.permissions import can
 from core.viewtypes import query, visible_fields
 
+from . import calc
+from .calc import PageData, calculate
+
 EMBED = re.compile(r'<div class="embed-view" data-view="(\d+)"[^>]*>.*?</div>', re.S)
 RECORD = re.compile(r'<a class="record-ref" data-record="(\d+)"[^>]*>(.*?)</a>', re.S)
+CARD = re.compile(r'<div class="record-card"([^>]*)>.*?</div>', re.S)
+VALUE = re.compile(r'<span class="record-value"([^>]*)>(.*?)</span>', re.S)
+ATTR = re.compile(r'(data-[a-z]+)="([\d,]*)"')
+NOT_SHOWN = ('button', 'json')   # fields a card or a value doesn't show
 ROWS = 25
+
+
+def _safe(work):
+    """A value worked out from links can be too big for a page (calc.MAX_LINKED): say so, don't fail."""
+    try:
+        return work()
+    except FormulaError as e:
+        return f'⚠ {escape(str(e))}'
 
 
 class _State(dict):
@@ -25,11 +40,15 @@ def _view_html(view_id, user, data):
         return '<div class="embed-missing">A view was here; it has been deleted.</div>'
     if not can(user, view.table.app, 'viewer'):
         return f'<div class="embed-missing">🔒 A view of {escape(view.table.app.name)} you have no access to.</div>'
+    if data.is_big(view.table_id):
+        return (f'<div class="embed-missing">⊞ <a href="{view.get_absolute_url()}">{escape(view.table.name)} › {escape(view.name)}</a> '
+                f'has {data.table_size(view.table_id):,} records, more than the {calc.BIG_TABLE:,} a page shows in a view. '
+                'Open it to look through them.</div>')
     cfg = view.config or {}
     state = {'filters': cfg.get('filters') or {}, 'sorts': cfg.get('sorts') or [], 'group_by': '', 'q': '', 'temporary': False}
     records = query(data, view, state)
     columns = [f for f in visible_fields(view, data) if f.type not in ('button', 'json')][:8]
-    rows = [{'record': r, 'cells': [data.html(r, f) for f in columns]} for r in records[:ROWS]]
+    rows = [{'record': r, 'cells': [_safe(lambda: data.html(r, f)) for f in columns]} for r in records[:ROWS]]
     return render_to_string('pages/_embed_view.html', {'view': view, 'columns': columns, 'rows': rows,
                                                        'more': max(0, len(records) - ROWS), 'total': len(records)})
 
@@ -45,9 +64,51 @@ def _record_html(record_id, text, user, data):
             f'{escape(record.table.name)}">{record.table.icon or "▦"} {label}</a>')
 
 
+def _readable(record_id, user, data):
+    """(record, None), or (None, html saying why it isn't shown)."""
+    record = Record.objects.select_related('table__app').filter(pk=record_id).first() if record_id else None
+    if record is None:
+        return None, '<span class="record-ref gone" title="Deleted">a deleted record</span>'
+    if not can(user, record.table.app, 'viewer'):
+        return None, '<span class="record-ref gone">🔒 a record</span>'
+    return data.record(record.pk), None
+
+
+def _card_html(attrs, user, data):
+    attrs = dict(ATTR.findall(attrs))
+    record, missing = _readable(int(attrs.get('data-record') or 0), user, data)
+    if record is None:
+        return f'<div class="embed-missing">{missing}</div>'
+    table = data.table(record.table_id)
+    ids = [int(x) for x in (attrs.get('data-fields') or '').split(',') if x]
+    fields = [f for f in (data.field(i) for i in ids) if f is not None and f.table_id == table.pk and f.type not in NOT_SHOWN]
+    rows = [{'field': f, 'html': _safe(lambda: data.html(record, f))} for f in fields]
+    return render_to_string('pages/_record_card.html', {'record': record, 'table': table, 'label': data.label(record),
+                                                        'rows': rows, 'gone': len(ids) - len(fields)})
+
+
+def _value_html(attrs, text, user, data):
+    attrs = dict(ATTR.findall(attrs))
+    record, missing = _readable(int(attrs.get('data-record') or 0), user, data)
+    if record is None:
+        return missing
+    field = data.field(attrs.get('data-field'))
+    if field is None or field.table_id != record.table_id or field.type in NOT_SHOWN:
+        return f'<span class="record-ref gone" title="The field was deleted">{text}</span>'
+    try:
+        shown = data.text(record, field) or '—'
+    except FormulaError as e:
+        return f'<span class="record-ref gone" title="{escape(str(e))}">⚠ {text}</span>'
+    where = f'{data.label(record)} › {field.name}'
+    return f'<a class="record-value" href="{record.get_absolute_url()}" title="{escape(where)} · live">{escape(shown)}</a>'
+
+
 def render(body, user):
-    data = Data(user)
+    data = PageData(user)
+    body = calculate(body or '', user, data)
     body = EMBED.sub(lambda m: _view_html(int(m.group(1)), user, data), body or '')
+    body = CARD.sub(lambda m: _card_html(m.group(1), user, data), body)
+    body = VALUE.sub(lambda m: _value_html(m.group(1), m.group(2), user, data), body)
     return RECORD.sub(lambda m: _record_html(int(m.group(1)), m.group(2), user, data), body)
 
 
