@@ -1,0 +1,8 @@
+{
+  "name": "assistant",
+  "title": "AI assistant",
+  "version": "1.0.0",
+  "icon": "✨",
+  "description": "Change Osmia with any AI chat: describe what you want, copy the prompt Osmia writes around it (the answer format, the field types and your workspace, as far as you may see it) into the AI, and paste its answer back. Osmia checks every change, shows it to you, and makes it only when you say so, with your own permissions: new spaces, apps, tables, fields, views, records and pages, and small changes to them. It never deletes anything.",
+  "blueprints": []
+}

@@ -22,6 +22,7 @@ import json
 import logging
 import threading
 import urllib.request
+from contextlib import contextmanager
 from dataclasses import dataclass, field as dc_field
 from datetime import timedelta
 
@@ -131,6 +132,22 @@ def _depth():
     return getattr(_local, 'depth', 0)
 
 
+@contextmanager
+def paused():
+    """No automation runs inside, e.g. while changes are tried out and then undone
+    (they could send emails or call webhooks that can't be undone)."""
+    previous = getattr(_local, 'paused', False)
+    _local.paused = True
+    try:
+        yield
+    finally:
+        _local.paused = previous
+
+
+def _paused():
+    return getattr(_local, 'paused', False)
+
+
 def current_app():
     """The app of the automation running now (None outside automations)."""
     stack = getattr(_local, 'apps', None)
@@ -147,7 +164,7 @@ def _automations(table_id, trigger):
 
 def fire(trigger, record, data, user=None, old=None, changed=None):
     """Run the automations of ``record``'s table that react to ``trigger``."""
-    if _depth() >= MAX_DEPTH:
+    if _depth() >= MAX_DEPTH or _paused():
         return
     for auto in _automations(record.table_id, trigger):
         if trigger == 'record_updated':
@@ -229,7 +246,7 @@ def check_conditions(data, record_ids, user=None):
     """For "A record starts to meet the conditions": look at the changed record
     and its neighbours, and run for those that just started to meet them."""
     from .models import Automation, AutomationState, Record
-    if _depth() >= MAX_DEPTH or not record_ids:
+    if _depth() >= MAX_DEPTH or _paused() or not record_ids:
         return
     autos = list(Automation.objects.filter(active=True, trigger='condition_met').select_related('table'))
     if not autos:

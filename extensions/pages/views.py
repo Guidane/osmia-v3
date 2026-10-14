@@ -7,7 +7,7 @@ import os
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -21,7 +21,8 @@ from core.space_views import get_space, space_sidebar
 from .models import Page, PageComment, PageFile, PagePin, PageVersion
 from .references import sync as sync_references
 from .render import TEMPLATES, render as render_body
-from .sanitize import clean, text_of
+from .sanitize import clean
+from .service import write_page
 
 
 def _page(request, pk, needed='viewer'):
@@ -89,37 +90,16 @@ def page_edit(request, pk):
 
 
 def _save(request, space, page, parent):
-    title = request.POST.get('title', '').strip()[:200]
-    if not title:
-        messages.error(request, 'Give the page a title.')
+    try:
+        page, changed = write_page(space, request.user, request.POST.get('title', ''), request.POST.get('body', ''),
+                                   page=page, parent=parent, emoji=request.POST.get('emoji', ''),
+                                   labels=request.POST.get('labels', ''), note=request.POST.get('note', ''))
+    except ValidationError as exc:
+        messages.error(request, exc.messages[0])
         return redirect(request.path)
-    body = clean(request.POST.get('body', ''))
-    labels = ', '.join(l.strip() for l in request.POST.get('labels', '').split(',') if l.strip())[:300]
-    with transaction.atomic():
-        if page is None:
-            top = Page.objects.filter(space=space, parent=parent).count()
-            page = Page.objects.create(space=space, parent=parent, title=title, emoji=request.POST.get('emoji', '').strip()[:8],
-                                       body=body, labels=labels, position=top, created_by=request.user, updated_by=request.user)
-            note = 'Created'
-        else:
-            if (page.title, page.body, page.labels, page.emoji) == (title, body, labels, request.POST.get('emoji', '').strip()[:8]):
-                return redirect(page)
-            page.version += 1
-            page.title, page.body, page.labels = title, body, labels
-            page.emoji = request.POST.get('emoji', '').strip()[:8]
-            page.updated_by = request.user
-            page.save()
-            note = request.POST.get('note', '').strip()[:200]
-        PageVersion.objects.create(page=page, version=page.version, title=title, body=body, note=note, created_by=request.user)
-        PageFile.objects.filter(space=space, page__isnull=True, uploaded_by=request.user, pk__in=_file_ids(body)).update(page=page)
-        sync_references(page)
-    messages.success(request, f'"{page.title}" is saved.')
+    if changed:
+        messages.success(request, f'"{page.title}" is saved.')
     return redirect(page)
-
-
-def _file_ids(body):
-    import re
-    return [int(x) for x in re.findall(r'/x/pages/files/(\d+)/', body)]
 
 
 def _embed_choices(user):

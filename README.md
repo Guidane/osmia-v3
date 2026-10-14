@@ -112,6 +112,16 @@ Devices app (devices, connectors, pins, signals, pin maps) and the Harness app (
 same service, so their history and automations apply. It adds a Designer page, a "Harness designer" view type, and
 panels on device and project pages.
 
+`extensions/assistant` (✨ AI in the top bar, and in each space's sidebar) changes Osmia with any AI chat, without an
+API key: you describe a change; Osmia writes a prompt around it (the answer format, the field types, and the spaces,
+apps, fields and pages you may see, records only if you tick the box) for you to paste into the AI; you paste its JSON
+answer back. Osmia then tries every change inside a transaction with automations paused and undoes it, shows you each
+change with ✓ or the exact problem (and a message to send back to the AI), and makes them only when you say so, all
+or none, with your own permissions. It can make spaces, apps (tables, fields with links, lookups, rollups and
+formulas, views, records), tables, fields, views and pages, and change apps, fields, records and pages; it never
+deletes anything. Changes go through the same code as the website and show "AI assistant" in the history; every
+request and what it changed is kept (`assistant.Run`). See `extensions/assistant/plan.py` for the answer format.
+
 ### Tutorials
 
 `extensions/tutorials` has a tutorial for everything Osmia does (📖 Tutorials in the top bar), grouped from getting

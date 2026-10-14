@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}AI assistant{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'assistant/assistant.css' %}">{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="record-head"><h1>✨ AI assistant</h1></div>
+<p class="muted">Describe a change and Osmia writes a prompt around it for any AI chat you use. You paste the AI's answer back;
+  Osmia checks it, shows you every change, and makes them only when you say so, with your own permissions. It never deletes anything.</p>
+
+<form method="post" class="card assistant-ask">{% csrf_token %}
+  <label for="request"><b>What do you want?</b></label>
+  <textarea id="request" name="request" rows="5" required autofocus maxlength="5000"
+    placeholder="e.g. Make an app for our suppliers: name, country, contact person, rating and status (active or paused), with a board by status. Add three example suppliers.{% if page %}&#10;or: Add a section about returns to this page.{% endif %}"></textarea>
+  <div class="assistant-scope">
+    {% if page %}
+      <input type="hidden" name="page" value="{{ page.pk }}">
+      <span>📄 About the page <b>{{ page.title }}</b> in {{ page.space.name }} <a class="small" href="{% url 'assistant:index' %}?space={{ page.space.key }}">(not just this page)</a></span>
+    {% else %}
+      <label>Where <select name="space">
+        {% for s in spaces %}<option value="{{ s.key }}"{% if space and s.pk == space.pk %} selected{% endif %}>{% if s.is_personal %}My space{% else %}{{ s.name }} ({{ s.key }}){% endif %}</option>{% endfor %}
+      </select></label>
+      <label>App (optional) <select name="app"><option value="">— the whole space —</option>
+        {% for a in apps %}<option value="{{ a.slug }}"{% if app and a.pk == app.pk %} selected{% endif %}>{{ a.name }}{% if a.space and not a.space.is_personal %} · {{ a.space.key }}{% endif %}</option>{% endfor %}
+      </select></label>
+    {% endif %}
+    <label class="inline records-opt"><input type="checkbox" name="records"> Let the AI see some records (the first 10 of each table)</label>
+  </div>
+  <p class="muted small">The prompt has your request and the tables and fields of the apps in this space (or this app) that you may see,
+    and records only if you tick the box. Paste it only into an AI your organisation allows.</p>
+  <button class="btn primary">Write the prompt →</button>
+</form>
+
+{% if runs %}<section class="card"><h3>Your requests</h3>
+  <table class="list">{% for r in runs %}<tr><td><a href="{{ r.get_absolute_url }}">{{ r.request|truncatechars:90 }}</a></td>
+    <td class="small nowrap"><span class="badge {% if r.status == 'done' %}ok{% elif r.status == 'problems' %}failed{% endif %}">{{ r.get_status_display }}</span></td>
+    <td class="small muted nowrap">{{ r.created_at|timesince }} ago</td></tr>{% endfor %}</table>
+</section>{% endif %}
+{% endblock %}

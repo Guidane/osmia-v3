@@ -1,0 +1,62 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}AI assistant · {{ run.request|truncatechars:40 }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'assistant/assistant.css' %}">{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'assistant:index' %}">✨ AI assistant</a> › request</div>
+<div class="card"><div class="muted small">You asked</div><div class="assistant-request">{{ run.request|linebreaksbr }}</div></div>
+
+<section class="card assistant-step">
+  <h3><span class="step-n">1</span> Copy this prompt into your AI chat</h3>
+  <textarea class="assistant-prompt" id="prompt" readonly rows="10">{{ run.prompt }}</textarea>
+  <div class="actions"><button type="button" class="btn primary" data-copy="prompt">📋 Copy the prompt</button>
+    <span class="muted small">{{ run.prompt|length }} characters</span></div>
+</section>
+
+<section class="card assistant-step">
+  <h3><span class="step-n">2</span> Paste the AI's answer</h3>
+  <form method="post" action="{% url 'assistant:check' run.pk %}">{% csrf_token %}
+    <textarea name="answer" rows="8" class="assistant-answer" placeholder="The AI's whole answer (Osmia finds the JSON in it)"{% if run.status == 'done' %} readonly{% endif %}>{{ run.answer }}</textarea>
+    {% if run.status != 'done' %}<div class="actions"><button class="btn primary">Check the answer</button>
+      <span class="muted small">Checking changes nothing: Osmia tries everything out and undoes it.</span></div>{% endif %}
+  </form>
+</section>
+
+{% if run.status != 'waiting' %}
+<section class="card assistant-step" id="result">
+  <h3><span class="step-n">3</span> {% if run.status == 'done' %}Done{% elif run.status == 'ready' %}Make the changes{% elif run.status == 'question' %}The AI asks{% else %}Fix the answer{% endif %}</h3>
+  {% if run.summary %}<p><b>{{ run.summary }}</b></p>{% endif %}
+  {% if run.status == 'question' %}
+    <div class="flash warning">{{ run.problem|linebreaksbr }}</div>
+    <p class="muted small">Answer it in the AI chat, then paste the AI's new answer above.</p>
+  {% endif %}
+  {% if run.status == 'problems' and run.problem %}<div class="flash error">{{ run.problem }}</div>{% endif %}
+  {% if run.results %}<ol class="assistant-changes">
+    {% for s in run.results %}<li class="{% if s.error %}bad{% else %}ok{% endif %}">
+      <span class="mark">{% if s.error %}✗{% else %}✓{% endif %}</span>
+      <span>{% if s.url %}<a href="{{ s.url }}">{{ s.text }}</a>{% else %}{{ s.text }}{% endif %}
+        {% if s.error %}<div class="error-text">{{ s.error }}</div>{% endif %}</span>
+    </li>{% endfor %}
+  </ol>{% endif %}
+  {% if run.status == 'ready' %}
+    <form method="post" action="{% url 'assistant:apply' run.pk %}">{% csrf_token %}
+      <div class="actions"><button class="btn primary">✓ Make {{ run.results|length }} change{{ run.results|length|pluralize }}</button>
+        <span class="muted small">All of them, or none if one fails. Changes show "AI assistant" in the history.</span></div>
+    </form>
+  {% elif run.status == 'problems' %}
+    <p class="muted small">Nothing was changed. Send this to the AI so it can fix its answer, then paste the new answer above:</p>
+    <textarea id="fix" readonly rows="5" class="assistant-prompt">{{ fix }}</textarea>
+    <div class="actions"><button type="button" class="btn" data-copy="fix">📋 Copy the message for the AI</button></div>
+  {% elif run.status == 'done' %}
+    <p class="muted small">Made {{ run.applied_at|date:"j M Y H:i" }}. <a href="{% url 'assistant:index' %}{% if run.scope.space %}?space={{ run.scope.space }}{% endif %}">Ask for something else →</a></p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>
+  document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
+    const box = document.getElementById(b.dataset.copy);
+    try { await navigator.clipboard.writeText(box.value); OSMIA.toast('Copied: paste it into your AI chat'); }
+    catch (e) { box.select(); document.execCommand('copy'); OSMIA.toast('Copied'); }
+  }));
+</script>{% endblock %}

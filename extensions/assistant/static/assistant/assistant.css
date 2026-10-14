@@ -1,0 +1,18 @@
+.assistant-ask textarea, .assistant-step textarea { width: 100%; margin-top: 6px; }
+.assistant-scope { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 12px 0 4px; font-size: 13px; }
+.assistant-scope select { margin-left: 4px; max-width: 260px; }
+.assistant-scope label { display: flex; gap: 6px; align-items: center; flex: 0 1 auto; }
+.assistant-scope .records-opt { flex: 1 1 280px; }
+.assistant-scope .records-opt input { flex: none; }
+.assistant-request { font-size: 15px; margin-top: 4px; }
+.assistant-prompt { font: 12px/1.5 ui-monospace, Consolas, monospace; background: var(--panel-2); }
+.assistant-answer { font: 12px/1.5 ui-monospace, Consolas, monospace; }
+.assistant-step h3 { display: flex; align-items: center; gap: 8px; }
+.step-n { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: var(--brand); color: #fff; font-size: 12px; align-items: center; justify-content: center; }
+.assistant-changes { list-style: none; padding: 0; margin: 8px 0; }
+.assistant-changes li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.assistant-changes li:last-child { border-bottom: 0; }
+.assistant-changes .mark { font-weight: 700; width: 16px; flex: none; }
+.assistant-changes li.ok .mark { color: var(--brand); }
+.assistant-changes li.bad .mark, .assistant-changes .error-text { color: var(--danger); }
+.assistant-changes .error-text { font-size: 13px; margin-top: 2px; }
