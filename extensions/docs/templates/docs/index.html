@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Documentation{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'docs/docs.css' %}">{% endblock %}
+{% block content %}
+<div class="record-head"><h1>📄 Documentation</h1></div>
+<p class="muted">Pages for people to read: how things work, decisions, procedures, onboarding. Every space has its section, and a page carries its space's access tags. Data belongs in apps: a page shows it live (type <kbd>/view</kbd> or <kbd>/record</kbd>), it doesn't copy it.</p>
+<div class="pages-layout">
+  <nav class="page-tree" aria-label="Spaces">
+    <div class="tree-head"><b>Spaces</b></div>
+    {% for s in sections %}<a class="tree-row" href="{% url 'docs:space' s.space.pk %}" style="padding-left:{{ s.depth|add:1 }}0px">{{ s.table.icon|default:"◼" }} {{ s.label }}{% if s.count %} <span class="muted small">{{ s.count }}</span>{% endif %}</a>
+    {% empty %}<p class="muted small" style="padding:6px 8px">No spaces you can see yet.</p>{% endfor %}
+  </nav>
+  <div class="pages-main">
+    <div class="card flush">
+      <div class="card-head"><h3>Recently changed</h3></div>
+      {% for p in recent %}
+        <a class="work-row" href="{{ p.get_absolute_url }}"><span class="tree-emoji">{{ p.emoji|default:"📄" }}</span>
+          <span class="w-main"><span class="w-title">{{ p.title }}</span><span class="w-sub">{% for k, v in labels.items %}{% if k == p.space_id %}{{ v }}{% endif %}{% endfor %} · {{ p.updated_by|default:"" }} · {{ p.updated_at|timesince }} ago</span></span></a>
+      {% empty %}<p class="empty small">No pages yet. Open a space on the left and write the first one.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

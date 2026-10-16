@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ ext.title }}{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>{{ ext.icon }} {% if on %}Switch on{% else %}Switch off{% endif %} {{ ext.title }}</h1>
+<div class="card">
+{% if on %}
+  {% if unfixable %}
+    <div class="flash error"><b>{{ ext.title }} can't be switched on</b>: it needs what no template here brings.
+      <ul>{% for req, why in unfixable %}<li><code>{{ req }}</code>: {{ why }}</li>{% endfor %}</ul></div>
+    <a class="btn ghost" href="{% url 'core:extensions' %}">Back</a>
+  {% else %}
+    {% if gaps %}<p>It needs what isn't there yet:</p>
+      <ul>{% for req, why, key in gaps %}<li><code>{{ req }}</code>: {{ why }}</li>{% endfor %}</ul>{% endif %}
+    {% if installs %}<p>Switching it on installs:</p>
+      <ul>{% for bp in installs %}<li><b>{{ bp.icon }} {{ bp.name }}</b> <span class="muted small">{{ bp.description }}</span></li>{% endfor %}</ul>
+    {% else %}<p>Everything it needs is there.</p>{% endif %}
+    <form method="post">{% csrf_token %}
+      {% if installs %}<label class="inline"><input type="checkbox" name="sample" value="1"> with sample records</label>{% endif %}
+      <div class="actions"><button class="btn primary">{% if installs %}Install and switch on{% else %}Switch on{% endif %}</button>
+        <button class="btn" name="restart" value="1">… and restart</button>
+        <a class="btn ghost" href="{% url 'core:extensions' %}">Cancel</a></div>
+    </form>
+  {% endif %}
+{% else %}
+  {% if used %}
+    <div class="flash error"><b>{{ ext.title }} can't be switched off while something uses what it brings.</b> Change these first:
+      <ul>{% for u in used %}<li>{{ u }}</li>{% endfor %}</ul></div>
+    <a class="btn ghost" href="{% url 'core:extensions' %}">Back</a>
+  {% else %}
+    <p>Switching it off removes its code: its screens, blocks, tabs and panels. Everything it stored stays, as ordinary apps and fields; switching it on again brings its screens back over the same data.</p>
+    <form method="post">{% csrf_token %}
+      <div class="actions"><button class="btn danger">Switch off</button><button class="btn" name="restart" value="1">… and restart</button>
+        <a class="btn ghost" href="{% url 'core:extensions' %}">Cancel</a></div>
+    </form>
+  {% endif %}
+{% endif %}
+</div>
+{% endblock %}

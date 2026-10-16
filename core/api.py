@@ -23,13 +23,22 @@ def _body(request):
 
 
 def _error(exc, status=400):
+    from .access import NeedsSharing
+    if isinstance(exc, NeedsSharing):   # the page asks "share it with them?" and sends it again with "share": true
+        return JsonResponse({'error': ' '.join(exc.messages), 'needs_share': True}, status=409)
     if isinstance(exc, ValidationError):
         return JsonResponse({'error': ' '.join(exc.messages)}, status=status)
     return JsonResponse({'error': str(exc)}, status=status)
 
 
 def _record(request, pk, needed):
+    """The record, if the person may see it (its app and its access tags)."""
+    from django.http import Http404
+
+    from .access import can_see
     record = get_object_or_404(Record.objects.select_related('table__app'), pk=pk)
+    if not can_see(request.user, record):
+        raise Http404('There is no such record.')
     require(request.user, record.table.app, needed)
     return record
 
@@ -79,9 +88,9 @@ def record_api(request, pk):
         return JsonResponse({'error': 'GET or POST'}, status=405)
     record = _record(request, pk, 'editor')
     data = Data(request.user)
-    values = _body(request).get('values') or {}
+    body = _body(request)
     try:
-        service.update_record(record, values, user=request.user, data=data)
+        service.update_record(record, body.get('values') or {}, user=request.user, data=data, share=bool(body.get('share')))
     except ValidationError as exc:
         return _error(exc)
     return JsonResponse(record_json(data, record))
@@ -93,8 +102,9 @@ def record_create(request, table_id):
     table = get_object_or_404(Table.objects.select_related('app'), pk=table_id)
     require(request.user, table.app, 'editor')
     data = Data(request.user)
+    body = _body(request)
     try:
-        record = service.create_record(table, _body(request).get('values') or {}, user=request.user, data=data)
+        record = service.create_record(table, body.get('values') or {}, user=request.user, data=data, share=bool(body.get('share')))
     except ValidationError as exc:
         return _error(exc)
     return JsonResponse(record_json(data, record))

@@ -8,6 +8,7 @@ and download any app as a template to install it on another Osmia.
     {"key": "orders", "name": "Orders", "icon": "🧾", "version": "1.0.0",
      "requires": ["parts", "vendors"],            templates that must be installed first
      "tables": [{"key": "orders", "name": "Orders", "display": "number",
+                 "tree": "parent", "spaces": true,          a tree by its "parent" link; its records are spaces
                  "fields": [{"key": "supplier", "name": "Supplier", "type": "link",
                              "options": {"target": "vendors.vendors", "multiple": false,
                                          "inverse": {"key": "orders", "name": "Orders", "multiple": true}}},
@@ -21,6 +22,12 @@ and download any app as a template to install it on another Osmia.
 A table is named by its key in the same template ("lines") or as
 "<template>.<table>" in another one. A link with "optional": true is left out
 when the other template isn't installed.
+
+Fields a template adds to another app's table ("extend") remember where they
+came from (``Field.origin``): removing the app later leaves the plain ones
+there and takes the ones that only work with it. If that table already has a
+field with the same key from somewhere else, the new one's key gets the
+template's key in front ("stock_reorder_level"), so they never collide.
 """
 import json
 from pathlib import Path
@@ -47,7 +54,7 @@ def directories():
 
 def available(include_hidden=False):
     """{key: blueprint dict} for every template that comes with Osmia or an extension.
-    Hidden ones (e.g. "My space", made for each person by itself) only when asked for."""
+    Hidden ones only when asked for."""
     found = {}
     for d in directories():
         for path in sorted(d.glob('*.json')):
@@ -61,16 +68,6 @@ def available(include_hidden=False):
             bp.setdefault('key', path.stem)
             found[bp['key']] = bp
     return dict(sorted(found.items(), key=lambda kv: (kv[1].get('position', 100), kv[1].get('name', kv[0]))))
-
-
-def company_space():
-    """The space templates go to unless another is picked (made the first time)."""
-    from .models import Space
-    space = Space.objects.filter(kind=Space.Kind.COMPANY).order_by('position', 'pk').first()
-    if space is None:
-        space = Space.objects.create(name='Company', key='CO', kind=Space.Kind.COMPANY, visibility=Space.Visibility.INTERNAL,
-                                     icon='🏢', position=0, description='The apps the whole company works with.')
-    return space
 
 
 def installed_keys():
@@ -108,15 +105,22 @@ def order(keys, catalog):
     return out
 
 
-def install_many(keys, user=None, sample=False, space=None):
-    catalog = available()
+def install_many(keys, user=None, sample=False, catalog=None):
+    """Install ``keys`` and what they require (each after what it needs). Returns the new apps."""
+    catalog = catalog or available(include_hidden=True)
     apps = []
     with transaction.atomic():
         for key in order(keys, catalog):
             if key in installed_keys():
                 continue
-            apps.append(install(catalog[key], user=user, sample=sample, space=space))
+            apps.append(install(catalog[key], user=user, sample=sample))
     return apps
+
+
+def needed_for(keys, catalog=None):
+    """The templates installing ``keys`` would install too (what they require that isn't there)."""
+    catalog = catalog or available(include_hidden=True)
+    return [k for k in order(keys, catalog) if k not in keys and k not in installed_keys()]
 
 
 def _table_ref(ref, app, local):
@@ -131,12 +135,17 @@ def _table_ref(ref, app, local):
     return local.get(ref)
 
 
-def _field(table, key):
+def _field(table, key, origin=None):
+    """A field by its key; a field ``origin`` added to another app's table may have had its key prefixed."""
+    if origin:
+        mine = Field.objects.filter(table=table, key=f'{origin}_{key}', origin=origin).first()
+        if mine is not None:
+            return mine
     return Field.objects.filter(table=table, key=key).first()
 
 
 @transaction.atomic
-def install(bp, user=None, sample=False, name=None, owner=None, is_space=False, space=None):
+def install(bp, user=None, sample=False, name=None, owner=None):
     """Make an app from a template (``owner``: someone's own app). Returns the App."""
     missing = [k for k in bp.get('requires') or [] if k not in installed_keys()]
     if missing:
@@ -144,10 +153,7 @@ def install(bp, user=None, sample=False, name=None, owner=None, is_space=False, 
     app = schema.create_app(name or bp.get('name') or bp['key'], user=user, icon=bp.get('icon', '▦'),
                             color=bp.get('color', '#2e7d5b'), description=bp.get('description', ''),
                             blueprint=bp.get('key', ''), blueprint_version=str(bp.get('version', '')),
-                            owner=owner, default_role='none' if owner else 'viewer', space=space or company_space())
-    if is_space:
-        app.is_space = True
-        app.save(update_fields=['is_space'])
+                            owner=owner, default_role='none' if owner else 'viewer')
     local = {}
     for i, t in enumerate(bp.get('tables') or []):
         table = schema.create_table(app, t['name'], icon=t.get('icon', ''), key=t['key'], primary=None,
@@ -165,18 +171,28 @@ def install(bp, user=None, sample=False, name=None, owner=None, is_space=False, 
             raise ValidationError(f'{bp.get("name")}: there is no table "{ext["table"]}" to add fields to.')
         groups.append((target, ext.get('fields') or []))
     # 1. stored fields and links (in order), 2. computed ones, which need the links
+    key = bp.get('key', '')
     for computed in (False, True):
         for table, fields in groups:
-            base = (table.fields.count() if table.app_id != app.pk else 0)
+            elsewhere = table.app_id != app.pk
+            base = (table.fields.count() if elsewhere else 0)
             for pos, f in enumerate(fields):
-                if (f['type'] in COMPUTED) != computed or _field(table, f['key']):
+                if (f['type'] in COMPUTED) != computed:
                     continue
-                _add(app, table, f, local, base + pos)
+                existing = _field(table, f['key'], key if elsewhere else None)
+                if existing is not None and (not elsewhere or existing.origin == key):
+                    continue   # there already (e.g. installed again after being switched off)
+                if existing is not None:
+                    f = {**f, 'key': f'{key}_{f["key"]}'}
+                _add(app, table, f, local, base + pos, origin=key if elsewhere else '')
     for t in bp.get('tables') or []:
         table = local[t['key']]
         display = _field(table, t.get('display')) if t.get('display') else table.fields.first()
         table.display_field = display or table.fields.first()
-        table.save(update_fields=['display_field'])
+        if t.get('tree'):
+            table.tree_field = _field(table, t['tree'])
+            table.is_space = bool(t.get('spaces')) and table.tree_field is not None
+        table.save(update_fields=['display_field', 'tree_field', 'is_space'])
         for pos, v in enumerate(t.get('views') or [{'name': f'All {t["name"].lower()}', 'type': 'grid'}]):
             View.objects.create(table=table, name=v['name'], type=v.get('type', 'grid'), config=v.get('config') or {},
                                 position=pos)
@@ -199,14 +215,15 @@ def install(bp, user=None, sample=False, name=None, owner=None, is_space=False, 
         autos[a.get('key') or a['name']] = Automation.objects.create(
             table=table, name=a['name'], description=a.get('description', ''), active=a.get('active', True),
             trigger=a['trigger'], trigger_config=a.get('trigger_config') or {}, conditions=a.get('conditions') or {},
-            actions=steps, position=pos, key=a.get('key', ''))
+            actions=steps, position=pos, key=a.get('key', ''), origin=key if table.app_id != app.pk else '')
     for pos, a in enumerate(bp.get('automations') or []):
         if a.get('instead_of') in skipped:
             table = _table_ref(a.get('table'), app, local)
             autos[a['instead_of']] = Automation.objects.create(
                 table=table, name=a['name'], description=a.get('description', ''), active=True, trigger=a['trigger'],
                 trigger_config=a.get('trigger_config') or {}, conditions=a.get('conditions') or {},
-                actions=[_resolve_step(s, app, local, table) for s in a.get('actions') or []], position=pos, key=a['instead_of'])
+                actions=[_resolve_step(s, app, local, table) for s in a.get('actions') or []], position=pos, key=a['instead_of'],
+                origin=key if table.app_id != app.pk else '')
     for a in autos.values():  # "run another automation" steps name automations by key
         steps = [dict(s, automation=autos[s['automation']].pk) if s.get('type') == 'run_automation'
                  and s.get('automation') in autos else s for s in a.actions]
@@ -226,10 +243,11 @@ def install(bp, user=None, sample=False, name=None, owner=None, is_space=False, 
     return app
 
 
-def _add(app, table, f, local, position):
+def _add(app, table, f, local, position, origin=''):
     options = dict(f.get('options') or {})
     ftype = f['type']
     inverse = {}
+    bp_key = app.blueprint
     if ftype == 'link':
         target = _table_ref(options.get('target'), app, local)
         if target is None:
@@ -240,7 +258,7 @@ def _add(app, table, f, local, position):
         options.pop('optional', None)
         options['target'] = target.pk
     elif ftype in ('lookup', 'rollup'):
-        link = _field(table, options.get('link'))
+        link = _field(table, options.get('link'), bp_key if table.app_id != app.pk else None)
         if link is None:
             if f.get('optional'):
                 return None
@@ -253,10 +271,13 @@ def _add(app, table, f, local, position):
                     return None
                 raise ValidationError(f'{table.name}.{f["name"]}: the linked table has no field "{options["field"]}".')
             options['field'] = target_field.pk
-    return schema.add_field(table, f['name'], ftype, options, key=f['key'], required=f.get('required', False),
+    name = f['name']
+    if origin and table.fields.filter(name__iexact=name).exists():
+        name = f'{name} ({app.name})'
+    return schema.add_field(table, name, ftype, options, key=f['key'], required=f.get('required', False),
                             description=f.get('description', ''), position=position,
                             inverse_name=inverse.get('name'), inverse_key=inverse.get('key', ''),
-                            inverse_multiple=inverse.get('multiple', True))
+                            inverse_multiple=inverse.get('multiple', True), origin=origin or bp_key)
 
 
 def _resolve_step(step, app, local, auto_table=None):
@@ -280,7 +301,7 @@ def _resolve_step(step, app, local, auto_table=None):
 def load_records(bp, app, local, user=None):
     from django.contrib.auth import get_user_model
     from . import service
-    data = Data(user)
+    data = Data(user, system=True)
     usernames = set(get_user_model().objects.values_list('username', flat=True))
 
     def usable(table, row):
@@ -392,7 +413,9 @@ def export(app, with_records=False):
                            **({'required': True} if f.required else {}),
                            **({'description': f.description} if f.description else {})})
         primary = data.primary_field(t)
+        tree = data.field(t.tree_field_id) if t.tree_field_id else None
         out['tables'].append({'key': t.key or t.slug, 'name': t.name, 'icon': t.icon, 'display': primary.key if primary else '',
+                              **({'tree': tree.key} if tree else {}), **({'spaces': True} if t.is_space else {}),
                               'fields': fields,
                               'views': [{'name': v.name, 'type': v.type, 'config': v.config} for v in t.views.all()]})
     for a in Automation.objects.filter(table__in=tables):

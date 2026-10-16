@@ -152,8 +152,9 @@ def _texts(data, record, fields):
 
 
 def _log(table, record_id, label, action, changes=None, user=None):
+    access = Record.objects.filter(pk=record_id).values_list('access', flat=True).first() or []
     Change.objects.create(table=table, record_id=record_id, record_label=label[:200], action=action,
-                          changes=changes or {}, user=user, source=current_source()[:200])
+                          changes=changes or {}, user=user, source=current_source()[:200], access=access)
 
 
 def _guard(table):
@@ -166,8 +167,90 @@ def _neighbours(data, record):
     ids = set()
     for f in data.fields(record.table_id):
         if f.type == 'link':
-            ids.update(data.linked_ids(record, f))
+            ids.update(data.all_linked_ids(record, f))
     return ids
+
+
+def _keep_hidden(data, record, links):
+    """A person only sends the links they can see; the ones they can't see stay."""
+    if data.system:
+        return links
+    out = {}
+    for field, ids in links.items():
+        seen = set(data.linked_ids(record, field))
+        hidden = [i for i in data.all_linked_ids(record, field) if i not in seen]
+        out[field] = list(ids) + [i for i in hidden if i not in ids]
+    return out
+
+
+def _check_tree(data, table, record, links):
+    """A tree's parent link may not go round in a circle."""
+    if not table.tree_field_id:
+        return
+    for field, ids in links.items():
+        if field.pk != table.tree_field_id and field.opt('inverse') != table.tree_field_id:
+            continue
+        from .trees import would_cycle
+        if field.pk == table.tree_field_id:
+            if record is not None and would_cycle(table, record.pk, ids):
+                raise ValidationError(f'{data.label(record)} can\'t go under itself or one of the records under it.')
+        elif record is not None:   # "Parent of": the children given may not be above this record
+            for child in ids:
+                if would_cycle(table, child, [record.pk]):
+                    raise ValidationError(f'{data.label(record)} can\'t go under itself or one of the records under it.')
+
+
+def _carries_access(data, field):
+    from .access import _Graph
+    graph = getattr(data, '_access_graph', None)
+    if graph is None:
+        graph = data._access_graph = _Graph()
+    other = data.field(field.opt('inverse'))
+    return graph.inherits(field) or (other is not None and graph.inherits(other))
+
+
+def _refresh_access(data, record, changed_links, old_links, created=False):
+    from . import access
+    ids = set()
+    for field, new_ids in changed_links.items():
+        if _carries_access(data, field):
+            ids |= {record.pk} | set(new_ids) | set(old_links.get(field.pk, []))
+    if created and (record.tags or ids):
+        ids.add(record.pk)
+    if ids:
+        access.refresh(ids)
+        record.refresh_from_db(fields=['access'])
+
+
+def _people_added(data, record, old_data, stored):
+    """People newly put in a people field of ``record``."""
+    added = set()
+    for f in data.fields(record.table_id):
+        if f.type != 'user' or f.key not in stored:
+            continue
+        new = stored[f.key] if isinstance(stored[f.key], list) else [stored[f.key]] if stored[f.key] else []
+        old = (old_data or {}).get(f.key)
+        old = old if isinstance(old, list) else [old] if old else []
+        added.update(int(u) for u in new if u and u not in old)
+    return added
+
+
+def _check_sharing(data, record, people, user, share):
+    """Someone put on a record they can't see: share it with them (``share``), or stop and say so."""
+    from . import access
+    if data.system or not people or not record.access:
+        return
+    users = data.users()
+    blind = [users[p] for p in people if p in users and not access.allows(users[p], record.access, record.pk)]
+    if not blind:
+        return
+    if not share:
+        names = ', '.join(str(u) for u in blind)
+        tags = ', '.join(t.name for t in access.missing_tags(blind[0], record))
+        raise access.NeedsSharing(f'{names} can\'t see {data.label(record)} (it needs {tags}). '
+                                  'Share this one record with them, or pick someone else.', blind)
+    for person in blind:
+        access.share(record, person, user)
 
 
 # -- Records ----------------------------------------------------------------------------
@@ -179,7 +262,9 @@ def next_number(field):
     return seq.value
 
 
-def create_record(table, values=None, user=None, data=None, force=False, run_automations=True):
+def create_record(table, values=None, user=None, data=None, force=False, run_automations=True, share=False, tags=None):
+    """``tags``: access tags for the new record (the maker must hold them).
+    ``share``: share it with people put on it who couldn't see it (else that stops the change)."""
     data = data or Data(user)
     table = data.table(table)
     _guard(table)
@@ -201,10 +286,19 @@ def create_record(table, values=None, user=None, data=None, force=False, run_aut
                 record_data[f.key] = next_number(f)
         top = Record.objects.filter(table=table).aggregate(m=Max('position'))['m'] or 0
         record = Record.objects.create(table=table, data=record_data, created_by=user, updated_by=user, position=top + 1)
+        _check_tree(data, table, record, links)
         for field, ids in links.items():
             _set_links(data, record, field, ids)
+        if tags:
+            from .access import set_tags
+            set_tags(record, tags, None if data.system else user)
+        _refresh_access(data, record, links, {}, created=True)
         data.invalidate()
+        made = record
         record = data.record(record.pk)
+        if record is None:
+            raise ValidationError('You would no longer see this record: it would carry access tags you don\'t hold.')
+        _check_sharing(data, record, _people_added(data, made, {}, record_data), user, share)
         _log(table, record.pk, data.label(record), Change.Action.CREATE,
              {f.name: ['', t] for f, t in ((f, data.text(record, f)) for f in data.fields(table)
                                            if f.kind.stored or f.type == 'link') if t}, user)
@@ -214,20 +308,24 @@ def create_record(table, values=None, user=None, data=None, force=False, run_aut
     return record
 
 
-def update_record(record, values, user=None, data=None, force=False):
+def update_record(record, values, user=None, data=None, force=False, share=False):
     data = data or Data(user)
     record = data.record(record)
+    if record is None:
+        raise ValidationError('That record is not there.')
     table = data.table(record.table_id)
     _guard(table)
     with transaction.atomic():
         stored, links = clean_values(data, table, values, force=force)
+        links = _keep_hidden(data, record, links)
         old_data = dict(record.data or {})
-        old_links = {f.pk: data.linked_ids(record, f) for f in links}
+        old_links = {f.pk: data.all_linked_ids(record, f) for f in links}
         stored = {k: v for k, v in stored.items() if old_data.get(k) != v}
         links = {f: ids for f, ids in links.items() if ids != old_links[f.pk]}
         if not stored and not links:
             return record
         _check_transitions(data, table, old_data, stored)
+        _check_tree(data, table, record, links)
         new_data = {**old_data, **stored}
         _check_required(data, table, new_data, links, record)
         changed_fields = [f for f in data.fields(table) if f.key in stored or f in links]
@@ -238,8 +336,14 @@ def update_record(record, values, user=None, data=None, force=False):
         record.save(update_fields=['data', 'updated_by', 'updated_at'])
         for field, ids in links.items():
             _set_links(data, record, field, ids)
+        _refresh_access(data, record, links, old_links)
         data.invalidate()
         record = data.record(record.pk)
+        if record is None:
+            raise ValidationError('You would no longer see this record: it would carry access tags you don\'t hold.')
+        _check_sharing(data, record, _people_added(data, record, old_data, stored), user, share)
+        from .access import end_grants
+        end_grants(data.as_system(), record)
         after = _texts(data, record, changed_fields)
         diff = {f.name: [before[f.pk], after[f.pk]] for f in changed_fields if before[f.pk] != after[f.pk]}
         _log(table, record.pk, data.label(record), Change.Action.UPDATE, diff, user)
@@ -252,6 +356,8 @@ def update_record(record, values, user=None, data=None, force=False):
 def delete_record(record, user=None, data=None):
     data = data or Data(user)
     record = data.record(record)
+    if record is None:
+        raise ValidationError('That record is not there.')
     table = data.table(record.table_id)
     _guard(table)
     with transaction.atomic():
@@ -261,8 +367,12 @@ def delete_record(record, user=None, data=None):
         _log(table, record.pk, label, Change.Action.DELETE,
              {f.name: [t, ''] for f, t in ((f, data.text(record, f)) for f in data.fields(table) if f.kind.stored) if t}, user)
         files = [a.file for a in record.attachments.all()]
+        carried = bool(record.access)
         record.delete()
         transaction.on_commit(lambda: [f.delete(save=False) for f in files])
+        if carried:   # what inherited its tags no longer does
+            from .access import refresh
+            refresh(neighbours)
         data.invalidate()
         automation.check_conditions(data, neighbours, user)
 

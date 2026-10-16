@@ -17,7 +17,7 @@ from .fieldtypes import COLORS, ROLLUPS, TYPES, choices_for_form
 from .models import App, AppAccess, Automation, AutomationRun, Field, Table, View
 from .permissions import RANK, can, can_make_apps, require
 from .viewtypes import VIEW_TYPES, get_view_type
-from .views import sidebar
+from .space_views import app_context
 
 
 def _app(request, slug, needed='creator'):
@@ -35,24 +35,11 @@ def _errors(request, exc):
 
 @login_required
 def app_create(request):
-    """Make an app in a space: your personal space (everyone may), or a space you
-    are an admin of (?space=KEY)."""
-    from . import space as spaces
-    from .models import Space
-    from .permissions import can_space
+    """Make an app. Administrators make workspace apps (or their own, with ?own=1);
+    everyone else makes their own: they build it, and others see it only if they share it."""
     if not can_make_apps(request.user):
         raise PermissionDenied("You can't make apps.")
-    key = request.GET.get('space') or request.POST.get('space')
-    if request.user.is_superuser and not key and not (request.GET.get('own') or request.POST.get('own')):
-        from .blueprints import company_space
-        target = company_space()
-    elif key:
-        target = get_object_or_404(Space, key__iexact=key)
-    else:
-        target = spaces.ensure_personal(request.user)
-    if not can_space(request.user, target, 'admin'):
-        raise PermissionDenied(f'Only admins of {target.name} can add apps to it.')
-    personal = target.is_personal
+    own = not request.user.is_superuser or bool(request.GET.get('own') or request.POST.get('own'))
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         if not name:
@@ -62,14 +49,14 @@ def app_create(request):
                 app = schema.create_app(name, request.user, icon=request.POST.get('icon', '').strip() or '▦',
                                         color=request.POST.get('color') or '#2e7d5b',
                                         description=request.POST.get('description', ''),
-                                        owner=request.user if personal else None,
-                                        default_role=App.Role.NONE if personal else App.Role.VIEWER, space=target)
+                                        owner=request.user if own else None,
+                                        default_role=App.Role.NONE if own else App.Role.VIEWER)
                 first = request.POST.get('table', '').strip()
                 if first:
                     table = schema.create_table(app, first)
                     return redirect('core:fields', app.slug, table.slug)
             return redirect(app)
-    return render(request, 'core/build/app_form.html', {'colors': COLORS[8:], 'personal': personal, 'target': target})
+    return render(request, 'core/build/app_form.html', {'colors': COLORS[8:], 'own': own})
 
 
 @login_required
@@ -81,25 +68,19 @@ def app_settings(request, app_slug):
                 messages.error(request, "Only administrators and the app's owner can delete it.")
                 return redirect('core:app_settings', app.slug)
             if request.POST.get('confirm', '').strip() != app.name:
-                messages.error(request, f'Type the app\'s name, {app.name}, to delete it.')
+                messages.error(request, f"Type the app's name, {app.name}, to delete it.")
                 return redirect('core:app_settings', app.slug)
-            with transaction.atomic():
-                for table in list(app.tables.all()):
-                    schema.delete_table(table)
-                app.delete()
+            try:
+                schema.delete_app(app)
+            except ValidationError as exc:
+                _errors(request, exc)
+                return redirect('core:app_settings', app.slug)
             messages.success(request, f'{app.name} and all its records are deleted.')
             return redirect('core:home')
         app.name = request.POST.get('name', '').strip() or app.name
         app.icon = request.POST.get('icon', '').strip() or app.icon
         app.color = request.POST.get('color') or app.color
         app.description = request.POST.get('description', '')
-        from .models import Space
-        from .permissions import can_space
-        target = Space.objects.filter(pk=request.POST.get('space') or 0).first()
-        if target is not None and target.pk != app.space_id and not app.is_space and can_space(request.user, target, 'admin'):
-            app.space = target
-            app.owner = target.owner if target.is_personal else None
-            messages.info(request, f'{app.name} is now in {target.name}.')
         if request.user.is_superuser:
             role = request.POST.get('default_role')
             if role in App.Role.values:
@@ -125,13 +106,10 @@ def app_settings(request, app_slug):
     access.update({('group', a.group_id): a.role for a in app.access.filter(group__isnull=False)})
     users = [(u, access.get(('user', u.pk), '')) for u in get_user_model().objects.filter(is_active=True, is_superuser=False)]
     teams = [(g, access.get(('group', g.pk), '')) for g in Group.objects.order_by('name')]
-    from .models import Space
-    from .permissions import can_space
-    movable = [s for s in Space.objects.all() if can_space(request.user, s, 'admin')
-               and (not s.is_personal or s.owner_id == request.user.pk)] if not app.is_space else []
-    return render(request, 'core/build/app_settings.html', {**sidebar(app, request.user), 'roles': App.Role.choices,
-                                                            'movable': movable,
-                                                            'users': users, 'teams': teams, 'colors': COLORS[8:]})
+    from . import dependencies
+    return render(request, 'core/build/app_settings.html', {**app_context(app, request.user), 'roles': App.Role.choices,
+                                                            'users': users, 'teams': teams, 'colors': COLORS[8:],
+                                                            'blockers': dependencies.blockers(dependencies.app_removal(app))})
 
 
 # -- Tables -----------------------------------------------------------------------------
@@ -148,7 +126,7 @@ def table_create(request, app_slug):
                                         primary=request.POST.get('primary', '').strip() or 'Name')
             messages.success(request, f'{table.name} is made. Add its fields.')
             return redirect('core:fields', app.slug, table.slug)
-    return render(request, 'core/build/table_form.html', {**sidebar(app, request.user)})
+    return render(request, 'core/build/table_form.html', {**app_context(app, request.user)})
 
 
 @login_required
@@ -160,7 +138,11 @@ def table_settings(request, app_slug, table_slug):
             if request.POST.get('confirm', '').strip() != table.name:
                 messages.error(request, f'Type the table\'s name, {table.name}, to delete it.')
                 return redirect('core:table_settings', app.slug, table.slug)
-            schema.delete_table(table)
+            try:
+                schema.delete_table(table)
+            except ValidationError as exc:
+                _errors(request, exc)
+                return redirect('core:table_settings', app.slug, table.slug)
             messages.success(request, f'{table.name} and its records are deleted.')
             return redirect(app)
         table.name = request.POST.get('name', '').strip() or table.name
@@ -169,13 +151,36 @@ def table_settings(request, app_slug, table_slug):
         display = Field.objects.filter(pk=request.POST.get('display_field') or 0, table=table).first()
         table.display_field = display
         table.save()
+        try:
+            _save_tree(request, table)
+        except ValidationError as exc:
+            _errors(request, exc)
+            return redirect('core:table_settings', app.slug, table.slug)
         order = [int(x) for x in request.POST.getlist('table_order') if x.isdigit()]
         if order:
             schema.reorder(Table, order)
         messages.success(request, f'{table.name} is saved.')
         return redirect('core:table_settings', app.slug, table.slug)
-    return render(request, 'core/build/table_settings.html', {**sidebar(app, request.user), 'table': table,
-                                                              'fields': table.fields.all()})
+    from . import dependencies
+    return render(request, 'core/build/table_settings.html', {
+        **app_context(app, request.user), 'table': table, 'fields': table.fields.all(),
+        'parent_choices': [f for f in table.fields.filter(type='link') if f.opt('target') == table.pk and not f.opt('multiple')],
+        'blockers': dependencies.blockers(dependencies.table_removal(table))})
+
+
+def _save_tree(request, table):
+    """A tree (its parent field) and whether its records are spaces."""
+    from . import space as spaces
+    from .trees import make_tree
+    if 'tree_field' not in request.POST:
+        return
+    parent = Field.objects.filter(pk=request.POST.get('tree_field') or 0, table=table).first()
+    if (parent.pk if parent else None) != table.tree_field_id:
+        make_tree(table, parent)
+        table.refresh_from_db()
+    wanted = bool(request.POST.get('is_space')) and table.tree_field_id is not None
+    if wanted != table.is_space:
+        spaces.set_space(table, wanted)
 
 
 # -- Fields -----------------------------------------------------------------------------
@@ -207,7 +212,7 @@ def fields(request, app_slug, table_slug):
             auto = Automation.objects.filter(pk=f.opt('automation')).first()
             info = f'runs "{auto.name}"' if auto else 'no automation'
         rows.append({'field': f, 'info': info, 'primary': f == data.primary_field(table)})
-    return render(request, 'core/build/fields.html', {**sidebar(app, request.user), 'table': table, 'rows': rows})
+    return render(request, 'core/build/fields.html', {**app_context(app, request.user), 'table': table, 'rows': rows})
 
 
 def _options_from_post(post, ftype):
@@ -236,6 +241,10 @@ def _options_from_post(post, ftype):
             o['transitions'] = transitions
     if ftype in ('user', 'link'):
         o['multiple'] = bool(post.get('multiple'))
+    if ftype == 'user' and post.get('home'):
+        o['home'] = True   # whose home space a record of a space table is
+    if ftype == 'link' and post.get('access_from') in ('1', '0'):
+        o['access_from'] = post.get('access_from') == '1'   # carry the linked records' access tags, or not
     if ftype == 'link':
         o['target'] = int(post.get('target') or 0)
     if ftype in ('lookup', 'rollup'):
@@ -284,7 +293,11 @@ def field_edit(request, app_slug, table_slug, field_id=None):
                 messages.error(request, f'Deleting {field.name} would also delete {pair.name} in {pair.table.label}, '
                                         "which you can't change. Ask an administrator.")
                 return redirect('core:field_edit', app.slug, table.slug, field.pk)
-            schema.delete_field(field)
+            try:
+                schema.delete_field(field)
+            except ValidationError as exc:
+                _errors(request, exc)
+                return redirect('core:field_edit', app.slug, table.slug, field.pk)
             messages.success(request, f'The field {field.name} is deleted.')
             return redirect('core:fields', app.slug, table.slug)
         ftype = request.POST.get('type') or (field.type if field else 'text')
@@ -303,9 +316,13 @@ def field_edit(request, app_slug, table_slug, field_id=None):
                                          inverse_multiple=bool(request.POST.get('inverse_multiple')))
                 messages.success(request, f'The field {field.name} is added.')
             else:
+                before = field.opt('access_from')
                 schema.update_field(field, name=request.POST.get('name'), ftype=ftype, options=options,
                                     required=bool(request.POST.get('required')),
                                     description=request.POST.get('description', ''))
+                if field.type == 'link' and field.opt('access_from') != before:
+                    from .access import refresh_tables
+                    refresh_tables([field.table_id, field.opt('target')])
                 messages.success(request, f'The field {field.name} is saved.')
             if request.POST.get('make_primary'):
                 table.display_field = field
@@ -319,7 +336,7 @@ def field_edit(request, app_slug, table_slug, field_id=None):
                    for t in all_tables}
     links = [{'id': f.pk, 'name': f.name, 'target': f.opt('target')} for f in data.fields(table) if f.type == 'link']
     return render(request, 'core/build/field_form.html', {
-        **sidebar(app, request.user), 'table': table, 'field': field, 'type_choices': choices_for_form(),
+        **app_context(app, request.user), 'table': table, 'field': field, 'type_choices': choices_for_form(),
         'types': TYPES, 'all_tables': all_tables, 'colors': COLORS,
         'meta': json.dumps({'tables': tables_meta, 'links': links,
                             'field': {'type': field.type, 'options': field.options} if field else None,
@@ -377,10 +394,11 @@ def view_settings(request, app_slug, table_slug, view_id):
     data = Data(request.user)
     if request.method == 'POST':
         if 'delete' in request.POST:
-            if table.views.count() <= 1:
-                messages.error(request, 'A table keeps at least one view.')
+            try:
+                schema.delete_view(view)
+            except ValidationError as exc:
+                _errors(request, exc)
                 return redirect('core:view_settings', app.slug, table.slug, view.pk)
-            view.delete()
             messages.success(request, f'The view {view.name} is deleted.')
             return redirect(table)
         if 'duplicate' in request.POST:
@@ -426,7 +444,7 @@ def view_settings(request, app_slug, table_slug, view_id):
     all_fields = data.fields(table)
     ordered = [f for k in current for f in all_fields if f.key == k] + [f for f in all_fields if f.key not in current]
     return render(request, 'core/build/view_settings.html', {
-        **sidebar(app, request.user), 'table': table, 'view': view, 'vt': vt, 'settings': settings,
+        **app_context(app, request.user), 'table': table, 'view': view, 'vt': vt, 'settings': settings,
         'ordered_fields': ordered, 'shown': set(current) if current else {f.key for f in all_fields}, 'views': table.views.all(),
     })
 
@@ -446,7 +464,7 @@ def automation_list(request, app_slug):
                      'steps': [automation.ACTIONS[s['type']].label if s.get('type') in automation.ACTIONS
                                else f'{s.get("type")} (not available)' for s in a.actions],
                      'last': last})
-    return render(request, 'core/build/automations.html', {**sidebar(app, request.user), 'rows': rows})
+    return render(request, 'core/build/automations.html', {**app_context(app, request.user), 'rows': rows})
 
 
 def builder_meta(app, data, user):
@@ -484,7 +502,11 @@ def automation_edit(request, app_slug, automation_id=None):
     data = Data(request.user)
     if request.method == 'POST':
         if 'delete' in request.POST and auto:
-            auto.delete()
+            try:
+                schema.delete_automation(auto)
+            except ValidationError as exc:
+                _errors(request, exc)
+                return redirect('core:automation_edit', app.slug, auto.pk)
             messages.success(request, f'The automation {auto.name} is deleted.')
             return redirect('core:automations', app.slug)
         try:
@@ -548,7 +570,7 @@ def automation_edit(request, app_slug, automation_id=None):
             'name': '', 'active': True, 'trigger': 'record_created', 'trigger_config': {},
             'conditions': {'match': 'all', 'rules': []}, 'actions': []}
     return render(request, 'core/build/automation_form.html', {
-        **sidebar(app, request.user), 'auto': auto, 'app_tables': app.tables.all(),
+        **app_context(app, request.user), 'auto': auto, 'app_tables': app.tables.all(),
         'meta': json.dumps(builder_meta(app, data, request.user)), 'initial': json.dumps(initial),
         'runs': auto.runs.select_related('user')[:30] if auto else [],
         'functions': formula.HELP,
@@ -598,16 +620,23 @@ def automation_runs(request, app_slug):
     status = request.GET.get('status')
     if status:
         runs = runs.filter(status=status)
-    return render(request, 'core/build/runs.html', {**sidebar(app, request.user), 'runs': runs[:300], 'status': status})
+    runs = list(runs[:600])
+    from .models import Record
+    data = Data(request.user)
+    there = set(Record.objects.filter(pk__in={r.record_id for r in runs if r.record_id}).values_list('pk', flat=True))
+    shown = [r for r in runs if not r.record_id or r.record_id not in there or data.record(r.record_id) is not None][:300]
+    return render(request, 'core/build/runs.html', {**app_context(app, request.user), 'runs': shown, 'status': status})
 
 
 @login_required
 def app_history(request, app_slug):
     from .models import Change
     app = _app(request, app_slug, 'viewer')
+    from .access import allows
     changes = Change.objects.filter(table__app=app).select_related('table', 'user')
     table = request.GET.get('table')
     if table and table.isdigit():
         changes = changes.filter(table_id=int(table))
-    return render(request, 'core/build/history.html', {**sidebar(app, request.user), 'changes': changes[:300],
+    shown = [c for c in changes[:1000] if allows(request.user, c.access, c.record_id)][:300]
+    return render(request, 'core/build/history.html', {**app_context(app, request.user), 'changes': shown,
                                                        'table_filter': table})

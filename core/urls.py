@@ -1,24 +1,33 @@
 from django.urls import path
 
 from . import admin_views, api, build_views, space_views, views
+from .canvas import views as editor_views
 
 app_name = 'core'
 
 urlpatterns = [
-    path('', views.home, name='home'),
+    path('', space_views.home, name='home'),
+    path('apps/', space_views.launcher, name='launcher'),
     path('setup/', views.setup, name='setup'),
     path('search/', views.search, name='search'),
-    path('spaces/', space_views.space_list, name='spaces'),
-    path('spaces/new/', space_views.space_create, name='space_create'),
-    path('s/<str:space_key>/', space_views.space_overview, name='space'),
-    path('s/<str:space_key>/settings/', space_views.space_settings, name='space_settings'),
+    path('s/<int:pk>/', space_views.space_page, name='space'),
+    path('s/<int:pk>/edit/', space_views.space_edit, name='space_edit'),
     path('notifications/', views.notifications, name='notifications'),
     path('notifications/<int:pk>/', views.notification_open, name='notification_open'),
+
+    # the page editor
+    path('editor/records/', editor_views.records_for_link, name='editor_records'),
+    path('editor/records/<int:pk>/', editor_views.record_for_link, name='editor_record'),
+    path('editor/calc/', editor_views.calc_preview, name='editor_calc'),
 
     # administration
     path('admin/templates/', admin_views.templates, name='templates'),
     path('admin/templates/export/<slug:app_slug>/', admin_views.template_export, name='template_export'),
     path('admin/extensions/', admin_views.extensions, name='extensions'),
+    path('admin/extensions/<str:name>/', admin_views.extension_switch, name='extension_switch'),
+    path('admin/trees/', admin_views.trees, name='trees'),
+    path('admin/tags/', admin_views.tags, name='tags'),
+    path('admin/tags/<int:pk>/', admin_views.tag_detail, name='tag'),
     path('apps/new/', build_views.app_create, name='app_create'),
 
     # records and files
@@ -26,6 +35,7 @@ urlpatterns = [
     path('r/<int:pk>/delete/', views.record_delete, name='record_delete'),
     path('r/<int:pk>/star/', views.record_star, name='record_star'),
     path('r/<int:pk>/comment/', views.record_comment, name='record_comment'),
+    path('r/<int:pk>/tags/', views.record_tags, name='record_tags'),
     path('r/<int:pk>/files/<int:field_id>/', views.record_upload, name='record_upload'),
     path('files/<int:pk>/', views.attachment_file, name='attachment'),
     path('files/<int:pk>/delete/', views.attachment_delete, name='attachment_delete'),
@@ -43,7 +53,8 @@ urlpatterns = [
     path('api/views/<int:view_id>/config/', api.view_config, name='api_view_config'),
 
     # apps
-    path('a/<slug:app_slug>/', views.app_page, name='app'),
+    path('a/<slug:app_slug>/', space_views.app_home, name='app'),
+    path('a/<slug:app_slug>/home/edit/', space_views.app_home_edit, name='app_home_edit'),
     path('a/<slug:app_slug>/settings/', build_views.app_settings, name='app_settings'),
     path('a/<slug:app_slug>/history/', build_views.app_history, name='app_history'),
     path('a/<slug:app_slug>/new-table/', build_views.table_create, name='table_create'),

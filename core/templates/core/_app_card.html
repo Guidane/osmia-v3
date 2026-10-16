@@ -1,8 +1,0 @@
-<a class="app-card" href="{{ c.app.get_absolute_url }}">
-  <span class="icon" style="background:{{ c.app.color }}22;color:{{ c.app.color }}">{{ c.app.icon }}</span>
-  <span class="name">{{ c.app.name }}</span>
-  <span class="meta">{{ c.tables|length }} table{{ c.tables|length|pluralize }} · {{ c.records }} record{{ c.records|pluralize }}</span>
-  {% if c.app.owner and c.app.owner != user %}<span class="meta">by {{ c.app.owner }}</span>{% endif %}
-  {% if c.app.description %}<span class="meta">{{ c.app.description|truncatechars:90 }}</span>{% endif %}
-  <span>{% if c.role == 'viewer' %}<span class="badge">read only</span>{% elif c.role == 'editor' %}<span class="badge ok">can edit</span>{% elif c.role == 'creator' and c.app.owner == user %}<span class="badge ok">yours</span>{% endif %}{% if c.app.owner == user and c.app.default_role == 'viewer' %} <span class="badge">shared to look at</span>{% endif %}</span>
-</a>

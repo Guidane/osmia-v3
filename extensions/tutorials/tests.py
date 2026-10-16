@@ -57,6 +57,6 @@ class TutorialTests(TestCase):
             for slug in re.findall(r'/tutorials/([\w-]+)/', ' '.join(t.steps)):
                 self.assertIn(slug, BY_SLUG, f'{t.slug} links to {slug}')
 
-    def test_top_bar_link(self):
+    def test_launcher_link(self):
         self.client.force_login(self.ann)
-        self.assertContains(self.client.get('/'), reverse('tutorials:index'))
+        self.assertContains(self.client.get(reverse('core:launcher')), reverse('tutorials:index'))

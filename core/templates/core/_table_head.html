@@ -1,12 +1,9 @@
 <div class="table-head">
   <div class="title">
     <h1>{{ table.icon|default:"▦" }} {{ table.name }}</h1>
-    <span class="crumb small">{{ app.name }}</span>
+    {% if table.tree_field_id %}<span class="badge" title="A tree: each record's parent is its {{ table.tree_field.name }}">🌳 tree{% if table.is_space %} of spaces{% endif %}</span>{% endif %}
     <div style="flex:1"></div>
-    {% if can_build %}
-      <a class="btn small ghost" href="{% url 'core:fields' app.slug table.slug %}">⚙ Fields</a>
-      <a class="btn small ghost" href="{% url 'core:automations' app.slug %}">⚡ Automations</a>
-    {% endif %}
+    {% if can_build %}<a class="btn small ghost" href="{% url 'core:fields' app.slug table.slug %}">⚙ Fields</a>{% endif %}
     <details class="menu toolbar-menu">
       <summary class="btn small ghost">⋯</summary>
       <div class="menu-panel">

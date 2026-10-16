@@ -6,10 +6,18 @@
                  ─< Automation      when <trigger>, if <conditions>, then <actions>
     Link                            a pair of linked records (link fields)
     Attachment, Comment, Change     files, discussion and the history of a record
+    Tag, AccessGrant                who may see which records (see core.access)
+    Layout                          the page of a space or of an app's home (see core.canvas)
 
 ``Record.data`` is keyed by ``Field.key`` (a slug that never changes when the
 field is renamed). Computed fields (formula, lookup, rollup, ...) are not
 stored; ``core.data`` works them out when they're read.
+
+Structure is a forest: any table can be a tree (``Table.tree_field``, a link to
+itself), and records link to the nodes of as many trees as they like. A table
+marked ``is_space`` is a tree whose records are spaces: each has a page, and
+everyone's home space is the record of such a table whose home field (a user
+field with ``options.home``) is them.
 """
 from django.conf import settings
 from django.db import models
@@ -25,77 +33,6 @@ def unique_slug(text, taken, fallback='item', max_length=50):
     while slug in taken:
         slug, n = f'{base}_{n}', n + 1
     return slug
-
-
-class Space(models.Model):
-    """A place for a team, department, project or person, like a Confluence or
-    Jira space: what it's for, who's in it, its apps and pages.
-
-    Apps live in one space (``App.space``) and can be added to others as
-    shortcuts (``SpaceApp``); their tables link across spaces as usual.
-    Everyone has a personal space (their home page).
-    """
-
-    class Kind(models.TextChoices):
-        COMPANY = 'company', 'Company'
-        DEPARTMENT = 'department', 'Department'
-        TEAM = 'team', 'Team'
-        PROJECT = 'project', 'Project'
-        PERSONAL = 'personal', 'Personal'
-        OTHER = 'other', 'Other'
-
-    class Visibility(models.TextChoices):
-        PRIVATE = 'private', 'Only members'
-        INTERNAL = 'internal', 'Everyone who logs in can look'
-
-    class Role(models.TextChoices):
-        VIEWER = 'viewer', 'Can view'
-        EDITOR = 'editor', 'Can edit records'
-        ADMIN = 'admin', 'Space admin (builds apps, pages and the space)'
-
-    name = models.CharField(max_length=100)
-    key = models.CharField(max_length=20, unique=True, help_text='Short and unique, e.g. ENG. It is in the address.')
-    icon = models.CharField(max_length=8, default='◼', blank=True)
-    color = models.CharField(max_length=7, default='#2e7d5b')
-    description = models.TextField(blank=True, help_text='What the space is for.')
-    kind = models.CharField(max_length=12, choices=Kind, default=Kind.TEAM)
-    visibility = models.CharField(max_length=10, choices=Visibility, default=Visibility.INTERNAL)
-    owner = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE,
-                                 related_name='personal_space')  # personal spaces only
-    config = models.JSONField(default=dict, blank=True)  # e.g. {"home": ["work", "todos", ...]} for a personal space
-    position = models.IntegerField(default=100)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['position', 'name']
-
-    def __str__(self):
-        return self.name
-
-    @property
-    def slug(self):
-        return self.key.lower()
-
-    @property
-    def is_personal(self):
-        return self.kind == self.Kind.PERSONAL
-
-    def get_absolute_url(self):
-        if self.is_personal:
-            return reverse('core:home')
-        return reverse('core:space', args=[self.slug])
-
-
-class SpaceMember(models.Model):
-    """A person or a team in a space, with their role there."""
-    space = models.ForeignKey(Space, on_delete=models.CASCADE, related_name='members')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name='space_memberships')
-    group = models.ForeignKey('auth.Group', null=True, blank=True, on_delete=models.CASCADE, related_name='space_memberships')
-    role = models.CharField(max_length=10, choices=Space.Role, default=Space.Role.EDITOR)
-
-    class Meta:
-        ordering = ['-role', 'id']
 
 
 class App(models.Model):
@@ -116,13 +53,9 @@ class App(models.Model):
     # What everyone logged in may do, unless AppAccess says more for them. Reading only,
     # unless an administrator explicitly lets everyone write.
     default_role = models.CharField(max_length=10, choices=Role, default=Role.VIEWER)
-    # A person's own app (made from their home page): they build it; others can at most
-    # look at it, unless an administrator gives them more. None: a workspace app.
+    # A person's own app: they build it; others can at most look at it, unless an
+    # administrator gives them more. None: a workspace app.
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name='own_apps')
-    # A person's "My space" (to-dos, pages, bookmarks): only its owner ever sees it, administrators included.
-    is_space = models.BooleanField(default=False)  # the "My space" app (to-dos, bookmarks) of a personal space
-    # The space the app lives in (other spaces can add it as a shortcut).
-    space = models.ForeignKey(Space, null=True, blank=True, on_delete=models.SET_NULL, related_name='apps')
     # The template it was made from (blueprints/<key>.json), so updates and extensions can find it.
     blueprint = models.CharField(max_length=60, blank=True, db_index=True)
     blueprint_version = models.CharField(max_length=20, blank=True)
@@ -161,6 +94,10 @@ class Table(models.Model):
     display_field = models.ForeignKey('Field', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     # The template's name for it (stable), e.g. "orders", so automations and extensions can find it.
     key = models.CharField(max_length=60, blank=True, db_index=True)
+    # A tree: the link to this same table that names each record's parent.
+    tree_field = models.ForeignKey('Field', null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    # Its records are spaces (it must be a tree): each opens as a page with what links to it.
+    is_space = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['app__position', 'app__name', 'position', 'id']
@@ -195,6 +132,9 @@ class Field(models.Model):
     description = models.CharField(max_length=300, blank=True)
     required = models.BooleanField(default=False)
     position = models.IntegerField(default=0)
+    # The app (its template key, or slug) that added this field to a table of another app,
+    # or that made the other half of a link. '' = the table's own app.
+    origin = models.CharField(max_length=60, blank=True, db_index=True)
 
     class Meta:
         ordering = ['position', 'id']
@@ -223,6 +163,10 @@ class Field(models.Model):
 class Record(models.Model):
     table = models.ForeignKey(Table, on_delete=models.CASCADE, related_name='records')
     data = models.JSONField(default=dict, blank=True)
+    # Access tags put on the record itself, and all the tags it carries (its own, and those
+    # of the tree nodes it is under or links to): only people holding every one see it.
+    tags = models.JSONField(default=list, blank=True)
+    access = models.JSONField(default=list, blank=True)
     position = models.FloatField(default=0)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
@@ -335,6 +279,7 @@ class Change(models.Model):
     changes = models.JSONField(default=dict, blank=True)  # {field name: [old, new]} as text
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     source = models.CharField(max_length=200, blank=True)  # e.g. 'automation "Place order"'
+    access = models.JSONField(default=list, blank=True)  # the record's access tags then: who may read this entry
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -358,6 +303,8 @@ class Automation(models.Model):
     actions = models.JSONField(default=list, blank=True)
     position = models.IntegerField(default=0)
     key = models.CharField(max_length=60, blank=True)  # the template's name for it
+    # The app (template key) that put it on a table of another app, like Field.origin. '' = the table's own app.
+    origin = models.CharField(max_length=60, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -438,23 +385,68 @@ class RecentView(models.Model):
         constraints = [models.UniqueConstraint(fields=['user', 'record'], name='unique_recent_view')]
 
 
-class SpaceApp(models.Model):
-    """An app of another space, shown in this one (Confluence's "add a shortcut")."""
-    space = models.ForeignKey(Space, on_delete=models.CASCADE, related_name='shortcuts')
-    app = models.ForeignKey(App, on_delete=models.CASCADE, related_name='shortcuts')
-    position = models.IntegerField(default=0)
+class Tag(models.Model):
+    """An access tag. People hold tags; records (and pages) carry them. A record
+    is seen only by people who hold every tag it carries: tags are not ranks, so
+    holding one gives nothing in any other, administrators included.
+
+    Only a tag's owners give it to people (and make others owners); everything
+    they do is written down (``TagEvent``) and the other owners are told."""
+    name = models.CharField(max_length=60, unique=True)
+    color = models.CharField(max_length=7, default='#b45309')
+    description = models.CharField(max_length=300, blank=True)
+    owners = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='owned_tags', blank=True)
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='access_tags', blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['position', 'id']
-        constraints = [models.UniqueConstraint(fields=['space', 'app'], name='unique_space_app')]
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
 
 
-class SpaceLink(models.Model):
-    """A record the space is about or uses, under a label: its department, its budget, its project, ..."""
-    space = models.ForeignKey(Space, on_delete=models.CASCADE, related_name='links')
-    label = models.CharField(max_length=60)
-    record = models.ForeignKey(Record, on_delete=models.CASCADE, related_name='space_links')
-    position = models.IntegerField(default=0)
+class TagEvent(models.Model):
+    """Who gave a tag to whom (or took it away, or shared one record with someone)."""
+
+    class Action(models.TextChoices):
+        CREATED = 'created', 'Made the tag'
+        GRANTED = 'granted', 'Gave it to'
+        REVOKED = 'revoked', 'Took it from'
+        OWNER_ADDED = 'owner_added', 'Made an owner'
+        OWNER_REMOVED = 'owner_removed', 'Removed as owner'
+        SHARED = 'shared', 'Shared one record with'
+
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name='events')
+    action = models.CharField(max_length=20, choices=Action)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    record_id = models.BigIntegerField(null=True, blank=True)
+    note = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['position', 'id']
+        ordering = ['-created_at', '-id']
+
+
+class AccessGrant(models.Model):
+    """One record shared with one person who doesn't hold its tags, e.g. a task
+    assigned to them. It ends when the record is closed or they're no longer on it."""
+    record = models.ForeignKey(Record, on_delete=models.CASCADE, related_name='grants')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='record_grants')
+    granted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['record', 'user'], name='unique_access_grant')]
+
+
+class Layout(models.Model):
+    """A page made of blocks (see core.canvas): a space's page (``record``, a record
+    of a space table) or an app's home tab (``app``)."""
+    record = models.OneToOneField(Record, null=True, blank=True, on_delete=models.CASCADE, related_name='layout')
+    app = models.OneToOneField(App, null=True, blank=True, on_delete=models.CASCADE, related_name='layout')
+    body = models.TextField(blank=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    updated_at = models.DateTimeField(auto_now=True)

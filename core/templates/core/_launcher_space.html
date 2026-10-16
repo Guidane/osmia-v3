@@ -1,4 +1,0 @@
-<a class="launcher-tile{% if space and s.pk == space.pk %} on{% endif %}" href="{{ s.get_absolute_url }}" data-name="{{ s.name|lower }} {{ s.key|lower }}">
-  <span class="tile-icon" style="background:{{ s.color }}22;color:{{ s.color }}">{{ s.icon }}</span>
-  <span class="tile-name">{% if s.is_personal %}My space{% else %}{{ s.name }}{% endif %}</span>
-</a>

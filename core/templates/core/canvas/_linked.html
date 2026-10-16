@@ -1,0 +1,7 @@
+{% for g in groups %}
+  <div class="linked-group">
+    <div class="side-head"><h4>{{ g.table.icon|default:"▦" }} {{ g.field.name }} <span class="muted small">{{ g.count }} · {{ g.table.app.name }} › {{ g.table.name }}</span></h4></div>
+    {% for r, label in g.rows %}<a class="link-chip" href="{{ r.get_absolute_url }}">{{ label }}</a>{% endfor %}
+    {% if g.more %}<a class="muted small" href="{{ g.table.get_absolute_url }}">… and {{ g.more }} more</a>{% endif %}
+  </div>
+{% empty %}<p class="muted small">Nothing links to this space yet. Records link to it through their link fields (a task's project, a budget's department, ...).</p>{% endfor %}

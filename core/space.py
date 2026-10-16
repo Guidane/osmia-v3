@@ -1,130 +1,126 @@
-"""Spaces, and everyone's personal space (their home page).
+"""Spaces and everyone's home space.
 
-A personal space is made the first time someone opens their home page, with a
-"To-dos" app (to-dos and bookmarks) made from the hidden "personal" template.
-The home page shows what the person chooses (``Space.config["home"]``): their
-work across the apps (assigned to them, recently opened, starred), their
-to-dos, bookmarks, pinned pages (with the Pages extension), notifications,
-their spaces and their apps.
+A space is a record of a table marked ``is_space`` (a tree): a company, a
+department, a team, a person, a programme, a project, ... Opening one shows
+its page (a ``Layout`` made of blocks, see core.canvas) and what links to it.
+
+Everyone's home space is the record of a space table whose home field (a user
+field with ``options.home``) is them; it is made for them, at the top of the
+tree, the first time they open Osmia, and an administrator moves it under
+their team. What is "their work" (assigned to them, recently opened, starred)
+is worked out across every app they can see.
 """
-import re
-
-from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from . import blueprints
 from .formula import Records
-from .models import App, RecentView, Space, SpaceMember, Star
+from .models import Field, Layout, RecentView, Record, Star, Table
 
 # Values of a select that mean a record is finished (it leaves "Assigned to me").
 CLOSED = {'done', 'closed', 'cancelled', 'canceled', 'received', 'completed', 'resolved', 'released', 'obsolete',
           'rejected', 'archived'}
 
-HOME_SECTIONS = [
-    ('work', 'Your work: assigned to you, recent, starred'),
-    ('todos', 'My to-dos'),
-    ('pages', 'Pinned pages'),
-    ('bookmarks', 'Bookmarks'),
-    ('notifications', 'Notifications'),
-    ('spaces', 'Spaces'),
-    ('apps', 'My apps and other apps'),
-]
+
+# -- Space tables -------------------------------------------------------------------
+
+def space_tables():
+    return list(Table.objects.filter(is_space=True, tree_field__isnull=False).select_related('app'))
 
 
-def home_sections(space):
-    chosen = (space.config or {}).get('home')
-    return [k for k, _ in HOME_SECTIONS] if chosen is None else chosen
+def set_space(table, flag):
+    """Make the records of the tree ``table`` spaces (or not)."""
+    if flag and not table.tree_field_id:
+        raise ValidationError(f'{table.name} is not a tree: pick its parent field first.')
+    if table.is_space == bool(flag):
+        return
+    table.is_space = bool(flag)
+    table.save(update_fields=['is_space'])
+    # links into it now carry (or stop carrying) its tags
+    from .access import refresh_tables
+    linking = {f.table_id for f in Field.objects.filter(type='link') if f.opt('target') == table.pk}
+    refresh_tables(linking | {table.pk})
 
 
-# -- Spaces ------------------------------------------------------------------------
-
-def make_key(name, taken=None):
-    """A short unique key from a name: "Engineering team" -> "ET", "Engineering" -> "ENG"."""
-    taken = taken if taken is not None else set(Space.objects.values_list('key', flat=True))
-    words = re.findall(r'[A-Za-z0-9]+', name) or ['SPACE']
-    base = ''.join(w[0] for w in words).upper() if len(words) > 1 else words[0][:3].upper()
-    key, n = base, 2
-    while key in taken:
-        key, n = f'{base}{n}', n + 1
-    return key
+def home_field(table):
+    return next((f for f in Field.objects.filter(table=table, type='user') if f.opt('home')), None)
 
 
-@transaction.atomic
-def create_space(name, user, key='', kind=Space.Kind.TEAM, visibility=Space.Visibility.INTERNAL, description='',
-                 icon='◼', color='#2e7d5b'):
-    key = (key or make_key(name)).strip().upper()
-    space = Space.objects.create(name=name, key=key, kind=kind, visibility=visibility, description=description,
-                                 icon=icon or '◼', color=color or '#2e7d5b', created_by=user)
-    if user is not None:
-        SpaceMember.objects.create(space=space, user=user, role=Space.Role.ADMIN)
-    return space
+def _holds(value, user_id):
+    return value == user_id or (isinstance(value, list) and user_id in value)
 
 
-def space_apps(space):
-    """The space's own apps, then the apps it added from other spaces."""
-    own = list(space.apps.exclude(is_space=True).select_related('space'))
-    added = [s.app for s in space.shortcuts.select_related('app__space')]
-    return own, added
+def home_node(user, create=True):
+    """The person's home space (a record), made at the top of the first space table with a home field."""
+    first = None
+    for table in space_tables():
+        field = home_field(table)
+        if field is None:
+            continue
+        first = first or (table, field)
+        for record in Record.objects.filter(table=table, data__has_key=field.key).order_by('pk'):
+            if _holds(record.data.get(field.key), user.pk):
+                return record
+    if not create or first is None:
+        return None
+    from . import service
+    from .data import Data
+    table, field = first
+    data = Data()
+    values = {field.pk: user.pk}
+    primary = data.primary_field(table)
+    if primary is not None and primary.pk != field.pk and primary.kind.stored:
+        values[primary.pk] = user.get_full_name() or user.username
+    kind = next((f for f in data.fields(table) if f.key == 'kind' and f.type == 'select'), None)
+    if kind is not None and any(c['value'] == 'Person' for c in kind.opt('choices') or []):
+        values[kind.pk] = 'Person'
+    return service.create_record(table, values, user=None, data=data, force=True, run_automations=False)
 
 
-# -- Personal spaces ----------------------------------------------------------------
-
-def personal_space(user):
-    return Space.objects.filter(owner=user, kind=Space.Kind.PERSONAL).first()
-
-
-@transaction.atomic
-def ensure_personal(user):
-    """The person's space, with its To-dos app, made the first time."""
-    space = personal_space(user)
-    if space is None:
-        key = f'~{user.username}'[:20]
-        n = 2
-        while Space.objects.filter(key=key).exists():
-            key, n = f'~{user.username}'[:17] + str(n), n + 1
-        space = Space.objects.create(name=str(user), key=key, kind=Space.Kind.PERSONAL, visibility=Space.Visibility.PRIVATE,
-                                     owner=user, icon='🏠', color='#0f766e', created_by=user,
-                                     description='My own space: my to-dos, notes and apps.')
-    if not App.objects.filter(space=space, is_space=True).exists():
-        bp = blueprints.available(include_hidden=True)['personal']
-        blueprints.install(bp, user=user, sample=True, name='To-dos', owner=user, is_space=True, space=space)
-    return space
+def is_space(record):
+    table = record.table if hasattr(record, 'table') else None
+    return bool(table and table.is_space and table.tree_field_id)
 
 
-def todo_app(user):
-    space = ensure_personal(user)
-    return space.apps.filter(is_space=True).first()
+def layout_of(record=None, app=None):
+    if record is not None:
+        return Layout.objects.filter(record=record).first()
+    return Layout.objects.filter(app=app).first()
 
 
-def _table(app, key):
-    return app.tables.filter(key=key).first() if app else None
+def can_edit_page(user, record, data):
+    """Editors of the space's app, and the people named in its people fields (its person, manager, ...)."""
+    from .permissions import can
+    table = data.table(record.table_id)
+    if can(user, table.app, 'editor'):
+        return True
+    for f in data.fields(table):
+        if f.type == 'user' and user.pk in (getattr(data.value(record, f), 'ids', None) or []):
+            return True
+    return False
 
 
-def _field(data, table, key):
-    return next((f for f in data.fields(table) if f.key == key), None) if table else None
-
-
-def widgets(user, data):
-    """To-dos and bookmarks from the person's space."""
-    space = ensure_personal(user)
-    app = space.apps.filter(is_space=True).first()
-    todos_t, marks_t = _table(app, 'todos'), _table(app, 'bookmarks')
-    out = {'personal': space, 'todo_app': app, 'todos': [], 'bookmarks': [], 'todo_table': todos_t, 'todo_count': 0}
-    if todos_t:
-        done, due = _field(data, todos_t, 'done'), _field(data, todos_t, 'due')
-        out['todo_done_field'] = done
-        today = timezone.localdate()
-        rows = [r for r in data.records(todos_t) if not (done and data.value(r, done))]
-        rows.sort(key=lambda r: ((data.value(r, due) is None), data.value(r, due) or today, r.pk) if due else (0, today, r.pk))
-        for r in rows[:12]:
-            d = data.value(r, due) if due else None
-            out['todos'].append({'record': r, 'title': data.label(r), 'due': d, 'late': bool(d and d < today)})
-        out['todo_count'] = len(rows)
-    if marks_t:
-        url = _field(data, marks_t, 'url')
-        out['bookmarks'] = [{'title': data.label(r), 'url': data.value(r, url)} for r in data.records(marks_t) if url][:12]
+def linked_here(data, record, tree):
+    """What links to this space and to the spaces under it, by link field: [(field, table, [records])]."""
+    nodes = [record] + [tree.records[i] for i in tree.descendant_ids(record.pk)]
+    out = []
+    for f in data.fields(record.table_id):
+        if f.type != 'link' or f.opt('target') == record.table_id:
+            continue
+        target = data.table(f.opt('target'))
+        if target is None:
+            continue
+        seen, found = set(), []
+        for node in nodes:
+            for r in data.linked(node, f):
+                if r.pk not in seen:
+                    seen.add(r.pk)
+                    found.append(r)
+        if found:
+            out.append((f, target, found))
     return out
 
+
+# -- Your work ----------------------------------------------------------------------
 
 def is_closed(data, record):
     for f in data.fields(record.table_id):
@@ -148,12 +144,13 @@ def _when(data, record):
 
 
 def assigned(user, data, apps, limit=40):
-    """Open records of the apps ``user`` can see in which they are in a user field (assignee, owner, ...)."""
+    """Open records of the apps ``user`` can see in which they are in a user field (assignee, owner, ...).
+    Space tables are left out: being someone's home space or a team's manager isn't work."""
     out = []
     for app in apps:
-        if app.is_space:
-            continue
         for table in app.tables.all():
+            if table.is_space:
+                continue
             people = [f for f in data.fields(table) if f.type == 'user']
             if not people:
                 continue
@@ -172,18 +169,23 @@ def assigned(user, data, apps, limit=40):
 def recent(user, data, limit=15):
     from .permissions import can
     out = []
-    for v in RecentView.objects.filter(user=user).select_related('record__table__app__space')[:limit * 2]:
+    for v in RecentView.objects.filter(user=user).select_related('record__table__app')[:limit * 2]:
         app = v.record.table.app
-        if can(user, app, 'viewer'):
-            out.append({'record': v.record, 'title': data.label(data.record(v.record.pk)), 'table': v.record.table,
-                        'app': app, 'when': v.viewed_at})
+        record = data.record(v.record_id)
+        if record is not None and can(user, app, 'viewer'):
+            out.append({'record': record, 'title': data.label(record), 'table': v.record.table, 'app': app,
+                        'when': v.viewed_at})
     return out[:limit]
 
 
 def starred(user, data):
     from .permissions import can
-    return [{'record': s.record, 'title': data.label(data.record(s.record.pk)), 'table': s.record.table, 'app': s.record.table.app}
-            for s in Star.objects.filter(user=user).select_related('record__table__app__space') if can(user, s.record.table.app, 'viewer')]
+    out = []
+    for s in Star.objects.filter(user=user).select_related('record__table__app'):
+        record = data.record(s.record_id)
+        if record is not None and can(user, s.record.table.app, 'viewer'):
+            out.append({'record': record, 'title': data.label(record), 'table': s.record.table, 'app': s.record.table.app})
+    return out
 
 
 def seen(user, record):

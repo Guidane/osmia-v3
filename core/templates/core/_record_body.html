@@ -2,6 +2,9 @@
 <div class="record-head">
   <div class="crumbs"><a href="{{ record_app.get_absolute_url }}">{{ record_app.name }}</a> › <a href="{{ record_table.get_absolute_url }}">{{ record_table.name }}</a></div>
   <h1 id="record-title">{{ record_label }}</h1>
+  {% for t in access_own %}<span class="tag-chip" style="--tag:{{ t.color }}" title="Only people holding {{ t.name }} see it">🏷 {{ t.name }}</span>{% endfor %}
+  {% for t in access_inherited %}<span class="tag-chip inherited" style="--tag:{{ t.color }}" title="From a space or parent it is under: only people holding {{ t.name }} see it">🏷 {{ t.name }}</span>{% endfor %}
+  {% if is_space_record %}<a class="btn small" href="{% url 'core:space' record.pk %}" title="Its page as a space">◼ Space page</a>{% endif %}
   {% if not in_view %}<form method="post" action="{% url 'core:record_star' record.pk %}" class="star-form">{% csrf_token %}
     <button class="btn small ghost star{% if starred %} on{% endif %}" title="{% if starred %}Starred: on your home page. Click to unstar{% else %}Star it, to find it on your home page{% endif %}">{% if starred %}★{% else %}☆{% endif %}</button></form>{% endif %}
   {% for b in buttons %}{{ b.html }}{% endfor %}
@@ -95,6 +98,22 @@
     {% endfor %}
 
     {% for p in panels %}<div class="card"><h3>{{ p.title }}</h3>{{ p.html|safe }}</div>{% endfor %}
+
+    {% if can_tag or access_own or access_inherited or access_grants %}
+    <div class="card"><h3>🏷 Who sees it</h3>
+      {% if not access_own and not access_inherited %}<p class="muted small">Everyone who can look at {{ record_app.name }}.</p>
+      {% else %}<p class="muted small">Only people holding every one of these tags{% if access_grants %}, and the people it is shared with{% endif %}.</p>{% endif %}
+      {% if access_inherited %}<p class="small">From what it's under or links to: {% for t in access_inherited %}<span class="tag-chip inherited" style="--tag:{{ t.color }}">🏷 {{ t.name }}</span> {% endfor %}</p>{% endif %}
+      {% if access_grants %}<p class="small">Shared with: {% for g in access_grants %}<span class="person">{{ g.user }}</span>{% if g.granted_by %} <span class="muted">(by {{ g.granted_by }})</span>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+      {% if can_tag %}
+      <form method="post" action="{% url 'core:record_tags' record.pk %}" class="inline">{% csrf_token %}
+        {% for c in tag_choices %}<label class="inline"><input type="checkbox" name="tags" value="{{ c.tag.pk }}" {% if c.on %}checked{% endif %}> <span class="tag-chip" style="--tag:{{ c.tag.color }}">🏷 {{ c.tag.name }}</span></label>{% endfor %}
+        <button class="btn small">Save</button>
+        <span class="help">You can put on (and take off) only tags you hold.</span>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 
   <div>

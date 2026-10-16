@@ -41,8 +41,23 @@ class PageTests(Workspace):
         for url in ['/', '/search/?q=dsub', '/notifications/', reverse('core:templates'), reverse('core:extensions'),
                     reverse('core:app_create'), reverse('accounts:user_list'), reverse('accounts:team_list'),
                     reverse('accounts:team_create'), reverse('accounts:user_create'), reverse('accounts:profile'),
-                    reverse('accounts:password_change')]:
+                    reverse('accounts:password_change'), reverse('core:launcher'), reverse('core:trees'),
+                    reverse('core:tags'), reverse('core:space_edit', args=[Record.objects.filter(table__is_space=True).first().pk])]:
             self.ok(url)
+        for ext in ['docs', 'harness', 'assistant', 'tutorials']:
+            self.ok(reverse('core:extension_switch', args=[ext]))
+
+    def test_every_space_and_app_home(self):
+        from core.space import home_node
+        home = home_node(self.admin)
+        self.assertContains(self.ok('/'), 'your home space')
+        for record in Record.objects.filter(table__is_space=True):
+            response = self.ok(reverse('core:space', args=[record.pk]))
+            self.assertNotContains(response, 'could not be shown', msg_prefix=str(record.pk))
+        self.assertTrue(home.table.is_space)
+        for app in App.objects.all():
+            self.ok(reverse('core:app', args=[app.slug]))
+            self.ok(reverse('core:app_home_edit', args=[app.slug]))
 
     def test_every_view_of_every_table(self):
         for view in View.objects.select_related('table__app'):

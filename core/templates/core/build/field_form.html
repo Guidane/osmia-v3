@@ -62,6 +62,18 @@
   <div class="opt-section" data-types="link user">
     <label class="inline"><input type="checkbox" name="multiple" value="1" {% if field.options.multiple %}checked{% endif %}> Several at once</label>
   </div>
+  <div class="opt-section" data-types="user">
+    <label class="inline"><input type="checkbox" name="home" value="1" {% if field.options.home %}checked{% endif %}> Home: in a table of spaces, the record naming a person is their home space</label>
+  </div>
+  <div class="opt-section" data-types="link">
+    <div class="field"><label for="access_from">Access tags</label>
+      <select id="access_from" name="access_from">
+        <option value="" {% if field.options.access_from is None %}selected{% endif %}>As usual: carry the tags of the spaces it links to</option>
+        <option value="1" {% if field.options.access_from is True %}selected{% endif %}>Always carry the tags of the records it links to</option>
+        <option value="0" {% if field.options.access_from is False %}selected{% endif %}>Never carry their tags</option>
+      </select>
+      <div class="help">A record carries the access tags of the records it gets them from: only people holding every one of them see it.</div></div>
+  </div>
 
   <div class="opt-section" data-types="lookup rollup">
     <div class="grid2">

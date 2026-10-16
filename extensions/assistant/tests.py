@@ -5,9 +5,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from core import blueprints, space as spaces
+from core import access, blueprints, service
 from core.data import Data
-from core.models import App, Change, Record, Space, SpaceMember, Table
+from core.models import App, AppAccess, Change, Record, Table
 
 from . import plan as plans
 from .models import Run
@@ -19,7 +19,7 @@ def answer(*changes, summary='Test'):
 
 
 SUPPLIERS = {
-    'do': 'create_app', 'space': 'personal', 'name': 'Suppliers', 'icon': '🏭',
+    'do': 'create_app', 'own': True, 'name': 'Suppliers', 'icon': '🏭',
     'tables': [
         {'name': 'Suppliers', 'fields': [
             {'name': 'Name', 'type': 'text'},
@@ -59,8 +59,8 @@ class PlanTests(TestCase):
         User = get_user_model()
         cls.admin = User.objects.create_superuser('admin', 'a@example.com', 'pw')
         cls.ann = User.objects.create_user('ann', password='pw')
-        blueprints.install_many(['tasks'], user=cls.admin, sample=True)
-        cls.space = spaces.create_space('Engineering', cls.admin, key='ENG', visibility='internal')
+        blueprints.install_many(['departments', 'tasks'], user=cls.admin, sample=True)
+        cls.org = Table.objects.get(app__blueprint='departments', key='departments')
 
     def run_plan(self, *changes, user=None, apply=False):
         return plans.run(plans.parse(answer(*changes)), user or self.ann, apply=apply)
@@ -69,7 +69,7 @@ class PlanTests(TestCase):
         before = (App.objects.count(), Table.objects.count(), Record.objects.count())
         steps = self.run_plan(SUPPLIERS)
         self.assertTrue(all(s.ok for s in steps), [s.error for s in steps])
-        self.assertIn('Make the app Suppliers in your personal space', steps[0].text)
+        self.assertIn('Make the app Suppliers (your own app)', steps[0].text)
         self.assertIn('Suppliers (4 fields, 2 records), Orders (3 fields, 2 records)', steps[0].text)   # + the link's pair
         self.assertEqual((App.objects.count(), Table.objects.count(), Record.objects.count()), before)
         self.assertEqual(steps[0].url, '')
@@ -78,8 +78,8 @@ class PlanTests(TestCase):
         steps = self.run_plan(SUPPLIERS, apply=True)
         self.assertTrue(all(s.ok for s in steps), [s.error for s in steps])
         app = App.objects.get(name='Suppliers')
-        self.assertEqual(app.space, spaces.personal_space(self.ann))
         self.assertEqual(app.owner, self.ann)
+        self.assertEqual(app.default_role, 'none')
         suppliers = app.tables.get(name='Suppliers')
         data = Data(self.ann)
         acme = next(r for r in data.records(suppliers) if data.label(r) == 'Acme')
@@ -123,7 +123,7 @@ class PlanTests(TestCase):
             {'do': 'add_records', 'app': 'Tasks', 'table': 'Tasks', 'records': [{'Titel': 'x'}]},
             {'do': 'update_records', 'app': 'Tasks', 'table': 'Tasks', 'where': {'Title': 'No such task'}, 'set': {'Status': 'Done'}},
             {'do': 'add_field', 'app': 'Tasks', 'table': 'Tasks', 'field': {'name': 'Size', 'type': 'bigness'}},
-            {'do': 'create_app', 'space': 'personal', 'name': 'X', 'tables': 'not a list'},
+            {'do': 'create_app', 'own': True, 'name': 'X', 'tables': 'not a list'},
             user=self.admin)
         self.assertIn('Record 1: Tasks has no field "Titel"', steps[0].error)
         self.assertIn('No record of Tasks has Title = No such task', steps[1].error)
@@ -134,40 +134,42 @@ class PlanTests(TestCase):
 
     def test_only_what_they_may_do(self):
         steps = self.run_plan(
-            {'do': 'create_space', 'name': 'Ops'},                                                   # needs "Can make spaces"
-            {'do': 'create_app', 'space': 'ENG', 'name': 'Mine', 'tables': [{'name': 'T'}]},          # ann only looks at ENG
+            {'do': 'add_space', 'tree': 'Organisation', 'name': 'Ops', 'parent': 'Company'},          # ann only looks at it
             {'do': 'add_records', 'app': 'Tasks', 'table': 'Tasks', 'records': [{'Title': 'x'}]},     # ann only looks at Tasks
-            {'do': 'create_page', 'space': 'ENG', 'title': 'Hi', 'body': '<p>x</p>'})
-        self.assertIn('Can make spaces', steps[0].error)
-        self.assertIn('You may not build in (only its admins can) the space Engineering', steps[1].error)
-        self.assertIn('You may not change records of Tasks', steps[2].error)
-        self.assertIn('You may not write in the space Engineering', steps[3].error)
-        private = spaces.create_space('Secret', self.admin, key='SEC', visibility='private')
-        steps = self.run_plan({'do': 'create_page', 'space': 'SEC', 'title': 'Hi'})
-        self.assertIn('There is no space "SEC" you can see', steps[0].error)   # not even that it's there
-        SpaceMember.objects.create(space=self.space, user=self.ann, role='admin')
+            {'do': 'create_page', 'space': 'Engineering', 'title': 'Hi', 'body': '<p>x</p>'})
+        self.assertIn('You may not add to', steps[0].error)
+        self.assertIn('You may not change records of Tasks', steps[1].error)
+        self.assertIn('You may not write in the space Engineering', steps[2].error)
+        # a space whose tags she doesn't hold isn't there for her, not even its name
+        tag = access.create_tag('Secret', self.admin)
+        data = Data()
+        secret = service.create_record(self.org, {'Name': 'Secret plans'}, user=self.admin, tags=[tag.pk])
+        steps = self.run_plan({'do': 'create_page', 'space': 'Secret plans', 'title': 'Hi'})
+        self.assertIn('There is no space "Secret plans" you can see', steps[0].error)
+        AppAccess.objects.create(app=self.org.app, user=self.ann, role='editor')
+        from django.contrib.auth import get_user_model
         ann = get_user_model().objects.get(pk=self.ann.pk)   # fresh permission caches
-        steps = self.run_plan({'do': 'create_app', 'space': 'ENG', 'name': 'Mine', 'tables': [{'name': 'T'}]}, user=ann, apply=True)
+        steps = self.run_plan({'do': 'create_page', 'space': 'Engineering', 'title': 'Hi', 'body': '<p>x</p>'}, user=ann, apply=True)
         self.assertTrue(steps[0].ok, steps[0].error)
-        self.assertEqual(App.objects.get(name='Mine').space, self.space)
-        self.assertIsNotNone(private)
+        self.assertIsNotNone(secret and data)
 
     def test_spaces_and_pages(self):
         steps = self.run_plan(
-            {'do': 'create_space', 'name': 'Operations', 'key': 'OPS', 'kind': 'department', 'visibility': 'private'},
-            {'do': 'create_page', 'space': 'OPS', 'title': 'Handbook', 'emoji': '📘', 'body': '<h2>Start</h2><script>x()</script><p>Hi</p>'},
-            {'do': 'create_page', 'space': 'OPS', 'title': 'Returns', 'parent': 'Handbook', 'body': '<p>R</p>'},
-            {'do': 'update_page', 'space': 'OPS', 'page': 'Handbook', 'append': '<div class="panel info"><p>New</p></div>'},
+            {'do': 'add_space', 'tree': 'Organisation', 'name': 'Operations 2', 'parent': 'Company', 'values': {'Kind': 'Department'}},
+            {'do': 'create_page', 'space': 'Operations 2', 'title': 'Handbook', 'emoji': '📘', 'body': '<h2>Start</h2><script>x()</script><p>Hi</p>'},
+            {'do': 'create_page', 'space': 'Operations 2', 'title': 'Returns', 'parent': 'Handbook', 'body': '<p>R</p>'},
+            {'do': 'update_page', 'space': 'Operations 2', 'page': 'Handbook', 'append': '<div class="panel info"><p>New</p></div>'},
             user=self.admin, apply=True)
         self.assertTrue(all(s.ok for s in steps), [s.error for s in steps])
-        from extensions.pages.models import Page
-        space = Space.objects.get(key='OPS')
+        from extensions.docs.models import Page
+        data = Data()
+        space = next(r for r in data.records(self.org) if data.label(r) == 'Operations 2')
+        self.assertEqual(data.text(space, data.field_named(self.org, 'Kind')), 'Department')
         handbook = Page.objects.get(space=space, title='Handbook')
         self.assertNotIn('script', handbook.body)
         self.assertIn('<div class="panel info"><p>New</p></div>', handbook.body)
         self.assertEqual(handbook.version, 2)
         self.assertEqual(Page.objects.get(title='Returns').parent, handbook)
-        self.assertEqual(space.visibility, 'private')
 
 
 class PromptTests(TestCase):
@@ -176,18 +178,20 @@ class PromptTests(TestCase):
         User = get_user_model()
         cls.admin = User.objects.create_superuser('admin', 'a@example.com', 'pw')
         cls.ann = User.objects.create_user('ann', password='pw')
-        blueprints.install_many(['tasks'], user=cls.admin, sample=True)
-        cls.secret = spaces.create_space('Secret plans', cls.admin, key='SEC', visibility='private')
+        blueprints.install_many(['departments', 'tasks'], user=cls.admin, sample=True)
+        tag = access.create_tag('Secret', cls.admin)
+        org = Table.objects.get(app__blueprint='departments', key='departments')
+        service.create_record(org, {'Name': 'Secret plans'}, user=cls.admin, tags=[tag.pk])
 
     def test_the_prompt(self):
         tasks = App.objects.get(name='Tasks')
         text = build(self.ann, 'Add a priority board', app=tasks, with_records=True)
         for part in ('Add a priority board', '"do": "create_app"', 'select (Single select)', 'Table "Tasks"',
                      'Status (select: To do, In progress, Blocked, Done)', 'Count the shelves', 'they may: only look',
-                     'They may not make new spaces'):
+                     'Trees of spaces', '"Organisation"', 'Engineering', '"do": "add_space"'):
             self.assertIn(part, text)
         self.assertNotIn('<<', text)
-        self.assertNotIn('Secret plans', text)                         # a private space they're not in
+        self.assertNotIn('Secret plans', text)                         # a space whose tags they don't hold
         self.assertNotIn('Count the shelves', build(self.ann, 'x', app=tasks))   # records only when asked
 
 
@@ -202,7 +206,7 @@ class FlowTests(TestCase):
     def test_ask_check_and_make(self):
         self.client.force_login(self.ann)
         self.assertContains(self.client.get(reverse('assistant:index')), 'What do you want?')
-        response = self.client.post(reverse('assistant:index'), {'request': 'An app for suppliers', 'space': spaces.ensure_personal(self.ann).key})
+        response = self.client.post(reverse('assistant:index'), {'request': 'An app for suppliers'})
         run = Run.objects.get()
         self.assertRedirects(response, run.get_absolute_url())
         self.assertIn('An app for suppliers', run.prompt)
@@ -249,7 +253,7 @@ class DependencyTests(TestCase):
         cls.ann = get_user_model().objects.create_user('ann', password='pw')
 
     def test_a_rollup_of_a_rollup_in_a_later_table(self):
-        app = {'do': 'create_app', 'space': 'personal', 'name': 'Purchasing', 'tables': [
+        app = {'do': 'create_app', 'own': True, 'name': 'Purchasing', 'tables': [
             {'name': 'Suppliers', 'fields': [{'name': 'Name', 'type': 'text'},
                                              {'name': 'Total spend', 'type': 'rollup', 'link': 'Orders', 'field': 'Total', 'func': 'sum'}],
              'records': [{'Name': 'Acme'}]},
@@ -270,7 +274,7 @@ class DependencyTests(TestCase):
         self.assertEqual(data.text(data.records(suppliers)[0], data.field_named(suppliers, 'Total spend')), '178')
 
     def test_a_field_that_never_exists(self):
-        app = {'do': 'create_app', 'space': 'personal', 'name': 'X', 'tables': [
+        app = {'do': 'create_app', 'own': True, 'name': 'X', 'tables': [
             {'name': 'A', 'fields': [{'name': 'Name', 'type': 'text'},
                                      {'name': 'Sum', 'type': 'rollup', 'link': 'Nothing', 'field': 'Total', 'func': 'sum'}]}]}
         steps = plans.run(plans.parse(answer(app)), self.ann)

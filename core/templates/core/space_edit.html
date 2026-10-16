@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Edit {{ space_label }} · Osmia{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block content %}
+<form method="post" id="page-form" class="page-edit">{% csrf_token %}
+  <nav class="crumbs">{% for a, label in ancestors %}<a href="{% url 'core:space' a.pk %}">{{ label }}</a> › {% endfor %}<a href="{% url 'core:space' space.pk %}">{{ space_label }}</a> › editing the page</nav>
+  <h1>{% if is_home %}🏠 Your home space{% else %}{{ space_table.icon|default:"◼" }} {{ space_label }}{% endif %}</h1>
+  {% include "core/canvas/_editor.html" %}
+  <div class="edit-foot">
+    <button class="btn primary">Save</button>
+    <a class="btn ghost" href="{% url 'core:space' space.pk %}">Cancel</a>
+    {% if layout %}<button class="btn ghost" name="reset" value="1" formnovalidate data-confirm="Put the page back to how every space starts?">↺ Start over</button>{% endif %}
+    <span class="muted small">Ctrl+S saves</span>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{% static 'core/editor.js' %}"></script>{% endblock %}

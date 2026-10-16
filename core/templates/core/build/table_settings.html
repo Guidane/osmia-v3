@@ -11,13 +11,22 @@
   <div class="field"><label for="display_field">Records are named by</label>
     <select id="display_field" name="display_field"><option value="">the first field</option>{% for f in fields %}<option value="{{ f.pk }}" {% if f.pk == table.display_field_id %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select></div>
   <div class="field"><label for="description">Description</label><textarea id="description" name="description" rows="2">{{ table.description }}</textarea></div>
+  <h2>🌳 Tree</h2>
+  <div class="field"><label for="tree_field">Each record's parent</label>
+    <select id="tree_field" name="tree_field"><option value="">— not a tree</option>{% for f in parent_choices %}<option value="{{ f.pk }}" {% if f.pk == table.tree_field_id %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select>
+    <div class="help">A link from {{ table.name }} to itself, to one record. In a tree, records sit under their parent (an organisation, programmes and projects, locations, categories). Records of other tables link to its nodes as to any record, and carry the access tags of the space nodes they link to.{% if not parent_choices %} Add a link field from {{ table.name }} to {{ table.name }} (one record) first.{% endif %}</div></div>
+  <label class="inline"><input type="checkbox" name="is_space" value="1" {% if table.is_space %}checked{% endif %}{% if not table.tree_field_id %} disabled{% endif %}> Its records are spaces: each has a page, with what links to it</label>
+  <div class="help">A user field marked "home" in a space table makes each person's record their home space.</div>
   <h2>Order of the tables in {{ app.name }}</h2>
   <ul class="plain sortable">{% for t in tables %}<li class="link-chip" style="display:block;max-width:none;cursor:grab" draggable="true"><input type="hidden" name="table_order" value="{{ t.pk }}">☰ {{ t.name }}</li>{% endfor %}</ul>
   <div class="actions"><button class="btn primary">Save</button><a class="btn" href="{% url 'core:fields' app.slug table.slug %}">Fields</a></div>
 </form>
 <form method="post" class="form card" style="border-color:var(--danger)">{% csrf_token %}
   <h2 style="margin-top:0">Delete the table</h2>
-  <p class="muted">Deletes its records, files, views and automations, and the link fields in other tables that point at it.</p>
+  <p class="muted">Deletes its records, files, views and automations, and the other halves of its links.</p>
+  {% if blockers %}<div class="flash warning"><b>It can't be deleted while something uses it.</b> Change these first:
+    <ul>{% for b in blockers %}<li>{{ b }}</li>{% endfor %}</ul></div>{% endif %}
+
   <div class="field"><label for="confirm">Type {{ table.name }} to confirm</label><input id="confirm" name="confirm" autocomplete="off"></div>
   <button class="btn danger" name="delete" value="1">Delete {{ table.name }}</button>
 </form>

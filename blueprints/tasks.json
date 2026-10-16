@@ -339,7 +339,8 @@
             "submit_label": "Add the task"
           }
         }
-      ]
+      ],
+      "tree": "parent"
     },
     {
       "key": "groups",

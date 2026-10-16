@@ -1,0 +1,10 @@
+<nav class="page-tree" aria-label="Pages of {{ space_label }}">
+  <div class="tree-head"><a href="{% url 'docs:space' space.pk %}"><b>{{ space_label }}</b></a>
+    {% if can_write %}<a class="btn small ghost" href="{% url 'docs:new' space.pk %}{% if page %}?parent={{ page.pk }}{% endif %}" title="{% if page %}New page under this one{% else %}New page{% endif %}">＋</a>{% endif %}</div>
+  {% for row in tree %}
+    <a class="tree-row{% if row.current %} on{% endif %}" href="{{ row.page.get_absolute_url }}" style="padding-left:{{ row.depth|add:1 }}0px" data-depth="{{ row.depth }}">
+      <span class="tree-emoji">{{ row.page.emoji|default:"📄" }}</span>{{ row.page.title }}</a>
+  {% empty %}<p class="muted small" style="padding:6px 8px">No pages yet.</p>{% endfor %}
+  <div class="sep"></div>
+  <a class="tree-row muted" href="{% url 'core:space' space.pk %}">◼ The space's page</a>
+</nav>

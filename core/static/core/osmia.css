@@ -68,7 +68,6 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 .topbar .icon-link { position: relative; padding: 6px 8px; border-radius: var(--radius); }
 .topbar .icon-link:hover { background: var(--brand-dark); text-decoration: none; }
 .topbar .count { position: absolute; top: 0; right: 0; background: #f59e0b; color: #111; border-radius: 999px; font-size: 10px; padding: 0 5px; font-weight: 700; }
-.sidebar-toggle { display: none; background: none; border: 0; color: #fff; font-size: 20px; cursor: pointer; }
 
 /* Menus (details/summary) */
 .menu { position: relative; }
@@ -84,18 +83,8 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 .toolbar .menu > summary { background: none; }
 .toolbar .menu[open] > summary, .toolbar .menu > summary:hover { background: var(--hover); }
 
-/* -- Shell: sidebar + main ------------------------------------------------------- */
+/* -- Shell: the top bar, an app's bar with its tabs, the page ------------------------------- */
 .shell { display: flex; min-height: calc(100vh - 48px); }
-.sidebar { width: 248px; flex: 0 0 248px; background: var(--panel); border-right: 1px solid var(--border); padding: 10px 8px 24px; overflow-y: auto; position: sticky; top: 48px; height: calc(100vh - 48px); }
-.sidebar .section { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 10px 8px 4px; display: flex; justify-content: space-between; align-items: center; }
-.sidebar .section a { color: var(--muted); font-size: 16px; line-height: 1; }
-.sidebar a.item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar a.item:hover { background: var(--hover); text-decoration: none; }
-.sidebar a.item.active { background: var(--brand-soft); color: var(--brand-dark); font-weight: 600; }
-.sidebar .app-icon { width: 22px; height: 22px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex: 0 0 22px; }
-.sidebar .tables { margin: 2px 0 8px 14px; border-left: 1px solid var(--border); padding-left: 6px; }
-.sidebar .tables a.item { padding: 4px 8px; font-size: 13px; }
-.sidebar .app-tools a.item { color: var(--muted); font-size: 13px; padding: 4px 8px; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .content { padding: 20px 24px 40px; max-width: 1280px; width: 100%; }
 .content.wide { max-width: none; }
@@ -375,14 +364,7 @@ table.sub { width: 100%; border-collapse: collapse; font-size: 13px; }
 .split .detail-pane { flex: 1; overflow-y: auto; padding: 16px 20px; }
 
 /* -- Home ---------------------------------------------------------------------------------- */
-.apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-.app-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; color: var(--text); display: flex; flex-direction: column; gap: 6px; }
-.app-card:hover { text-decoration: none; box-shadow: var(--shadow); }
-.app-card .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-.app-card .name { font-weight: 700; font-size: 15px; }
-.app-card .meta { color: var(--muted); font-size: 12px; }
-.app-card.new { border-style: dashed; align-items: center; justify-content: center; color: var(--muted); min-height: 140px; }
-.home-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+
 
 /* -- Builder -------------------------------------------------------------------------------- */
 .type-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
@@ -415,20 +397,16 @@ table.sub { width: 100%; border-collapse: collapse; font-size: 13px; }
 
 /* -- Small screens --------------------------------------------------------------------------- */
 @media (max-width: 900px) {
-  .sidebar { position: fixed; left: 0; top: 48px; z-index: 45; transform: translateX(-100%); transition: transform .15s; box-shadow: var(--shadow); }
-  body.sidebar-open .sidebar { transform: none; }
-  .sidebar-toggle { display: block; }
-  .record-layout, .home-grid { grid-template-columns: 1fr; }
+  .record-layout { grid-template-columns: 1fr; }
+  .page-body.canvas .grid-block { grid-template-columns: 1fr !important; }
   .topbar .search { display: none; }
   .content { padding: 16px; }
   .split .list-pane { flex-basis: 200px; }
   .form .grid2 { grid-template-columns: 1fr; }
   .values-row { grid-template-columns: 1fr; }
 }
-body.no-sidebar .sidebar { display: none; }
-body.no-sidebar .sidebar-toggle { display: none; }
 
-/* -- App launcher (the ▦ grid at the top left, like Microsoft 365) --------------------- */
+/* -- The launcher (the ▦ grid at the top left): apps and spaces ------------------------- */
 .launcher > summary { display: flex; align-items: center; padding: 6px; }
 .launcher .launcher-panel { left: 0; right: auto; width: 380px; max-width: calc(100vw - 24px); max-height: calc(100vh - 70px); overflow-y: auto; padding: 10px; }
 .launcher-filter { width: 100%; margin-bottom: 4px; }
@@ -439,7 +417,6 @@ body.no-sidebar .sidebar-toggle { display: none; }
 .launcher-tile .tile-name { font-size: 12px; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .launcher-foot { display: flex; justify-content: space-between; }
 .launcher-panel .launcher-foot a { width: auto; }
-.sidebar .app-title { font-size: 15px; margin-bottom: 4px; }
 .me-initials { display: none; width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, .2); font-size: 12px; font-weight: 700; align-items: center; justify-content: center; }
 .topbar .icon-link { white-space: nowrap; }
 @media (max-width: 700px) {
@@ -448,12 +425,7 @@ body.no-sidebar .sidebar-toggle { display: none; }
   .me-initials { display: inline-flex; }
 }
 
-/* -- Home: your work, to-dos, pinned pages, bookmarks ---------------------------------- */
-.home-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.home-head h1 { margin: 0; flex: 1; font-size: 24px; }
-.home-quick { display: flex; gap: 8px; }
-.home-grid aside .card { padding: 14px 16px; }
-.home-grid aside h3 { margin: 0 0 8px; }
+/* -- Blocks: my work, notifications, ... ------------------------------------------------ */
 .side-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .work-tabs .n { background: var(--hover); border-radius: 999px; padding: 0 7px; font-size: 11px; margin-left: 4px; }
 .work-list { max-height: 440px; overflow-y: auto; }
@@ -467,25 +439,55 @@ body.no-sidebar .sidebar-toggle { display: none; }
 .btn.star { font-size: 18px; line-height: 1; padding: 2px 6px; color: var(--faint); }
 .btn.star.on, .btn.star:hover { color: #f59e0b; }
 .star-form { margin: 0; }
-.todo-add input { width: 100%; margin-bottom: 6px; }
-.todo-row { display: flex; align-items: center; gap: 8px; padding: 6px 2px; border-bottom: 1px solid var(--border); transition: opacity .3s; }
-.todo-row:last-child { border-bottom: 0; }
-.todo-row .todo-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.todo-row .todo-title a { color: var(--text); }
-.todo-row.done .todo-title { text-decoration: line-through; color: var(--faint); }
 .side-link { display: block; padding: 5px 2px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-link:hover { color: var(--brand); text-decoration: none; }
 .note-row { padding: 4px 0; }
 
-/* -- Spaces ---------------------------------------------------------------------- */
-.space-title { font-size: 15px; }
-.space-kind { color: var(--muted); font-size: 11px; padding: 0 8px 8px 38px; }
-.space-hero { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; padding: 18px 20px; border-radius: 12px; background: linear-gradient(120deg, color-mix(in srgb, var(--space) 18%, var(--panel)), var(--panel)); border: 1px solid var(--border); }
-.space-hero h1 { margin: 0; font-size: 24px; }
-.space-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 30px; background: color-mix(in srgb, var(--space) 22%, transparent); flex: 0 0 56px; }
-.space-about p:first-child { margin-top: 0; }
-.space-about p:last-child { margin-bottom: 0; }
 .space-link, .space-member { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
 .space-link:last-child, .space-member:last-child { border-bottom: 0; }
-.home-section { margin-top: 22px; }
-.home-section h2 { margin: 0; flex: 1; }
+
+/* -- The app bar: an app's name and its tabs (home, tables, extension tabs) ---------------- */
+.app-bar { display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 48px; z-index: 30; min-height: 46px; }
+.app-bar-name { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.app-bar-name:hover { text-decoration: none; }
+.app-icon { width: 22px; height: 22px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex: 0 0 22px; }
+.app-tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; align-self: stretch; }
+.app-tabs a { display: flex; align-items: center; gap: 6px; padding: 0 12px; color: var(--muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+.app-tabs a:hover { color: var(--text); text-decoration: none; background: var(--hover); }
+.app-tabs a.on { color: var(--text); border-bottom-color: var(--brand); font-weight: 600; }
+.app-tabs a.add { color: var(--faint); }
+.app-bar .menu.right .menu-panel { right: 0; left: auto; }
+
+/* -- Small app cards: the launcher page, the Apps block, an app on a page --------------- */
+.app-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+.app-card { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); text-align: center; min-width: 0; }
+.app-card:hover { text-decoration: none; box-shadow: var(--shadow); border-color: var(--brand); }
+.app-card-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.app-card-name { font-size: 13px; font-weight: 600; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.app-card.new { border-style: dashed; color: var(--muted); }
+
+/* -- Spaces ------------------------------------------------------------------------ */
+.space-head { margin-bottom: 14px; }
+.space-head .crumbs { margin-bottom: 6px; }
+.space-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.space-title h1 { margin: 0; font-size: 26px; }
+.space-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: var(--brand-soft); flex: 0 0 48px; }
+.space-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+.space-card { display: inline-block; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+.space-card:hover { border-color: var(--brand); text-decoration: none; }
+.space-tree { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 6px; }
+.space-row { display: block; padding: 5px 10px; border-radius: 6px; color: var(--text); }
+.space-row:hover { background: var(--hover); text-decoration: none; }
+.launcher-spaces { display: flex; flex-direction: column; margin-bottom: 6px; }
+.launcher-panel a.launcher-space { padding: 6px 10px; border-radius: 6px; }
+.linked-group { margin-bottom: 10px; }
+.linked-group h4 { margin: 4px 0; font-size: 13px; }
+
+/* -- Access tags ---------------------------------------------------------------------- */
+.tag-chip { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 999px; font-size: 12px; line-height: 20px; border: 1px solid var(--tag, #b45309); color: var(--tag, #b45309); background: color-mix(in srgb, var(--tag, #b45309) 10%, transparent); white-space: nowrap; }
+a.tag-chip:hover { text-decoration: none; }
+.tag-chip.inherited { border-style: dashed; }
+.tag-chip.big { font-size: 20px; line-height: 34px; padding: 0 14px; }
+kbd { font: 11px ui-monospace, Consolas, monospace; padding: 1px 5px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 4px; background: var(--panel-2); }
+.history-row { padding: 4px 0; border-bottom: 1px solid var(--border); }
+.history-row:last-child { border-bottom: 0; }

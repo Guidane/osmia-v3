@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Pages · {{ space_label }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'docs/docs.css' %}">{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block content %}
+<div class="pages-layout">
+  {% include "docs/_tree.html" %}
+  <div class="pages-main">
+    <div class="crumbs"><a href="{% url 'docs:index' %}">📄 Documentation</a>{% for s, label in space_crumbs %} › <a href="{% url 'docs:space' s.pk %}">{{ label }}</a>{% endfor %}</div>
+    <div class="record-head"><h1>📄 Pages of {{ space_label }}</h1></div>
+    {% if can_write %}
+    <div class="card"><h3>Create a page</h3>
+      <div class="template-picks">
+        {% for key, t in templates.items %}<a class="template-pick" href="{% url 'docs:new' space.pk %}?template={{ key }}"><span>{{ t.1 }}</span>{{ t.0 }}</a>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if labels %}<p class="label-filter">Labels: {% for l in labels %}<a class="chip{% if l == label %} on{% endif %}" href="?label={{ l|urlencode }}">{{ l }}</a>{% endfor %}{% if label %} <a href="?">✕ all</a>{% endif %}</p>{% endif %}
+    <div class="card flush">
+      <div class="card-head"><h3>{% if label %}Pages labelled “{{ label }}”{% else %}Recently changed{% endif %}</h3></div>
+      {% for p in pages %}
+        <a class="work-row" href="{{ p.get_absolute_url }}"><span class="tree-emoji">{{ p.emoji|default:"📄" }}</span>
+          <span class="w-main"><span class="w-title">{{ p.title }}</span><span class="w-sub">{{ p.updated_by|default:"" }} · {{ p.updated_at|timesince }} ago{% for l in p.label_list %} · {{ l }}{% endfor %}</span></span></a>
+      {% empty %}<p class="empty small">No pages yet.{% if can_write %} Pick a template above to write the first one.{% endif %}</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

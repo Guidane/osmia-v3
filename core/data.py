@@ -4,6 +4,11 @@ One ``Data`` serves one request (or one automation step). It loads a table's
 records and a link field's pairs once, and remembers each computed value, so
 a grid of 500 orders with rollups over their lines costs a handful of queries.
 Anything that writes calls ``invalidate()`` so the next read sees the change.
+
+A ``Data`` for a person shows only the records they may see (core.access):
+the others are simply not there, in tables, links, lookups, rollups, counts
+and search. ``Data()`` without a person (or ``system=True``) sees everything;
+automations work that way (``as_system``).
 """
 from collections import defaultdict
 
@@ -26,8 +31,9 @@ class OldValues:
 
 
 class Data:
-    def __init__(self, user=None):
+    def __init__(self, user=None, system=None):
         self.user = user
+        self.system = user is None if system is None else system
         self._tables = {}
         self._fields_by_table = {}
         self._fields = {}
@@ -38,6 +44,18 @@ class Data:
         self._computing = set()
         self._users = None
         self._attachments = {}
+
+    # -- who is looking ----------------------------------------------------------------
+
+    def sees(self, record):
+        if self.system or record is None:
+            return True
+        from .access import can_see
+        return can_see(self.user, record)
+
+    def as_system(self):
+        """The same person (for USER() and history), seeing every record."""
+        return self if self.system else Data(self.user, system=True)
 
     # -- cache control -----------------------------------------------------------------
 
@@ -122,12 +140,14 @@ class Data:
             for r in Record.objects.filter(table_id=table.pk):
                 self._records.setdefault(r.pk, r)
             self._loaded_tables.add(table.pk)
-        return sorted((r for r in self._records.values() if r.table_id == table.pk), key=lambda r: (r.position, r.pk))
+        return sorted((r for r in self._records.values() if r.table_id == table.pk and self.sees(r)),
+                      key=lambda r: (r.position, r.pk))
 
     def record(self, record_id):
         if isinstance(record_id, Record):
             self._records.setdefault(record_id.pk, record_id)
-            return self._records[record_id.pk]
+            record = self._records[record_id.pk]
+            return record if self.sees(record) else None
         try:
             record_id = int(record_id)
         except (TypeError, ValueError):
@@ -137,17 +157,19 @@ class Data:
             if r is None:
                 return None
             self._records[record_id] = r
-        return self._records[record_id]
+        record = self._records[record_id]
+        return record if self.sees(record) else None
 
     def records_by_ids(self, ids):
         missing = [i for i in ids if i not in self._records]
         if missing:
             for r in Record.objects.filter(pk__in=missing):
                 self._records[r.pk] = r
-        return [self._records[i] for i in ids if i in self._records]
+        return [self._records[i] for i in ids if i in self._records and self.sees(self._records[i])]
 
     def existing_ids(self, table_id, ids):
-        return set(Record.objects.filter(table_id=table_id, pk__in=ids).values_list('pk', flat=True))
+        found = Record.objects.filter(table_id=table_id, pk__in=ids)
+        return {r.pk for r in found if self.sees(r)}
 
     def find_by_label(self, table_id, label):
         low = label.lower()
@@ -176,10 +198,17 @@ class Data:
             self._links[owner.pk] = (forward, backward)
         return self._links[owner.pk]
 
-    def linked_ids(self, record, field):
+    def all_linked_ids(self, record, field):
+        """Every record ``record`` links to through ``field``, seen or not (for keeping links)."""
         owner, backwards = self.owner_of(field)
         forward, backward = self._pairs(owner)
         return list((backward if backwards else forward).get(record.pk, []))
+
+    def linked_ids(self, record, field):
+        ids = self.all_linked_ids(record, field)
+        if self.system or not ids:
+            return ids
+        return [r.pk for r in self.records_by_ids(ids)]
 
     def linked(self, record, field):
         ids = self.linked_ids(record, field)

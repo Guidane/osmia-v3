@@ -3,39 +3,170 @@
   "name": "Organisation",
   "icon": "🏢",
   "color": "#475569",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "position": 10,
-  "description": "The organisation as nested departments, with their manager and members.",
+  "description": "The organisation as a tree of spaces: the company, its departments and teams, and a space for each person (their home). Move a person's space under their team.",
   "tables": [
     {
       "key": "departments",
-      "name": "Departments",
+      "name": "Organisation",
       "icon": "🏢",
       "display": "name",
+      "tree": "parent",
+      "spaces": true,
       "fields": [
-        {"key": "name", "name": "Name", "type": "text", "required": true},
-        {"key": "parent", "name": "Part of", "type": "link",
-         "options": {"target": "departments", "multiple": false, "inverse": {"key": "sub_departments", "name": "Sub-departments", "multiple": true}}},
-        {"key": "manager", "name": "Manager", "type": "user"},
-        {"key": "members", "name": "Members", "type": "user", "options": {"multiple": true}},
-        {"key": "member_count", "name": "People", "type": "formula", "options": {"expression": "COUNTA({Members})", "format": "number"}},
-        {"key": "email", "name": "Email", "type": "email"},
-        {"key": "notes", "name": "Notes", "type": "longtext"}
+        {
+          "key": "name",
+          "name": "Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "kind",
+          "name": "Kind",
+          "type": "select",
+          "options": {
+            "default": "Team",
+            "choices": [
+              {
+                "value": "Company",
+                "color": "#e0e7ff"
+              },
+              {
+                "value": "Department",
+                "color": "#dbeafe"
+              },
+              {
+                "value": "Team",
+                "color": "#dcfce7"
+              },
+              {
+                "value": "Person",
+                "color": "#fef3c7"
+              }
+            ]
+          }
+        },
+        {
+          "key": "parent",
+          "name": "Part of",
+          "type": "link",
+          "options": {
+            "target": "departments",
+            "multiple": false,
+            "inverse": {
+              "key": "sub_departments",
+              "name": "Under it",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "person",
+          "name": "Person",
+          "type": "user",
+          "options": {
+            "home": true
+          },
+          "description": "Whose home space this is (for a person's space)."
+        },
+        {
+          "key": "manager",
+          "name": "Manager",
+          "type": "user"
+        },
+        {
+          "key": "email",
+          "name": "Email",
+          "type": "email"
+        },
+        {
+          "key": "notes",
+          "name": "Notes",
+          "type": "longtext"
+        }
       ],
       "views": [
-        {"name": "Organisation", "type": "tree", "config": {"parent_field": "parent", "fields": ["name", "manager", "members", "member_count", "email"]}},
-        {"name": "All departments", "type": "grid"},
-        {"name": "Departments", "type": "detail", "config": {"fields": ["name", "manager"]}}
+        {
+          "name": "Organisation",
+          "type": "tree",
+          "config": {
+            "parent_field": "parent",
+            "fields": [
+              "name",
+              "kind",
+              "manager",
+              "person",
+              "email"
+            ]
+          }
+        },
+        {
+          "name": "All",
+          "type": "grid"
+        },
+        {
+          "name": "By kind",
+          "type": "kanban",
+          "config": {
+            "group_field": "kind",
+            "fields": [
+              "name",
+              "manager"
+            ]
+          }
+        }
       ]
     }
   ],
   "records": {
     "departments": [
-      {"Name": "Company", "Manager": "alice"},
-      {"Name": "Operations", "Part of": "Company", "Manager": "bob"},
-      {"Name": "Warehouse", "Part of": "Operations", "Members": ["bob"]},
-      {"Name": "Engineering", "Part of": "Company", "Manager": "alice", "Members": ["alice"]},
-      {"Name": "Purchasing", "Part of": "Operations", "Manager": "carla", "Members": ["carla"]}
+      {
+        "Name": "Company",
+        "Kind": "Company",
+        "Manager": "alice"
+      },
+      {
+        "Name": "Operations",
+        "Kind": "Department",
+        "Part of": "Company",
+        "Manager": "bob"
+      },
+      {
+        "Name": "Warehouse",
+        "Kind": "Team",
+        "Part of": "Operations"
+      },
+      {
+        "Name": "Engineering",
+        "Kind": "Department",
+        "Part of": "Company",
+        "Manager": "alice"
+      },
+      {
+        "Name": "Purchasing",
+        "Kind": "Team",
+        "Part of": "Operations",
+        "Manager": "carla"
+      },
+      {
+        "Name": "Alice Martin",
+        "Kind": "Person",
+        "Part of": "Engineering",
+        "Person": "alice"
+      },
+      {
+        "Name": "Bob Jansen",
+        "Kind": "Person",
+        "Part of": "Warehouse",
+        "Person": "bob"
+      },
+      {
+        "Name": "Carla Rossi",
+        "Kind": "Person",
+        "Part of": "Purchasing",
+        "Person": "carla"
+      }
     ]
   }
 }

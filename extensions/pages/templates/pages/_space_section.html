@@ -1,5 +1,0 @@
-{% load static %}<link rel="stylesheet" href="{% static 'pages/pages.css' %}">
-<div class="side-head"><h2 style="margin:0">📄 Pages <span class="muted small">{{ count }}</span></h2><a class="small" href="{% url 'pages:space' space.key %}">All pages →</a></div>
-{% if can_write %}<div class="template-picks small-picks">{% for key, t in templates.items %}<a class="template-pick" href="{% url 'pages:new' space.key %}?template={{ key }}"><span>{{ t.1 }}</span>{{ t.0 }}</a>{% endfor %}</div>{% endif %}
-{% for p in pages %}<a class="work-row" style="padding-left:0" href="{{ p.get_absolute_url }}"><span class="tree-emoji">{{ p.emoji|default:"📄" }}</span><span class="w-main"><span class="w-title">{{ p.title }}</span><span class="w-sub">{{ p.updated_by|default:"" }} · {{ p.updated_at|timesince }} ago</span></span></a>
-{% empty %}<p class="muted small">No pages yet.</p>{% endfor %}

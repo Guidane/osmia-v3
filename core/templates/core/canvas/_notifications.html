@@ -1,0 +1,2 @@
+{% for n in items %}<div class="note-row"><a href="{% url 'core:notification_open' n.pk %}">{{ n.message }}</a> <span class="muted small">{{ n.created_at|timesince }} ago</span></div>
+{% empty %}<p class="muted small">Nothing new. <a href="{% url 'core:notifications' %}">All notifications →</a></p>{% endfor %}

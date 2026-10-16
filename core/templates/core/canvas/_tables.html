@@ -1,0 +1,4 @@
+<div class="app-cards">
+  {% for t in tables %}<a class="app-card live" href="{{ t.get_absolute_url }}"><span class="app-card-icon" style="background:{{ app.color }}22;color:{{ app.color }}">{{ t.icon|default:"▦" }}</span><span class="app-card-name">{{ t.name }}</span></a>
+  {% empty %}<p class="muted small">No tables yet.</p>{% endfor %}
+</div>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{% if page %}Edit {{ page.title }}{% else %}New page{% endif %} · {{ space_label }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'docs/docs.css' %}">{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block content %}
+<div class="pages-layout">
+  {% include "docs/_tree.html" %}
+  <form method="post" class="pages-main page-edit" id="page-form">{% csrf_token %}
+    <div class="crumbs"><a href="{% url 'docs:index' %}">📄 Documentation</a>{% for s, label in space_crumbs %} › <a href="{% url 'docs:space' s.pk %}">{{ label }}</a>{% endfor %}{% if parent %} › <a href="{{ parent.get_absolute_url }}">{{ parent.title }}</a>{% endif %} › {% if page %}editing{% else %}new page{% endif %}</div>
+    {% if parent %}<input type="hidden" name="parent" value="{{ parent.pk }}">{% endif %}
+    <div class="page-title-row edit">
+      <input class="emoji-input" name="emoji" value="{{ emoji }}" maxlength="8" placeholder="🙂" title="An emoji for the page" aria-label="Emoji">
+      <input class="title-input" name="title" value="{{ title }}" placeholder="Page title" required autofocus aria-label="Title">
+    </div>
+    {% include "core/canvas/_editor.html" %}
+    <div class="edit-foot">
+      <input name="labels" value="{{ labels }}" placeholder="Labels, e.g. how-to, onboarding" aria-label="Labels" class="labels-input">
+      {% for c in tag_choices %}<label class="inline" title="Only people holding {{ c.tag.name }} will see the page"><input type="checkbox" name="tags" value="{{ c.tag.pk }}" {% if c.on %}checked{% endif %}{% if not c.mine %} disabled{% endif %}> <span class="tag-chip" style="--tag:{{ c.tag.color }}">🏷 {{ c.tag.name }}</span></label>{% endfor %}
+      {% if page %}<input name="note" placeholder="What did you change? (optional)" aria-label="What changed" class="labels-input">{% endif %}
+      <button class="btn primary">{% if page %}Save{% else %}Publish{% endif %}</button>
+      <a class="btn ghost" href="{% if page %}{{ page.get_absolute_url }}{% elif parent %}{{ parent.get_absolute_url }}{% else %}{% url 'docs:space' space.pk %}{% endif %}">Cancel</a>
+      <span class="muted small">Ctrl+S saves</span>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'core/editor.js' %}"></script>{% endblock %}

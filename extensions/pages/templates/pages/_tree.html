@@ -1,8 +1,0 @@
-<nav class="page-tree" aria-label="Pages of {{ space.name }}">
-  <div class="tree-head"><a href="{% url 'pages:space' space.key %}"><b>Pages</b></a>
-    {% if can_write %}<a class="btn small ghost" href="{% url 'pages:new' space.key %}{% if page %}?parent={{ page.pk }}{% endif %}" title="{% if page %}New page under this one{% else %}New page{% endif %}">＋</a>{% endif %}</div>
-  {% for row in tree %}
-    <a class="tree-row{% if row.current %} on{% endif %}" href="{{ row.page.get_absolute_url }}" style="padding-left:{{ row.depth|add:1 }}0px" data-depth="{{ row.depth }}">
-      <span class="tree-emoji">{{ row.page.emoji|default:"📄" }}</span>{{ row.page.title }}</a>
-  {% empty %}<p class="muted small" style="padding:6px 8px">No pages yet.</p>{% endfor %}
-</nav>

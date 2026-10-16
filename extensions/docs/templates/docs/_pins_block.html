@@ -1,0 +1,2 @@
+{% for p in pins %}<a class="side-link" href="{{ p.get_absolute_url }}">{{ p.emoji|default:"📄" }} {{ p.title }}</a>
+{% empty %}<p class="muted small">Pin a page with 📌 to keep it here.</p>{% endfor %}

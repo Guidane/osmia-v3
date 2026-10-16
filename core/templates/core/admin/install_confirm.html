@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Install templates{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>▤ Install {{ chosen|length }} template{{ chosen|length|pluralize }}</h1>
+<div class="card">
+  <p>You picked {% for bp in chosen %}<b>{{ bp.icon }} {{ bp.name }}</b>{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
+  <p>{{ chosen|length|pluralize:"It needs,They need" }} these, which aren't installed yet:</p>
+  <ul>{% for bp in extra %}<li><b>{{ bp.icon }} {{ bp.name }}</b> <span class="muted small">{{ bp.description }}</span></li>{% endfor %}</ul>
+  <form method="post">{% csrf_token %}
+    {% for k in keys %}<input type="hidden" name="templates" value="{{ k }}">{% endfor %}
+    {% if sample %}<input type="hidden" name="sample" value="1">{% endif %}
+    <input type="hidden" name="confirmed" value="1">
+    <div class="actions"><button class="btn primary">Install them all</button><a class="btn ghost" href="{% url 'core:templates' %}">Cancel</a></div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ tag.name }} · Access tags{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'core:tags' %}">Access tags</a> › {{ tag.name }}</nav>
+<h1><span class="tag-chip big" style="--tag:{{ tag.color }}">🏷 {{ tag.name }}</span></h1>
+{% if tag.description %}<p>{{ tag.description }}</p>{% endif %}
+<div class="grid2">
+  <section class="card"><h3>Owners</h3>
+    {% for p in owners %}<div class="space-member"><span>{{ p }}</span>{% if owner and owners|length > 1 %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="not_owner"><input type="hidden" name="user" value="{{ p.pk }}"><button class="btn small ghost" title="No longer an owner">✕</button></form>{% endif %}</div>{% endfor %}
+    {% if owner %}<form method="post" class="inline" style="margin-top:8px">{% csrf_token %}<input type="hidden" name="action" value="owner">
+      <select name="user">{% for p in people %}<option value="{{ p.pk }}">{{ p }}</option>{% endfor %}</select><button class="btn small">Make owner</button></form>{% endif %}
+  </section>
+  <section class="card"><h3>People holding it</h3>
+    {% for p in members %}<div class="space-member"><span>{{ p }}</span>{% if owner %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="revoke"><input type="hidden" name="user" value="{{ p.pk }}"><button class="btn small ghost" title="Take the tag away">✕</button></form>{% endif %}</div>
+    {% empty %}<p class="muted small">Nobody.</p>{% endfor %}
+    {% if owner %}<form method="post" class="inline" style="margin-top:8px">{% csrf_token %}<input type="hidden" name="action" value="grant">
+      <select name="user">{% for p in people %}<option value="{{ p.pk }}">{{ p }}</option>{% endfor %}</select><button class="btn small primary">Give the tag</button></form>{% endif %}
+  </section>
+</div>
+{% if owner %}
+<form method="post" class="form card">{% csrf_token %}<input type="hidden" name="action" value="details">
+  <div class="grid2"><div class="field"><label for="description">What it protects</label><input id="description" name="description" value="{{ tag.description }}" maxlength="300"></div>
+    <div class="field"><label for="color">Colour</label><input id="color" name="color" type="color" value="{{ tag.color }}"></div></div>
+  <button class="btn">Save</button>
+</form>
+<section class="card"><h3>What happened</h3>
+  {% for e in events %}<div class="history-row small">{{ e.created_at|date:"j M Y H:i" }} · {{ e.by|default:"Osmia" }} — {{ e.get_action_display|lower }} {% if e.user %}{{ e.user }}{% endif %}{% if e.record_id %} (<a href="{% url 'core:record' e.record_id %}">{{ e.note|default:"a record" }}</a>){% endif %}</div>
+  {% empty %}<p class="muted small">Nothing yet.</p>{% endfor %}
+</section>
+{% else %}<p class="muted">Only its owners change who holds it.</p>{% endif %}
+{% endblock %}

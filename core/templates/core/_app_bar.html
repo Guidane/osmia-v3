@@ -1,0 +1,21 @@
+{% load osmia %}<div class="app-bar">
+  <a class="app-bar-name" href="{% url 'core:app' app.slug %}">{% app_icon app %} {{ app.name }}</a>
+  <nav class="app-tabs" aria-label="{{ app.name }}">
+    <a href="{% url 'core:app' app.slug %}" class="{% if app_home %}on{% endif %}">⌂ Home</a>
+    {% for t in tables %}<a href="{{ t.get_absolute_url }}" class="{% if table and t.pk == table.pk %}on{% endif %}">{{ t.icon|default:"▦" }} {{ t.name }}</a>{% endfor %}
+    {% for p in app_pages %}<a href="{% url p.url_name %}" class="{% if request.resolver_match.view_name == p.url_name %}on{% endif %}">{{ p.icon }} {{ p.title }}</a>{% endfor %}
+    {% if can_build %}<a class="add" href="{% url 'core:table_create' app.slug %}" title="New table">＋</a>{% endif %}
+  </nav>
+  <details class="menu right">
+    <summary class="btn small ghost" title="More">⋯</summary>
+    <div class="menu-panel">
+      {% if can_build %}<a href="{% url 'core:automations' app.slug %}">⚡ Automations</a>{% endif %}
+      {% if can_edit %}<a href="{% url 'core:automation_runs' app.slug %}">≡ Run log</a>{% endif %}
+      <a href="{% url 'core:app_history' app.slug %}">↺ History</a>
+      {% if can_build %}<div class="sep"></div>
+        <a href="{% url 'core:app_home_edit' app.slug %}">✎ Edit the home page</a>
+        <a href="{% url 'core:table_create' app.slug %}">＋ New table</a>
+        <a href="{% url 'core:app_settings' app.slug %}">⚙ App settings</a>{% endif %}
+    </div>
+  </details>
+</div>

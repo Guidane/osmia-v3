@@ -1,0 +1,26 @@
+{% load osmia %}<div class="side-tabs work-tabs">
+  <button type="button" data-side="assigned" class="{% if assigned %}on{% endif %}">Assigned to me <span class="n">{{ assigned|length }}</span></button>
+  <button type="button" data-side="recent" class="{% if not assigned %}on{% endif %}">Recent</button>
+  <button type="button" data-side="starred">Starred <span class="n">{{ starred|length }}</span></button>
+</div>
+<div class="work-list{% if not assigned %} hidden{% endif %}" data-pane="assigned">
+  {% for i in assigned %}
+    <a class="work-row" href="{{ i.record.get_absolute_url }}">{% app_icon i.app %}
+      <span class="w-main"><span class="w-title">{{ i.title }}</span><span class="w-sub">{{ i.app.name }} › {{ i.table.name }} · you're {{ i.as|lower }}</span></span>
+      {% if i.when %}<span class="badge{% if i.late %} failed{% endif %}" title="Due">{% if i.late %}late · {% endif %}{{ i.when|date:"j M" }}</span>{% endif %}</a>
+  {% empty %}<p class="empty small">Nothing open is assigned to you. Records where you're the assignee, owner, keeper, ... show up here.</p>{% endfor %}
+</div>
+<div class="work-list{% if assigned %} hidden{% endif %}" data-pane="recent">
+  {% for i in recent %}
+    <a class="work-row" href="{{ i.record.get_absolute_url }}">{% app_icon i.app %}
+      <span class="w-main"><span class="w-title">{{ i.title }}</span><span class="w-sub">{{ i.app.name }} › {{ i.table.name }}</span></span>
+      <span class="muted small">{{ i.when|timesince }} ago</span></a>
+  {% empty %}<p class="empty small">The records you open show up here.</p>{% endfor %}
+</div>
+<div class="work-list hidden" data-pane="starred">
+  {% for i in starred %}
+    <a class="work-row" href="{{ i.record.get_absolute_url }}">{% app_icon i.app %}
+      <span class="w-main"><span class="w-title">{{ i.title }}</span><span class="w-sub">{{ i.app.name }} › {{ i.table.name }}</span></span>
+      <span class="star on">★</span></a>
+  {% empty %}<p class="empty small">Click ☆ next to a record's title to star it; starred records stay here.</p>{% endfor %}
+</div>

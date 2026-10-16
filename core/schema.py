@@ -16,12 +16,12 @@ from .models import App, Automation, Field, Link, Record, Table, View, unique_sl
 
 
 def create_app(name, user=None, icon='▦', color='#2e7d5b', description='', blueprint='', blueprint_version='',
-               owner=None, default_role=App.Role.VIEWER, space=None):
+               owner=None, default_role=App.Role.VIEWER):
     slug = unique_slug(name, {s.replace('-', '_') for s in App.objects.values_list('slug', flat=True)}, 'app').replace('_', '-')
     top = App.objects.aggregate(m=Max('position'))['m'] or 0
     return App.objects.create(name=name, slug=slug, icon=icon or '▦', color=color or '#2e7d5b', description=description,
                               blueprint=blueprint, blueprint_version=blueprint_version, created_by=user, position=top + 10,
-                              owner=owner, default_role=default_role, space=space)
+                              owner=owner, default_role=default_role)
 
 
 @transaction.atomic
@@ -83,10 +83,15 @@ def validate_options(table, ftype, options):
 
 
 @transaction.atomic
+def app_key(app):
+    return app.blueprint or app.slug
+
+
 def add_field(table, name, ftype='text', options=None, key='', required=False, description='', position=None,
-              inverse_name=None, inverse_key='', inverse_multiple=True):
+              inverse_name=None, inverse_key='', inverse_multiple=True, origin=''):
     """Add a field. For a link, also adds its pair to the other table
-    (named ``inverse_name``, by default the table's name)."""
+    (named ``inverse_name``, by default the table's name). ``origin``: the app
+    adding it, when that isn't the table's own app (see Field.origin)."""
     if ftype not in TYPES:
         raise ValidationError(f'There is no field type "{ftype}".')
     name = (name or '').strip()
@@ -97,8 +102,10 @@ def add_field(table, name, ftype='text', options=None, key='', required=False, d
     options = validate_options(table, ftype, options)
     if position is None:
         position = (table.fields.aggregate(m=Max('position'))['m'] or 0) + 1
+    if origin == app_key(table.app):
+        origin = ''
     field = Field.objects.create(table=table, name=name, key=_key_for(table, name, key), type=ftype, options=options,
-                                 required=required, description=description, position=position)
+                                 required=required, description=description, position=position, origin=origin)
     if ftype == 'link':
         target = Table.objects.get(pk=options['target'])
         if options.get('inverse') and Field.objects.filter(pk=options['inverse']).exists():
@@ -109,10 +116,13 @@ def add_field(table, name, ftype='text', options=None, key='', required=False, d
         n, base = 2, inv_name
         while target.fields.filter(name__iexact=inv_name).exists():
             inv_name, n = f'{base} {n}', n + 1
+        # the other half belongs with this one: to the app that made the link
+        maker = origin or app_key(table.app)
         inverse = Field.objects.create(
             table=target, name=inv_name, key=_key_for(target, inv_name, inverse_key), type='link',
             options={'target': table.pk, 'multiple': inverse_multiple, 'inverse': field.pk, 'owner': False},
-            position=(target.fields.aggregate(m=Max('position'))['m'] or 0) + 1)
+            position=(target.fields.aggregate(m=Max('position'))['m'] or 0) + 1,
+            origin='' if maker == app_key(target.app) else maker)
         field.options = {**options, 'inverse': inverse.pk, 'owner': True}
         field.save(update_fields=['options'])
     return field
@@ -234,18 +244,17 @@ def rename_references(field, old, new):
 
 
 @transaction.atomic
-def delete_field(field):
-    table = field.table
-    doomed = [field]
-    if field.type == 'link':
-        inverse = Field.objects.filter(pk=field.opt('inverse')).first()
-        if inverse:
-            doomed.append(inverse)
-    ids = [f.pk for f in doomed]
-    # computed fields that read through them go too
-    for f in Field.objects.filter(type__in=['lookup', 'rollup']):
-        if f.opt('link') in ids or f.opt('field') in ids:
-            doomed.append(f)
+def delete_field(field, checked=False):
+    """Delete a field (a link: both halves). Refused while anything else uses it (core.dependencies)."""
+    from . import dependencies
+    if not checked:
+        dependencies.check(dependencies.field_removal(field))
+    _drop_fields(Field.objects.filter(pk__in=dependencies.field_removal(field).fields))
+
+
+def _drop_fields(fields):
+    doomed = list(fields)
+    tables = {f.table_id for f in doomed}
     for f in doomed:
         Link.objects.filter(field=f).delete()
         if f.kind.stored:
@@ -257,11 +266,10 @@ def delete_field(field):
             f.table.display_field = None
             f.table.save(update_fields=['display_field'])
         f.delete()
-    for view in View.objects.filter(table=table):
-        cfg = view.config or {}
-        keys = {f.key for f in doomed if f.table_id == table.pk}
+    for view in View.objects.filter(table_id__in=tables):
+        keys = {f.key for f in doomed if f.table_id == view.table_id}
         if keys:
-            view.config = _drop_keys(cfg, keys)
+            view.config = _drop_keys(view.config or {}, keys)
             view.save(update_fields=['config'])
 
 
@@ -282,11 +290,44 @@ def _drop_keys(cfg, keys):
 
 
 @transaction.atomic
-def delete_table(table):
-    for f in Field.objects.filter(type='link'):
-        if f.opt('target') == table.pk and f.table_id != table.pk:
-            delete_field(f)
+def delete_table(table, checked=False):
+    """Delete a table and its records. Refused while anything outside it uses it."""
+    from . import dependencies
+    removal = dependencies.table_removal(table)
+    if not checked:
+        dependencies.check(removal)
+    _drop_fields(Field.objects.filter(pk__in=removal.fields).exclude(table=table))
     table.delete()
+
+
+@transaction.atomic
+def delete_app(app):
+    """Delete an app: its tables and records, and what it added to other apps that only works with it.
+    The plain fields it added to other apps' tables stay there, as theirs. Refused while
+    anything else uses it."""
+    from . import dependencies
+    removal = dependencies.app_removal(app)
+    dependencies.check(removal)
+    Field.objects.filter(pk__in=removal.kept).update(origin='')
+    Automation.objects.filter(pk__in=removal.automations).exclude(table__app=app).delete()
+    _drop_fields(Field.objects.filter(pk__in=removal.fields).exclude(table__app=app))
+    for table in list(app.tables.all()):
+        table.delete()
+    app.delete()
+
+
+def delete_view(view):
+    from . import dependencies
+    if view.table.views.count() <= 1:
+        raise ValidationError('A table keeps at least one view.')
+    dependencies.check(dependencies.view_removal(view))
+    view.delete()
+
+
+def delete_automation(auto):
+    from . import dependencies
+    dependencies.check(dependencies.automation_removal(auto))
+    auto.delete()
 
 
 def reorder(model, ids):

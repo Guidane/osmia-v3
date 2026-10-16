@@ -30,7 +30,7 @@ class Tutorial:
 
 CATEGORIES = [
     ('start', 'Getting started'),
-    ('spaces', 'Spaces and pages'),
+    ('spaces', 'Spaces, pages and access'),
     ('build', 'Building apps'),
     ('views', 'Views'),
     ('records', 'Working with records'),
@@ -45,97 +45,108 @@ TUTORIALS = [
     # -- Getting started ------------------------------------------------------------------
     Tutorial(
         'tour', 'A tour of Osmia', '🧭', 'start',
-        'What apps, tables, views and records are, and where everything is on the screen.',
+        'Apps hold the data, trees of spaces give it structure, pages explain it. Where everything is on the screen.',
         [
             'Osmia is a workspace of <b>apps</b>. An app (say <i>Orders</i>) has <b>tables</b> (<i>Orders</i>, <i>Order lines</i>), '
             'a table has <b>fields</b> (columns) and <b>records</b> (rows), and you look at a table through <b>views</b>: '
             'a grid, a kanban board, a calendar, a Gantt chart and more.',
-            'The <b>top bar</b> starts with the <b>app launcher</b>: click the grid of squares at the far left to see your spaces and '
-            'every app you can see as tiles. Type to narrow them down and press <kbd>Enter</kbd> to open the first. '
-            'Then come the search box (it searches every app you can see), 🔔 your notifications, ⚙ the administration menu '
-            '(administrators only) and your name, with your profile, password and log out.',
-            'Apps live in <b>spaces</b> (see <a href="/tutorials/spaces/">Spaces</a>). Inside an app, the <b>sidebar</b> shows its space '
-            'and the space\'s other apps; the open app lists its tables, and below them its automations, run log, history and settings '
-            '(depending on what you may do there).',
-            'The <b>home page</b> has your work across the apps and your to-dos (see <a href="/tutorials/home/">Your home page</a>), '
-            '<i>My apps</i> (apps you made yourself) and <i>Apps</i> (the workspace\'s and '
-            'colleagues\' apps), with what you may do in each: <span class="badge">read only</span>, '
-            '<span class="badge ok">can edit</span> or <span class="badge ok">yours</span>.',
+            'The company\'s structure is a forest of <b>trees</b>: the organisation (company, departments, teams, people), programmes '
+            'and projects, locations, ... A tree\'s nodes can be <b>spaces</b>, each with a page. Records don\'t belong to one place: '
+            'a task links to its project, its team and the part it is about (see <a href="/tutorials/spaces/">Spaces and trees</a>).',
+            'The <b>top bar</b> starts with the <b>launcher</b>: click the grid of squares at the far left for every app you can open '
+            'as a small card, and the top of each tree of spaces. Type to narrow them down and press <kbd>Enter</kbd> to open the first. '
+            'Then come <b>Osmia</b> and 🏠 (your home space), the search box (it searches every app you can see), 🔔 your '
+            'notifications, ⚙ the administration menu and your name.',
+            'Inside an app, its <b>tabs</b> run along the top: <b>⌂ Home</b> (the app\'s own page), then a tab per table; a table '
+            'has a row of tabs for its views. <b>⋯</b> at the right has its automations, run log, history and settings, '
+            'depending on what you may do there.',
         ],
-        gif='tour', gif_caption='Opening an app from the launcher, then a view and a record.',
-        try_url='core:home', try_label='Open the home page',
-        related=['own-app', 'access', 'grid'],
+        gif='tour', gif_caption='Opening an app from the launcher, then a table, a view and a record.',
+        try_url='core:home', try_label='Open your home space',
+        related=['home', 'own-app', 'grid'],
     ),
     Tutorial(
-        'home', 'Your home page: your own space', '🏠', 'start',
-        'Your work across all apps, your to-dos, pinned pages and bookmarks; you choose what it shows.',
+        'home', 'Your home space', '🏠', 'start',
+        'Where you land: your work across all apps, notifications, pinned pages and your apps; you make it your own.',
         [
-            'Your home page is your <b>personal space</b>. <b>Your work</b> has three tabs. <b>Assigned to me</b>: open records in any '
-            'app where you are in a person field (assignee, owner, manager, keeper, ...), soonest due first; late ones are red. '
-            'Finished records (Done, Received, Cancelled, ...) drop off by themselves. <b>Recent</b>: the records you opened lately. '
-            '<b>Starred</b>: records you starred with ☆ next to their title.',
-            '<b>My to-dos</b>: type in the box and press <kbd>Enter</kbd> to add one; tick it off when it\'s done. <b>All →</b> opens '
-            'them with due dates, priorities, notes and a calendar. Your to-dos and bookmarks are yours alone, administrators included.',
-            '<b>My pages</b> opens your own pages (see <a href="/tutorials/pages/">Pages</a>); pin any page with 📌 to have it under '
-            '<i>Pinned pages</i>.',
-            '<b>⚙ Customise</b> chooses what your home page shows, and in which order: your work, to-dos, pinned pages, bookmarks, '
-            'notifications, spaces and apps. There you also choose who can see your space: only you, or everyone (they see the '
-            'apps you share, never your to-dos).',
-            'Apps you make yourself (<b>＋ New app</b>) live in your space.',
+            'Your home space is your node in the <b>Organisation</b> tree, made for you the first time you log in. An administrator '
+            'moves it under your team.',
+            'It starts with <b>My work</b>: <b>Assigned to me</b> (open records in any app where you are in a person field: assignee, '
+            'owner, keeper, ...; soonest due first, late ones red), <b>Recent</b> (records you opened lately) and <b>Starred</b> '
+            '(records you starred with ☆ next to their title). Then your notifications, pinned pages and every app you can open.',
+            'Click <b>✎ Edit page</b> to change it. Type <kbd>/</kbd> anywhere (or press <b>＋ Add</b>) for the <b>slash menu</b>: '
+            'headings, lists, tables and panels; <b>Grid, 2 columns</b> (type <kbd>/</kbd> again inside a cell to fill it); an app '
+            'by its name (a small card that opens it); <b>View…</b> (a live table, board or calendar of any app); <b>Record…</b>; '
+            'a calculation; and blocks such as <i>My work</i> and <i>Notifications</i>. <b>↺ Start over</b> puts it back as it began.',
         ],
-        gif='home', gif_caption='Starring a record, adding a to-do and ticking it off, then choosing what the home page shows.',
-        try_url='core:home', try_label='Open your home page',
+        gif='home', gif_caption='Starring a record, then putting an app on the home space with the slash menu.',
+        try_url='core:home', try_label='Open your home space',
         related=['spaces', 'own-app', 'pages'],
     ),
     Tutorial(
-        'spaces', 'Spaces', '◼', 'spaces',
-        'A place for the company, a department, a team or a project: what it is for, who is in it, its apps and pages.',
+        'spaces', 'Spaces and trees', '🌳', 'spaces',
+        'Any table can be a tree; the nodes of a tree of spaces have a page with everything linked to them.',
         [
-            'Open <b>◼ Spaces</b> on your home page (or <b>All spaces →</b> in the app launcher) to see the spaces you can see. '
-            'The <b>Company</b> space has the apps everyone works with; departments, teams and projects have their own.',
-            'To make one (you need the <i>Can make spaces</i> permission from an administrator) click <b>＋ New space</b>: a name, a short '
-            '<b>key</b> (e.g. ENG), its kind, who can see it (<i>only members</i>, or <i>everyone can look</i>) and what it\'s for. '
-            'Tick apps of other spaces to use here. You become its admin.',
-            'A space\'s <b>overview</b> shows what it\'s for, its pages, its apps (its own, and ↗ the ones it uses from other spaces), what '
-            'it\'s linked to and its members. Its sidebar has its pages and apps.',
-            'In <b>⚙ Space settings</b>, space admins choose the <b>members</b>: people and teams as viewers (look), editors (also change '
-            'records) or admins (also build its apps and pages and run the space). They tick the <b>apps from other spaces</b> to use, and '
-            'link the space to <b>records</b> it is about, e.g. its department in Organisation or its budget in Budgets.',
-            'Apps work across spaces: an app of one space can link to tables of another (Engineering\'s test bench app linking to the '
-            'company\'s Parts, for instance), and its automations can use them, as far as you may.',
+            'A <b>tree</b> is a table whose records have a parent in the same table: the organisation, programmes and projects, '
+            'locations in a warehouse, part categories. Records of every other table link to a tree\'s nodes like to any record, '
+            'as many trees as they need: a task links to a project, a team and a location at once.',
+            'A tree of <b>spaces</b> gives each node a <b>page</b>. Open one from the launcher, a link, or <b>◼ Space page</b> on its '
+            'record. It starts with what <b>links to it</b> (and to the spaces under it: a programme shows the tasks of all its projects), '
+            'the spaces under it and its Documentation pages.',
+            'The people named on a space (its person, its manager) and the editors of its app change its page: <b>✎ Edit page</b>, '
+            'then type <kbd>/</kbd> to put apps, live views, records and blocks on it (see <a href="/tutorials/home/">Your home space</a>).',
+            'To make a space, add a record to its tree: a project in Projects with <i>Part of</i> set to its programme, a team in '
+            'Organisation under its department. A tree never goes round in a circle: Osmia refuses a parent that is under the record.',
+            'Builders make any table a tree, and its records spaces, in the table\'s <b>⚙ Table settings</b>: pick the link to itself '
+            'that names each record\'s parent, and tick <i>Its records are spaces</i>.',
         ],
-        gif='spaces', gif_caption='Making a department space, using company apps in it, and adding a member.',
-        try_url='core:spaces', try_label='Open the spaces',
-        related=['pages', 'access'],
+        gif='spaces', gif_caption='Opening a programme’s space, then adding a heading, a grid, an app and a block with the slash menu.',
+        try_url='core:launcher', try_label='Open the launcher',
+        related=['pages', 'tags', 'home'],
     ),
     Tutorial(
-        'pages', 'Pages', '📄', 'spaces',
-        'Write pages in a space, like Confluence: how-tos, meeting notes, decisions, plans, with live views of your apps.',
+        'pages', 'Documentation pages', '📄', 'spaces',
+        'Write pages for people to read in the Documentation app: how-tos, meeting notes, decisions, with live data from your apps.',
         [
-            'In a space, click <b>📄 Pages</b> in its sidebar (or a template on its overview). Pick a template: <b>Blank</b>, '
-            '<b>Meeting notes</b>, <b>How-to</b>, <b>Decision</b>, <b>Retrospective</b> or <b>Project plan</b>.',
-            'Give the page an emoji and a title and write. The toolbar has text styles (headings, quote, code block), bold, italic, '
-            'underline, strike, code, links (<kbd>Ctrl</kbd>+<kbd>K</kbd>), lists, <b>☑ task lists</b>, tables, dividers, <b>info, note, '
-            'warning and success panels</b> and pictures (or paste one).',
-            '<b>⊞ View</b> puts a <b>live view</b> of any app on the page: a list of the project\'s tasks, the open orders, ... Readers see '
-            'it as it is when they open the page, and only if they may see that app.',
-            '<b>⇄ Record</b> (or type <kbd>@</kbd> or <kbd>[[</kbd>) finds a record in any app, then puts in a <b>link</b>, a <b>card</b> '
-            'with the fields you tick (double-click a card to change them), or, by clicking a value, that <b>one live value</b> in your '
-            'sentence: "Part 4471 has <b>12</b> in stock". Pasting a record\'s address makes a link. They stay live, and the record\'s '
-            'own page shows <b>Mentioned in</b> with the pages that mention it.',
-            '<b>ƒ Calc</b> does math on that data. Give records a name when you put them on the page (e.g. <i>part</i> and '
-            '<i>labour</i>), then write a formula like <code>{part.Unit cost} * {labour.Rate} + {Qty}</code>: in a page table, '
-            '<code>{Qty}</code> is the cell of the same row under the heading Qty. The dialog shows the result as you type; '
-            'readers see it worked out from the data as it is now. Give a calculation a name to use it in another one.',
+            'Open <b>📄 Documentation</b> in the launcher. Every space has its section; pick one, or use <i>Pages of this space</i> on '
+            'a space\'s page. Pick a template: <b>Blank</b>, <b>Meeting notes</b>, <b>How-to</b>, <b>Decision</b>, '
+            '<b>Retrospective</b> or <b>Project plan</b>.',
+            'Give the page an emoji and a title and write. Type <kbd>/</kbd> (or <b>＋ Add</b>) for headings, lists, <b>task lists</b>, '
+            'tables, dividers, <b>info, note, warning and success panels</b>, grids, pictures (or paste one), and live data.',
+            'Pages are for explaining; <b>data belongs in apps</b>. A page shows it live: <b>/view</b> puts a live view of any app on '
+            'the page; <b>/record</b> (or <kbd>@</kbd>) puts a <b>link</b>, a <b>card</b> with the fields you tick, or <b>one live '
+            'value</b> in a sentence ("Part 4471 has <b>12</b> in stock"). The record\'s own page shows <b>Mentioned in</b>.',
+            '<b>/calculation</b> does math on that data: name records when you put them on the page (e.g. <i>part</i>), then write '
+            '<code>{part.Unit cost} * {Qty}</code>; in a page table, <code>{Qty}</code> is the cell of the same row under the heading Qty.',
             'Add labels and press <b>Publish</b> (or <kbd>Ctrl</kbd>+<kbd>S</kbd>). <b>＋ Page under it</b> makes a child page; the '
-            '<b>page tree</b> on the left shows them all. <b>⋯</b> copies the link, moves the page under another, or deletes it.',
-            'Every save is a <b>version</b>: History lists them; open an old one and <b>Restore</b> it. Readers can <b>comment</b>, and '
-            '<b>📌</b> pins a page to their home page. Pages are found by the search box too.',
-            'Members who can edit records in the space can write pages; everyone who can see the space can read and comment.',
+            '<b>page tree</b> on the left shows them all. Every save is a <b>version</b>: open an old one and <b>Restore</b> it. '
+            'Readers can <b>comment</b>, and <b>📌</b> pins a page to the <i>Pinned pages</i> block.',
+            'Whoever can see the space reads its pages; the people who may edit the space\'s page write them. A page carries its '
+            'space\'s <b>access tags</b>, and can have its own.',
         ],
         gif='pages', gif_caption='Writing a how-to with a task list and a live view of tasks, then pinning it.',
-        try_url='core:spaces', try_label='Open a space',
-        related=['spaces', 'home'],
+        try_url='docs:index', try_label='Open Documentation',
+        related=['spaces', 'tags'],
+    ),
+    Tutorial(
+        'tags', 'Access tags: who sees what', '🏷', 'spaces',
+        'Records, pages and spaces with access tags are seen only by people holding every one of those tags.',
+        [
+            'An <b>access tag</b> (say <i>Payroll</i>) is held by some people. A record carrying it is seen only by them: everyone '
+            'else doesn\'t see it at all, not in views, links, totals, search, pages or the AI assistant, not even that it exists.',
+            'Tags are not ranks: holding one gives nothing in any other. A record with two tags needs both. Administrators are no '
+            'exception: they build every app, but see only what their tags allow.',
+            'Tags come along: a record carries the tags of its <b>parent</b> in a tree and of the <b>spaces it links to</b>. Tag a '
+            'project, and its tasks and sub-projects are hidden with it.',
+            'On a record\'s page, <b>🏷 Who sees it</b> shows its tags; tick the tags you hold to put them on (nobody can put on a tag '
+            'they don\'t hold). <b>🏷 Access tags</b> in the top bar lists the tags; <b>owners</b> give a tag to people and make other '
+            'owners, and the other owners are told each time.',
+            'Putting someone in a person field of a record they can\'t see (assigning a <i>Payroll</i> task to Bob) asks first: '
+            '<b>share this one record</b> with them, or pick someone else. The share ends when the record is closed or they\'re '
+            'taken off it; the tag\'s owners are told.',
+        ],
+        try_url='core:tags', try_label='Open the access tags',
+        related=['access', 'spaces'],
     ),
     Tutorial(
         'account', 'Your account and password', '👤', 'start',
@@ -167,16 +178,17 @@ TUTORIALS = [
     # -- Building apps -------------------------------------------------------------------
     Tutorial(
         'own-app', 'Make an app of your own', '🧩', 'build',
-        'Everyone can make apps on their home page, and build them as they like.',
+        'Everyone can make apps of their own, and build them as they like.',
         [
-            'On the home page, under <b>My apps</b>, click <b>＋ New app</b> (or <b>＋ New app</b> at the bottom of the app launcher).',
+            'Click <b>＋ New app</b> at the bottom of the launcher (or on the <i>Apps</i> block of your home space).',
             'Give it a name, an icon (any emoji) and a colour, and the name of its first table, e.g. <i>Machines</i>. '
             'Click <b>Make the app</b>.',
             'Osmia opens the table\'s fields, so you can add the columns you need (see <a href="/tutorials/fields/">Fields</a>). '
             'Each table starts with a <i>Name</i> field and a grid view.',
             'Only you see the app. To let colleagues look at it, open <b>⚙ App settings</b> and set <i>Who can see it</i> '
             'to <b>Everyone can look at it</b>. They can\'t change it: only an administrator can give others edit access.',
-            'Add more tables with <b>＋ Table</b> in the sidebar; link them together with link fields.',
+            'Add more tables with <b>＋</b> after the app\'s tabs; link them together with link fields. <b>⌂ Home</b> is the app\'s '
+            'own page: <b>⋯ → ✎ Edit the home page</b> makes it a dashboard with live views and blocks.',
         ],
         gif='own_app', gif_caption='Making an app with a first table, then adding a field.',
         try_url='core:app_create', try_label='Make an app', audience='everyone',
@@ -447,7 +459,7 @@ TUTORIALS = [
         'automations', 'Automations: when, if, then', '⚡', 'automations',
         'Let Osmia do things by itself when records change, buttons are pressed or dates come.',
         [
-            'Open an app you build and click <b>⚡ Automations</b> in the sidebar, then <b>＋ New automation</b>.',
+            'Open an app you build and pick <b>⚡ Automations</b> under <b>⋯</b> at the right of its tabs, then <b>＋ New automation</b>.',
             'Give it a name and pick the table it\'s about. Then, in three parts:',
             '<b>When</b>: a record is created, changed (optionally only when certain fields change), created or changed, about to be '
             'deleted, <i>starts to meet the conditions</i>, a button is pressed, a comment is added, a date in the record is reached, or on a schedule.',
@@ -507,11 +519,13 @@ TUTORIALS = [
             'Everyone can make apps of their own and is their creator. Every other app is <b>read only</b> until an administrator '
             'says otherwise.',
             'Administrators open the app\'s <b>⚙ App settings</b>: <i>Everyone who logs in</i> sets what everyone may do, and the '
-            'table below gives teams and people another role. Administrators can do everything everywhere.',
+            'table below gives teams and people another role. Administrators build every app.',
             'The owner of an own app can only choose whether everyone may look at it.',
+            'Which <b>records</b> someone sees is the other half: <a href="/tutorials/tags/">access tags</a>. A role lets you look '
+            'at or change an app; the tags decide which of its records are there for you.',
         ],
         try_url='accounts:team_list', try_label='Open the teams', audience='admins',
-        related=['users', 'own-app'],
+        related=['users', 'own-app', 'tags'],
     ),
     Tutorial(
         'users', 'Users and teams', '👥', 'admin',
@@ -532,10 +546,15 @@ TUTORIALS = [
         'Install ready-made apps, and move apps between Osmias.',
         [
             'In ⚙ pick <b>App templates</b>. Each template is a whole app: tables, fields, views and automations. Tick the ones you '
-            'want (with sample records, to try them) and click <b>Install</b>. Templates they need are installed with them.',
+            'want (with sample records, to try them) and click <b>Install</b>. If they need templates that aren\'t installed, Osmia '
+            'lists them first and installs them together, or nothing at all.',
             'Templates that work together link up when installed together, e.g. Orders charges its orders to Budgets and receives '
             'them into Stock if those are installed.',
             'Once installed, a template is an ordinary app: change anything.',
+            '<b>Nothing is removed while something uses it.</b> Deleting an app, a table, a field, a view or an automation that '
+            'something else needs (a formula, a link, an automation, a view\'s filter, a page, another app or an extension) is '
+            'refused, and Osmia lists what uses it. Deleting an app leaves the plain fields it added to other apps\' tables there, '
+            'with their values; what only worked with it goes with it.',
             'To copy an app to another Osmia, open its <b>⚙ App settings</b> and click <b>⬇ Download as template</b> (or with its '
             'records), then <b>Install a template file</b> on the other Osmia.',
         ],
@@ -548,7 +567,8 @@ TUTORIALS = [
         [
             'Every record\'s page has its <b>History</b>: each change with who made it, the old and new values, and whether an '
             'automation made it.',
-            '<b>↺ History</b> in an app\'s sidebar lists every change in the app (filter by table). Deleted records stay in the history.',
+            '<b>↺ History</b> under an app\'s <b>⋯</b> lists every change in the app (filter by table). Deleted records stay in the '
+            'history. Changes to records you can\'t see (access tags) aren\'t listed.',
             '<b>≡ Run log</b> lists every automation run with what it did, or why it failed or was skipped. Filter by <i>Failed</i> '
             'to find problems.',
         ],
@@ -557,18 +577,21 @@ TUTORIALS = [
 
     # -- Extensions -----------------------------------------------------------------------------------
     Tutorial(
-        'extensions', 'Extensions', '◆', 'extensions',
-        'Code that adds what tables, views and automations can\'t.',
+        'extensions', 'Extension apps', '◆', 'extensions',
+        'Apps made in code, with screens of their own, that keep their data in ordinary apps.',
         [
-            'Apps are made on the website. When an app needs more, like a drawing canvas, that part is an <b>extension</b>: '
-            'code in the <code>extensions/</code> folder. These tutorials are one.',
-            'In ⚙ pick <b>Extensions</b> to see them and switch them on or off (it takes effect when Osmia restarts; '
-            '<b>… and restart</b> does that under <code>serve.py</code>).',
-            'Extensions can add view types, field types, automation actions, boxes on record pages and pages of their own, and '
-            'bring app templates (e.g. Devices and Harness come with the harness designer).',
+            'Apps are made on the website. An <b>extension app</b> is made in code and has fixed screens of its own, like the harness '
+            'designer\'s canvas, Documentation or these tutorials. It shows up in the launcher like any app.',
+            'Its data is in ordinary tables: the harness designer works on the Devices and Harness apps. It can also add to every '
+            'app: blocks for the slash menu, tabs, boxes on record pages, field types, view types and automation actions.',
+            'In ⚙ pick <b>Extensions</b>. <b>Switch on…</b> lists what the extension needs that isn\'t there and installs it with it, '
+            'or not at all. While it is on, nothing it needs can be removed.',
+            '<b>Switch off…</b> removes only its code: everything it stored stays, as ordinary apps and fields, and switching it on again '
+            'brings its screens back over the same data. It is refused while something uses what it brings (a view of its view type, '
+            'its block on a page, ...). Either takes effect when Osmia restarts; <b>… and restart</b> does that under <code>serve.py</code>.',
         ],
         try_url='core:extensions', try_label='Open the extensions', audience='admins',
-        related=['designer'],
+        related=['designer', 'templates'],
     ),
     Tutorial(
         'designer', 'The harness designer', '🧵', 'extensions',
@@ -576,7 +599,7 @@ TUTORIALS = [
         [
             'Devices, their connectors and pins are records in the <b>Devices</b> app: add them there (a connector\'s pins are a '
             'table on its page, and <b>Clone with its pins</b> copies a connector).',
-            'Open <b>Designer</b> in the sidebar of the Devices or Harness app. Pick a device in <b>Place device</b> and click the canvas '
+            'Open <b>🧵 Harness designer</b> in the launcher (or the <b>Designer</b> tab of the Devices or Harness app). Pick a device in <b>Place device</b> and click the canvas '
             'to put it there; scroll to zoom and drag empty space to move around.',
             'Click a connector, then another, to make a harness between them, and pick which pins each wire joins (or '
             '<b>Match remaining pins by signal</b>). The <b>Signal Rules</b> flag wires that aren\'t allowed.',

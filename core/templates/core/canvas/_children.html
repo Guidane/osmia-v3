@@ -1,0 +1,4 @@
+<div class="space-cards">
+  {% for k, label in kids %}<a class="space-card" href="{% url 'core:space' k.pk %}">{{ record.table.icon|default:"◼" }} {{ label }}</a>
+  {% empty %}<p class="muted small">Nothing under this space yet. Spaces go under it when their <i>{{ record.table.tree_field.name }}</i> is {{ record }}.</p>{% endfor %}
+</div>

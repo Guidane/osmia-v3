@@ -1,0 +1,18 @@
+<div class="editor-toolbar" role="toolbar" aria-label="Formatting">
+  <button type="button" class="slash-button" data-action="slash" title="Add something: headings, lists, tables, grids, apps, views, records, blocks… (or type /)">＋ Add</button>
+  <span class="tb-sep"></span>
+  <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+  <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+  <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+  <button type="button" data-cmd="strikeThrough" title="Strike through"><s>S</s></button>
+  <button type="button" data-action="code" title="Code"><code>&lt;/&gt;</code></button>
+  <button type="button" data-action="link" title="Link (Ctrl+K)">🔗</button>
+  <span class="tb-sep"></span>
+  <button type="button" data-cmd="undo" title="Undo (Ctrl+Z)">↶</button>
+  <button type="button" data-cmd="redo" title="Redo (Ctrl+Y)">↷</button>
+  <span class="muted small tb-hint">Type <kbd>/</kbd> to add something · <kbd>@</kbd> for a record</span>
+  {% if editor.upload %}<input type="file" id="image-file" hidden>{% endif %}
+</div>
+<div class="page-body page-editor" id="editor" contenteditable="true" spellcheck="true" data-placeholder="Type / to add something">{{ body|safe }}</div>
+<textarea name="body" id="body" hidden></textarea>
+{{ editor|json_script:"editor-config" }}

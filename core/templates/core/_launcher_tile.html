@@ -1,4 +1,0 @@
-<a class="launcher-tile{% if app and a.pk == app.pk %} on{% endif %}" href="{{ a.get_absolute_url }}" data-name="{{ a.name|lower }}">
-  <span class="tile-icon" style="background:{{ a.color }}22;color:{{ a.color }}">{{ a.icon }}</span>
-  <span class="tile-name" title="{{ a.name }}{% if a.space %} · {{ a.space.name }}{% endif %}">{{ a.name }}</span>
-</a>

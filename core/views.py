@@ -20,6 +20,7 @@ from .extensions import registry
 from .fieldtypes import TYPES
 from .models import App, Attachment, Automation, AutomationRun, Change, Comment, Field, Notification, Record, Table, View
 from .permissions import can, require, visible_apps
+from .space_views import app_context
 from .viewtypes import VIEW_TYPES, get_view_type, query, toolbar_state
 
 
@@ -33,9 +34,22 @@ def get_table(request, app_slug, table_slug, needed='viewer'):
 
 
 def record_or_404(request, pk, needed='viewer'):
+    """The record, if the person may see it (its app, and its access tags); else "not found"."""
+    from .access import can_see
     record = get_object_or_404(Record.objects.select_related('table__app'), pk=pk)
+    if not can_see(request.user, record):
+        raise Http404('There is no such record.')
     require(request.user, record.table.app, needed)
     return record
+
+
+def sharing_error(request, exc):
+    """Someone was put on a record they can't see: say so, and offer to share it with them."""
+    from .access import NeedsSharing
+    if isinstance(exc, NeedsSharing):
+        messages.error(request, exc.messages[0])
+        return True
+    return False
 
 
 def cell(data, record, field):
@@ -98,20 +112,6 @@ def users_meta(data):
     return [{'id': u.pk, 'name': str(u)} for u in data.users().values() if u.is_active]
 
 
-def sidebar(app, user):
-    from . import space as spaces
-    from .permissions import can_space
-    out = {'app': app, 'tables': list(app.tables.prefetch_related('views')), 'can_build': can(user, app, 'creator'),
-           'can_edit': can(user, app, 'editor'), 'app_pages': registry.pages_for_app(app), 'space': app.space}
-    if app.space is not None:
-        own, added = spaces.space_apps(app.space)
-        out.update({'space_own_apps': [a for a in own if can(user, a, 'viewer')],
-                    'space_added_apps': [a for a in added if can(user, a, 'viewer')],
-                    'space_nav': registry.nav_for_space(None, app.space),
-                    'can_admin_space': can_space(user, app.space, 'admin')})
-    return out
-
-
 # -- Setup ----------------------------------------------------------------------------
 
 def setup(request):
@@ -147,7 +147,8 @@ def setup(request):
                         u = User(username=name, first_name=first, last_name=last, job_title=title)
                         u.set_password('demo')
                         u.save()
-                keys = [k for k in values.getlist('templates') if k in catalog]
+                # everyone's home space lives in the Organisation tree, so it always comes
+                keys = ['departments'] + [k for k in values.getlist('templates') if k in catalog and k != 'departments']
                 try:
                     blueprints.install_many(keys, user=candidate, sample=bool(values.get('sample')))
                 except ValidationError as exc:
@@ -157,55 +158,13 @@ def setup(request):
                 from . import middleware
                 middleware._ready = True
                 login(request, candidate, backend='django.contrib.auth.backends.ModelBackend')
-                messages.success(request, 'Osmia is ready. Make an app, or open one of the templates you installed.')
+                messages.success(request, 'Osmia is ready. This is your home space: type / on its page (✎ Edit page) '
+                                          'to put apps, views and blocks on it.')
                 return redirect('core:home')
     return render(request, 'core/setup.html', {'catalog': catalog, 'errors': errors, 'values': values})
 
 
-# -- Home and apps ------------------------------------------------------------------------
-
-@login_required
-def home(request):
-    """Your home is your personal space: your work across the apps (like Jira's
-    "Your work"), your to-dos and bookmarks, your spaces and your apps; you
-    choose which of these show in the space's settings."""
-    from django.utils import timezone
-
-    from . import space as spaces
-    from .permissions import role, visible_spaces
-    data = Data(request.user)
-    personal = spaces.widgets(request.user, data)
-    shown = spaces.home_sections(personal['personal'])
-    apps = visible_apps(request.user)
-    mine, others = [], []
-    if 'apps' in shown:
-        for app in apps:
-            if app.is_space:
-                continue
-            card = {'app': app, 'tables': list(app.tables.all()), 'records': Record.objects.filter(table__app=app).count(),
-                    'role': role(request.user, app)}
-            (mine if app.space_id == personal['personal'].pk else others).append(card)
-    hour = timezone.localtime().hour
-    greeting = 'Good morning' if hour < 12 else 'Good afternoon' if hour < 18 else 'Good evening'
-    assigned = spaces.assigned(request.user, data, apps) if 'work' in shown else []
-    extra = []
-    for key in shown:
-        if key in registry.home_sections:
-            panel = registry.home_sections[key][1](request)
-            if panel is not None:
-                extra.append(panel)
-    return render(request, 'core/home.html', {
-        'shown': shown, 'mine': mine, 'cards': others, 'greeting': greeting,
-        'tab': request.GET.get('tab') or ('assigned' if assigned else 'recent'),
-        'assigned': assigned, 'recent': spaces.recent(request.user, data) if 'work' in shown else [],
-        'starred': spaces.starred(request.user, data) if 'work' in shown else [],
-        'spaces': [s for s in visible_spaces(request.user) if not s.is_personal] if 'spaces' in shown else [],
-        'notifications': Notification.objects.filter(user=request.user, read=False)[:6] if 'notifications' in shown else [],
-        'extra_sections': extra,
-        'personal_nav': registry.nav_for_space(request, personal['personal']),
-        **personal,
-    })
-
+# -- Records ------------------------------------------------------------------------------
 
 @login_required
 @require_POST
@@ -223,16 +182,6 @@ def record_star(request, pk):
 
 
 @login_required
-def app_page(request, app_slug):
-    app = get_object_or_404(App, slug=app_slug)
-    require(request.user, app, 'viewer')
-    table = app.tables.first()
-    if table is not None:
-        return redirect(table)
-    return render(request, 'core/app_empty.html', {**sidebar(app, request.user)})
-
-
-@login_required
 def table_page(request, app_slug, table_slug):
     app, table = get_table(request, app_slug, table_slug)
     view = table.views.first() or View.objects.create(table=table, name=f'All {table.name.lower()}', type='grid')
@@ -247,7 +196,7 @@ def view_page(request, app_slug, table_slug, view_id):
     vt = get_view_type(view.type)
     state = toolbar_state(request, view)
     can_edit = can(request.user, app, 'editor')
-    context = {**sidebar(app, request.user), 'table': table, 'view': view, 'vt': vt, 'state': state,
+    context = {**app_context(app, request.user), 'table': table, 'view': view, 'vt': vt, 'state': state,
                'views': list(table.views.all()), 'fields': data.fields(table), 'can_edit_records': can_edit,
                'view_types': VIEW_TYPES, 'data': data, 'cell_editing': can_edit,
                'new_view_types': [(k, t) for k, t in VIEW_TYPES.items() if t.available(table, data)]}
@@ -293,11 +242,14 @@ def form_submit(request, app, table, view, data, context):
         fields = [f for f in fields if f.key in shown]
     values, files = _form_values(request, fields)
     try:
-        record = service.create_record(table, values, user=request.user, data=data)
+        record = service.create_record(table, values, user=request.user, data=data, share=bool(request.POST.get('share')))
         _save_files(request, record, data, user=request.user)
     except ValidationError as exc:
-        for m in exc.messages:
-            messages.error(request, m)
+        if sharing_error(request, exc):
+            context['needs_share'] = True
+        else:
+            for m in exc.messages:
+                messages.error(request, m)
         context.update(get_view_type('form').context(request, view, data, [], {}))
         context['items'] = form_items(request, context['form_fields'], data)
         context['all_users'] = get_user_model().objects.filter(is_active=True)
@@ -372,7 +324,40 @@ def record_context(request, record, data):
         'runs': AutomationRun.objects.filter(record_id=record.pk, automation__table=table).select_related('automation')[:10],
         'panels': registry.panels_for(request, record, table, data),
         'can_edit_record': can(request.user, app, 'editor'),
+        **access_context(request, record, table),
     }
+
+
+def access_context(request, record, table):
+    """The record's access tags (own and inherited), who it is shared with, and the tags the person may put on it."""
+    from .access import user_tags
+    from .models import AccessGrant, Tag
+    tags = {t.pk: t for t in Tag.objects.filter(pk__in=set(record.access or []) | set(record.tags or []))}
+    mine = user_tags(request.user)
+    return {
+        'access_own': [tags[t] for t in record.tags or [] if t in tags],
+        'access_inherited': [tags[t] for t in record.access or [] if t in tags and t not in (record.tags or [])],
+        'access_grants': AccessGrant.objects.filter(record=record).select_related('user', 'granted_by'),
+        'tag_choices': [{'tag': t, 'on': t.pk in (record.tags or [])} for t in Tag.objects.filter(pk__in=mine)],
+        'can_tag': can(request.user, table.app, 'editor') and bool(mine),
+        'is_space_record': table.is_space and table.tree_field_id,
+    }
+
+
+@login_required
+@require_POST
+def record_tags(request, pk):
+    """Put access tags on a record (only tags the person holds; see core.access.set_tags)."""
+    from . import access
+    record = record_or_404(request, pk, 'editor')
+    try:
+        access.set_tags(record, [t for t in request.POST.getlist('tags') if t.isdigit()], request.user)
+    except ValidationError as exc:
+        for m in exc.messages:
+            messages.error(request, m)
+    else:
+        messages.success(request, 'The access tags are saved.')
+    return redirect(record)
 
 
 @login_required
@@ -384,7 +369,7 @@ def record_page(request, pk):
     data = Data(request.user)
     record = data.record(record.pk)
     table = data.table(record.table_id)
-    context = {**sidebar(table.app, request.user), 'table': table, 'cell_editing': can(request.user, table.app, 'editor'),
+    context = {**app_context(table.app, request.user), 'table': table, 'cell_editing': can(request.user, table.app, 'editor'),
                **record_context(request, record, data)}
     context['meta'] = json.dumps({'fields': fields_meta(data, _related_tables(data, table)), 'users': users_meta(data),
                                   'table': table.pk})
@@ -406,17 +391,23 @@ def record_new(request, app_slug, table_slug):
     link_to = request.GET.get('link_to') or request.POST.get('link_to')
     if link_field and link_to and link_field.isdigit() and link_to.isdigit():
         preset[int(link_field)] = [int(link_to)]
+    needs_share = False
     if request.method == 'POST':
         values, _ = _form_values(request, fields)
         for k, v in preset.items():
             values.setdefault(k, v)
         try:
             with transaction.atomic():
-                record = service.create_record(table, values, user=request.user, data=data)
+                record = service.create_record(table, values, user=request.user, data=data,
+                                               share=bool(request.POST.get('share')),
+                                               tags=[t for t in request.POST.getlist('tags') if t.isdigit()])
                 _save_files(request, record, data, request.user)
         except ValidationError as exc:
-            for m in exc.messages:
-                messages.error(request, m)
+            if sharing_error(request, exc):
+                needs_share = True
+            else:
+                for m in exc.messages:
+                    messages.error(request, m)
         else:
             messages.success(request, f'{data.label(data.record(record.pk))} is added.')
             back = request.POST.get('next')
@@ -424,11 +415,18 @@ def record_new(request, app_slug, table_slug):
                 return redirect(request.get_full_path())
             return redirect(back if back and back.startswith('/') else record.get_absolute_url())
     return render(request, 'core/record_new.html', {
-        **sidebar(app, request.user), 'table': table, 'items': form_items(request, fields, data, preset),
+        **app_context(app, request.user), 'table': table, 'items': form_items(request, fields, data, preset),
         'all_users': get_user_model().objects.filter(is_active=True), 'next': request.GET.get('next', '') or request.POST.get('next', ''),
-        'link_field': link_field or '', 'link_to': link_to or '',
+        'link_field': link_field or '', 'link_to': link_to or '', 'needs_share': needs_share,
+        'tag_choices': _tag_choices(request), 'chosen_tags': request.POST.getlist('tags'),
         'meta': json.dumps({'fields': fields_meta(data, [table]), 'users': users_meta(data)}),
     })
+
+
+def _tag_choices(request):
+    from .access import user_tags
+    from .models import Tag
+    return list(Tag.objects.filter(pk__in=user_tags(request.user)))
 
 
 @login_required
@@ -483,8 +481,7 @@ def record_upload(request, pk, field_id):
 @require_POST
 def attachment_delete(request, pk):
     attachment = get_object_or_404(Attachment.objects.select_related('record__table__app'), pk=pk)
-    require(request.user, attachment.record.table.app, 'editor')
-    record = attachment.record
+    record = record_or_404(request, attachment.record_id, 'editor')
     service.remove_attachment(attachment, request.user)
     return redirect(request.POST.get('next') or record.get_absolute_url())
 
@@ -492,7 +489,7 @@ def attachment_delete(request, pk):
 @login_required
 def attachment_file(request, pk):
     attachment = get_object_or_404(Attachment.objects.select_related('record__table__app'), pk=pk)
-    require(request.user, attachment.record.table.app, 'viewer')
+    record_or_404(request, attachment.record_id)
     if request.GET.get('thumb') and attachment.is_image:
         from .uploads import thumbnail_path
         try:
@@ -590,7 +587,7 @@ def table_import(request, app_slug, table_slug):
             except ValidationError as exc:
                 errors.append(f'Row {n}: {" ".join(exc.messages)}')
         report = {'added': added, 'errors': errors[:50], 'skipped': [h for h, c in zip(header, columns) if c is None]}
-    return render(request, 'core/table_import.html', {**sidebar(app, request.user), 'table': table, 'report': report,
+    return render(request, 'core/table_import.html', {**app_context(app, request.user), 'table': table, 'report': report,
                                                       'fields': data.fields(table)})
 
 

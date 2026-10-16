@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Access tags{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>🏷 Access tags</h1>
+<p class="muted">A record, a page or a space with access tags is seen only by people who hold <b>every one</b> of them; everyone else doesn't see it at all, not even that it's there. Tags are not ranks: holding one gives nothing in any other, administrators included. A record also carries the tags of its parent in a tree and of the spaces it links to. Only a tag's owners give it to people; the other owners are told each time.</p>
+<div class="card flush"><table class="list" style="border:0">
+  <thead><tr><th>Tag</th><th>People holding it</th><th>You</th></tr></thead>
+  {% for r in rows %}<tr>
+    <td><a class="tag-chip" style="--tag:{{ r.tag.color }}" href="{% url 'core:tag' r.tag.pk %}">🏷 {{ r.tag.name }}</a><div class="muted small">{{ r.tag.description }}</div></td>
+    <td>{{ r.members }}</td>
+    <td>{% if r.owns %}<span class="badge ok">owner</span>{% elif r.holds %}<span class="badge">you hold it</span>{% else %}<span class="muted small">—</span>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="3" class="muted">No access tags yet.</td></tr>{% endfor %}
+</table></div>
+{% if can_make %}
+<form method="post" class="form card">{% csrf_token %}
+  <h2 style="margin-top:0">A new tag</h2>
+  <div class="grid2">
+    <div class="field"><label for="name" class="required">Name</label><input id="name" name="name" required placeholder="e.g. Payroll"></div>
+    <div class="field"><label for="color">Colour</label><input id="color" name="color" type="color" value="#b45309"></div>
+  </div>
+  <div class="field"><label for="description">What it protects</label><input id="description" name="description" maxlength="300"></div>
+  <button class="btn primary">Make the tag</button> <span class="help">You'll own it and hold it.</span>
+</form>
+{% endif %}
+{% endblock %}

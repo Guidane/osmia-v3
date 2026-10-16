@@ -1,0 +1,5 @@
+<div class="app-cards">
+  {% for a in apps %}{% include "core/canvas/_app_card.html" %}{% endfor %}
+  {% for a in extension_apps %}{% include "core/canvas/_app_card.html" %}{% endfor %}
+  <a class="app-card new" href="{% url 'core:app_create' %}"><span class="app-card-icon">＋</span><span class="app-card-name">New app</span></a>
+</div>

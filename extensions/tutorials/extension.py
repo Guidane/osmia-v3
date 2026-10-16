@@ -2,4 +2,5 @@
 
 
 def register(registry):
-    registry.page('Tutorials', 'tutorials:index', '📖', extension='tutorials')
+    registry.app('Tutorials', 'tutorials:index', '📖', 'How everything in Osmia works, with animations.',
+                 color='#0369a1', extension='tutorials')

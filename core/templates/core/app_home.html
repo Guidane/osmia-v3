@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ app.name }} · Osmia{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block content %}
+{% if not tables and can_build %}<div class="card empty"><p>{{ app.name }} has no tables yet.</p><a class="btn primary" href="{% url 'core:table_create' app.slug %}">＋ Add a table</a></div>{% endif %}
+<div class="page-body canvas">{{ body|safe }}</div>
+{% if can_build and not layout %}<p class="muted small"><a href="{% url 'core:app_home_edit' app.slug %}">Edit this home page</a> to make it a dashboard for {{ app.name }}: type <kbd>/</kbd> for live views, records, calculations and blocks.</p>{% endif %}
+{% endblock %}

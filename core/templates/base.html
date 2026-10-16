@@ -1,4 +1,4 @@
-{% load static %}<!DOCTYPE html>
+{% load static osmia %}<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -6,52 +6,56 @@
   <title>{% block title %}Osmia{% endblock %}</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%232e7d5b%22/><path d=%22M7 8h8v8H7zM17 8h8v8h-8zM7 18h8v8H7zM17 18h8v8h-8z%22 fill=%22white%22 opacity=%22.9%22/></svg>">
   <link rel="stylesheet" href="{% static 'core/osmia.css' %}">
+  <link rel="stylesheet" href="{% static 'core/canvas.css' %}">
   {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
 {% if user.is_authenticated %}
 <header class="topbar">
   <details class="menu launcher" id="launcher">
-    <summary title="Apps" aria-label="Apps"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="4" height="4" rx="1"/><rect x="8" y="2" width="4" height="4" rx="1"/><rect x="14" y="2" width="4" height="4" rx="1"/><rect x="2" y="8" width="4" height="4" rx="1"/><rect x="8" y="8" width="4" height="4" rx="1"/><rect x="14" y="8" width="4" height="4" rx="1"/><rect x="2" y="14" width="4" height="4" rx="1"/><rect x="8" y="14" width="4" height="4" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg></summary>
+    <summary title="Apps and spaces" aria-label="Apps and spaces"><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="4" height="4" rx="1"/><rect x="8" y="2" width="4" height="4" rx="1"/><rect x="14" y="2" width="4" height="4" rx="1"/><rect x="2" y="8" width="4" height="4" rx="1"/><rect x="8" y="8" width="4" height="4" rx="1"/><rect x="14" y="8" width="4" height="4" rx="1"/><rect x="2" y="14" width="4" height="4" rx="1"/><rect x="8" y="14" width="4" height="4" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg></summary>
     <div class="menu-panel launcher-panel">
-      <input type="search" class="launcher-filter" placeholder="Find a space or an app…" aria-label="Find a space or an app">
-      <div class="label">Spaces</div>
-      <div class="launcher-tiles">
-        {% if launcher_personal %}{% with s=launcher_personal %}{% include "core/_launcher_space.html" %}{% endwith %}{% endif %}
-        {% for s in launcher_spaces %}{% include "core/_launcher_space.html" %}{% endfor %}
-      </div>
-      {% if launcher_mine %}<div class="label">My apps</div>
-      <div class="launcher-tiles">{% for a in launcher_mine %}{% include "core/_launcher_tile.html" %}{% endfor %}</div>{% endif %}
+      <input type="search" class="launcher-filter" placeholder="Find an app or a space…" aria-label="Find an app or a space">
       <div class="label">Apps</div>
-      <div class="launcher-tiles">{% for a in launcher_others %}{% if not a.is_space %}{% include "core/_launcher_tile.html" %}{% endif %}{% empty %}<p class="muted small" style="padding:0 10px">No apps yet.</p>{% endfor %}</div>
+      <div class="launcher-tiles">
+        {% for a in launcher_apps %}<a class="launcher-tile{% if app and a.pk == app.pk %} on{% endif %}" href="{{ a.get_absolute_url }}" data-name="{{ a.name|lower }}"><span class="tile-icon" style="background:{{ a.color }}22;color:{{ a.color }}">{{ a.icon }}</span><span class="tile-name" title="{{ a.name }}">{{ a.name }}</span></a>{% endfor %}
+        {% for a in launcher_extension_apps %}<a class="launcher-tile" href="{{ a.url }}" data-name="{{ a.title|lower }}"><span class="tile-icon" style="background:{{ a.color }}22;color:{{ a.color }}">{{ a.icon }}</span><span class="tile-name" title="{{ a.title }}">{{ a.title }}</span></a>{% endfor %}
+        {% if not launcher_apps and not launcher_extension_apps %}<p class="muted small" style="padding:0 10px">No apps yet.</p>{% endif %}
+      </div>
+      {% if launcher_spaces %}<div class="label">Spaces</div>
+      <div class="launcher-spaces">{% for s, label in launcher_spaces %}<a class="launcher-space" href="{% url 'core:space' s.pk %}" data-name="{{ label|lower }}">{{ s.table.icon|default:"◼" }} {{ label }}</a>{% endfor %}</div>{% endif %}
       <div class="sep"></div>
-      <div class="launcher-foot"><a href="{% url 'core:spaces' %}">All spaces →</a><a href="{% url 'core:app_create' %}?own=1">＋ New app</a></div>
+      <div class="launcher-foot"><a href="{% url 'core:launcher' %}">All apps →</a><a href="{% url 'core:app_create' %}">＋ New app</a></div>
     </div>
   </details>
-  {% if app or space %}<button class="sidebar-toggle" type="button" onclick="document.body.classList.toggle('sidebar-open')" aria-label="This space and its apps">☰</button>{% endif %}
-  <a class="brand" href="{% url 'core:home' %}">Osmia</a>
+  <a class="brand" href="{% url 'core:home' %}" title="Your home space">Osmia</a>
   <form class="search" action="{% url 'core:search' %}"><input type="search" name="q" placeholder="Search every app…" value="{{ request.GET.q|default:'' }}"></form>
   <div class="spacer"></div>
-  {% for p in topbar_pages %}<a class="icon-link" href="{% url p.url_name %}" title="{{ p.title }}">{{ p.icon }}<span class="tb-label"> {{ p.title }}</span></a>{% endfor %}
+  <a class="icon-link" href="{% url 'core:home' %}" title="Your home space">🏠<span class="tb-label"> Home</span></a>
   <a class="icon-link" href="{% url 'core:notifications' %}" title="Notifications">🔔{% if unread_notifications %}<span class="count">{{ unread_notifications }}</span>{% endif %}</a>
-  {% if user.is_superuser %}
+  {% if user.is_superuser or owns_tags %}
   <details class="menu">
     <summary title="Administration">⚙</summary>
     <div class="menu-panel">
+      {% if user.is_superuser %}
       <div class="label">Workspace</div>
       <a href="{% url 'core:app_create' %}">＋ New app</a>
       <a href="{% url 'core:templates' %}">▤ App templates</a>
       <a href="{% url 'core:extensions' %}">◆ Extensions</a>
+      <a href="{% url 'core:trees' %}">🌳 Trees and spaces</a>
       <div class="sep"></div>
       <div class="label">People</div>
       <a href="{% url 'accounts:user_list' %}">👤 Users</a>
       <a href="{% url 'accounts:team_list' %}">👥 Teams</a>
+      {% endif %}
+      <a href="{% url 'core:tags' %}">🏷 Access tags</a>
     </div>
   </details>
-  {% endif %}
+  {% else %}<a class="icon-link" href="{% url 'core:tags' %}" title="Your access tags">🏷</a>{% endif %}
   <details class="menu">
     <summary title="{{ user.get_full_name|default:user.username }}"><span class="me-name">{{ user.get_full_name|default:user.username }} ▾</span><span class="me-initials">{{ user.initials }}</span></summary>
     <div class="menu-panel">
+      <a href="{% url 'core:home' %}">🏠 My home space</a>
       <a href="{% url 'accounts:profile' %}">Profile</a>
       <a href="{% url 'accounts:password_change' %}">Change password</a>
       <button type="button" onclick="osmiaTheme()">Light / dark</button>
@@ -60,8 +64,8 @@
     </div>
   </details>
 </header>
+{% if app %}{% include "core/_app_bar.html" %}{% endif %}
 <div class="shell">
-  {% if app or space %}{% include "core/_sidebar.html" %}{% endif %}
   <div class="main">
     {% if messages %}<div class="flashes">{% for message in messages %}<div class="flash {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
     {% block main %}<div class="content {% block content_class %}{% endblock %}">{% block content %}{% endblock %}</div>{% endblock %}

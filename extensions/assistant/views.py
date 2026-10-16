@@ -8,8 +8,10 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from core import space as spaces
-from core.models import App, Space
-from core.permissions import can, can_space, visible_apps, visible_spaces
+from core.data import Data
+from core.models import App
+from core.permissions import can, visible_apps
+from core.trees import Tree
 
 from . import plan as plans
 from .models import Run
@@ -19,35 +21,49 @@ MAX_REQUEST = 5_000
 
 
 def _scope(request, values):
-    """The space, app and page the request is about, if the person may see them."""
+    """The space (a record), app and page the request is about, if the person may see them."""
     space = app = page = None
+    data = Data(request.user)
     if values.get('page'):
         try:
-            from extensions.pages.models import Page
+            from extensions.docs.models import Page
+            from extensions.docs.service import can_read
             page = Page.objects.select_related('space').filter(pk=int(values['page'])).first()
+            page = page if page is not None and can_read(request.user, page) else None
         except (ImportError, ValueError):
             page = None
-        if page is not None and can_space(request.user, page.space, 'viewer'):
+        if page is not None:
             space = page.space
-        else:
-            page = None
     if values.get('app'):
-        app = App.objects.select_related('space').filter(slug=values['app']).first()
+        app = App.objects.filter(slug=values['app']).first()
         if app is None or not can(request.user, app, 'viewer'):
             app = None
-        elif space is None:
-            space = app.space
-    if values.get('space') and space is None:
-        space = Space.objects.filter(key__iexact=values['space']).first()
-        if space is not None and not can_space(request.user, space, 'viewer'):
-            space = None
+    if values.get('space') and space is None and str(values['space']).isdigit():
+        found = data.record(int(values['space']))
+        if found is not None and found.table.is_space and can(request.user, found.table.app, 'viewer'):
+            space = found
     return space, app, page
 
 
 def _choices(user):
-    own = spaces.ensure_personal(user)
-    return {'spaces': [own] + [s for s in visible_spaces(user) if not s.is_personal],
-            'apps': [a for a in visible_apps(user) if not a.is_space]}
+    data = Data(user)
+    choices = []
+    home = spaces.home_node(user)
+    if home is not None and data.record(home.pk) is not None:
+        choices.append((home.pk, f'🏠 {data.label(home)} (your home)'))
+    for table in spaces.space_tables():
+        if not can(user, table.app, 'viewer'):
+            continue
+        t = Tree(data, table)
+
+        def walk(node, depth):
+            if home is None or node.pk != home.pk:
+                choices.append((node.pk, '\u2003' * depth + data.label(node)))
+            for kid in t.kids(node.pk):
+                walk(kid, depth + 1)
+        for root in t.roots():
+            walk(root, 0)
+    return {'spaces': choices, 'apps': visible_apps(user)}
 
 
 @login_required
@@ -60,13 +76,14 @@ def index(request):
         space, app, page = _scope(request, request.POST)
         records = request.POST.get('records') == 'on'
         run = Run.objects.create(user=request.user, request=text[:MAX_REQUEST],
-                                 scope={'space': space.key if space else '', 'app': app.slug if app else '',
+                                 scope={'space': space.pk if space else '', 'app': app.slug if app else '',
                                         'page': page.pk if page else None, 'records': records},
                                  prompt=build(request.user, text[:MAX_REQUEST], space, app, page, records))
         return redirect(run)
     space, app, page = _scope(request, request.GET)
     return render(request, 'assistant/index.html', {
         **_choices(request.user), 'space': space, 'app': app, 'page': page,
+        'space_label': Data(request.user).label(page.space) if page else '',
         'runs': Run.objects.filter(user=request.user)[:15]})
 
 

@@ -30,10 +30,25 @@
     const res = await fetch(url, opts);
     let data = {};
     try { data = await res.json(); } catch (e) { data = { error: `The server answered ${res.status}.` }; }
+    // Someone was put on a record they can't see (its access tags): share this one record with them?
+    if (res.status === 409 && data.needs_share && body && !body.share && confirm(`${data.error}
+
+Share it with them?`)) {
+      return api(url, { ...body, share: true }, method);
+    }
     if (!res.ok) throw Object.assign(new Error(data.error || data.message || `Error ${res.status}`), { data });
     return data;
   }
   window.OSMIA.api = api;
+
+  // Tabs inside a block (e.g. My work: assigned, recent, starred)
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('.work-tabs button[data-side]');
+    if (!b) return;
+    const box = b.closest('.live-block, .card') || document;
+    box.querySelectorAll('.work-tabs button').forEach((x) => x.classList.toggle('on', x === b));
+    box.querySelectorAll('[data-pane]').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== b.dataset.side));
+  });
 
   let toastTimer;
   function toast(text, error) {
@@ -69,10 +84,10 @@
     launcher.addEventListener('toggle', () => { if (launcher.open) { filter.value = ''; filter.dispatchEvent(new Event('input')); filter.focus(); } });
     filter.addEventListener('input', () => {
       const q = filter.value.trim().toLowerCase();
-      launcher.querySelectorAll('.launcher-tile').forEach((t) => { t.style.display = !q || t.dataset.name.includes(q) ? '' : 'none'; });
+      launcher.querySelectorAll('.launcher-tile, .launcher-space').forEach((t) => { t.style.display = !q || t.dataset.name.includes(q) ? '' : 'none'; });
     });
     filter.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { const first = [...launcher.querySelectorAll('.launcher-tile')].find((t) => t.style.display !== 'none'); if (first) first.click(); }
+      if (e.key === 'Enter') { const first = [...launcher.querySelectorAll('.launcher-tile, .launcher-space')].find((t) => t.style.display !== 'none'); if (first) first.click(); }
       if (e.key === 'Escape') launcher.open = false;
     });
   }

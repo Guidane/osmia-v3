@@ -7,8 +7,8 @@ paused, and then undoes it all: what it reports is what applying will do, proble
 included. ``run(plan, user, apply=True)`` makes them all, or none if one fails.
 
 Everything goes through the code the website uses (templates, core.schema,
-core.service, Pages' write_page), so the same rules and checks apply. A change never
-deletes anything: there is no change for it.
+core.service, the Documentation app's write_page), so the same rules and checks
+apply: access tags included. A change never deletes anything: there is no change for it.
 """
 import json
 import re
@@ -19,18 +19,17 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.utils.text import slugify
 
-from core import automation, blueprints, schema, service, space as spaces
+from core import automation, schema, service, space as spaces
 from core.data import Data
 from core.fieldtypes import ROLLUPS, TYPES
-from core.models import App, Space, Table, View
-from core.permissions import can, can_make_spaces, can_space, visible_apps
+from core.models import App, Table, View
+from core.permissions import can, visible_apps
 
 MAX_ANSWER = 300_000      # characters of a pasted answer
 MAX_CHANGES = 50          # changes in one answer
 MAX_RECORDS = 200         # records one change adds or changes
 COMPUTED = ('lookup', 'rollup', 'formula')
 VIEWS = ('grid', 'kanban', 'gallery', 'calendar')
-SPACE_KINDS = [k for k in Space.Kind.values if k != Space.Kind.PERSONAL]
 SOURCE = 'AI assistant'   # what the history says made the change
 
 
@@ -130,34 +129,36 @@ class Runner:
     def data(self):
         return Data(self.user)   # fresh: earlier changes may have changed the schema
 
-    def space(self, ref, needed):
+    def space(self, ref, write=False):
+        """A space (a record of a space table) by its name or record number; "home" is the person's own."""
         ref = str(ref or '').strip()
-        if ref.lower() in ('', 'personal', 'my space', 'me'):
-            space = spaces.ensure_personal(self.user)
+        data = self.data()
+        if ref.lower() in ('', 'home', 'my space', 'me', 'personal'):
+            space = spaces.home_node(self.user)
+            space = data.record(space.pk) if space is not None else None
+            if space is None:
+                raise PlanError('You have no home space here.')
         else:
-            found = [s for s in Space.objects.exclude(kind=Space.Kind.PERSONAL)
-                     if (_same(s.key, ref) or _same(s.name, ref)) and can_space(self.user, s, 'viewer')]
+            found = []
+            for table in spaces.space_tables():
+                if can(self.user, table.app, 'viewer'):
+                    found += [r for r in data.records(table) if _same(data.label(r), ref) or ref == str(r.pk)]
             if not found:
                 raise PlanError(f'There is no space "{ref}" you can see.')
             if len(found) > 1:
-                raise PlanError(f'More than one space is called "{ref}"; use its key: {", ".join(s.key for s in found)}.')
+                raise PlanError(f'More than one space is called "{ref}"; use its number: {", ".join(str(s.pk) for s in found)}.')
             space = found[0]
-        if not can_space(self.user, space, needed):
-            what = {'editor': 'write in', 'admin': 'build in (only its admins can)'}[needed]
-            raise PermissionDenied(f'You may not {what} the space {space.name}.')
+        if write and not spaces.can_edit_page(self.user, space, data):
+            raise PermissionDenied(f'You may not write in the space {data.label(space)}.')
         return space
 
     def app(self, change, needed='creator'):
         ref = _text(change, 'app')
-        found = [a for a in visible_apps(self.user) if not a.is_space and (_same(a.name, ref) or _same(a.slug, ref))]
-        if len(found) > 1 and change.get('space'):
-            found = [a for a in found if a.space and (_same(a.space.key, change['space']) or _same(a.space.name, change['space']))]
+        found = [a for a in visible_apps(self.user) if _same(a.name, ref) or _same(a.slug, ref)]
         if not found:
             raise PlanError(f'There is no app "{ref}" you can see.')
         if len(found) > 1:
-            raise PlanError(f'More than one app is called "{ref}"; add "space" (one of '
-                            f'{", ".join(a.space.key if a.space else "?" for a in found)}) or use its address name '
-                            f'({", ".join(a.slug for a in found)}).')
+            raise PlanError(f'More than one app is called "{ref}"; use its address name ({", ".join(a.slug for a in found)}).')
         app = found[0]
         if not can(self.user, app, needed):
             what = {'editor': 'change records of', 'creator': 'change the tables and fields of'}[needed]
@@ -298,30 +299,32 @@ class Runner:
 # -- The changes -------------------------------------------------------------------------
 # Each takes (runner, change) and returns (what it did, a link to it).
 
-def create_space(r, c):
-    if not can_make_spaces(r.user):
-        raise PermissionDenied('Making spaces needs the "Can make spaces" permission; ask an administrator.')
-    name = _text(c, 'name', limit=100)
-    key = _text(c, 'key', required=False, limit=20).upper()
-    if key and not key.replace('_', '').isalnum():
-        raise PlanError('A space key is letters and digits only, e.g. OPS.')
-    if key and Space.objects.filter(key__iexact=key).exists():
-        raise PlanError(f'The space key {key} is taken; pick another.')
-    kind = str(c.get('kind') or 'team').lower()
-    if kind not in SPACE_KINDS:
-        raise PlanError(f'"kind" is one of {", ".join(SPACE_KINDS)}.')
-    visibility = str(c.get('visibility') or 'internal').lower()
-    if visibility not in Space.Visibility.values:
-        raise PlanError('"visibility" is "internal" (everyone can look) or "private" (members only).')
-    space = spaces.create_space(name, r.user, key=key, kind=kind, visibility=visibility,
-                                description=str(c.get('description') or ''), icon=str(c.get('icon') or '')[:8])
-    return f'Make the {kind} space {space.name} ({space.key}), {Space.Visibility(visibility).label.lower()}', space.get_absolute_url()
+def add_space(r, c):
+    """A space is a record of a space table (Organisation, Projects, ...), under another one or at the top."""
+    data = r.data()
+    tables = [t for t in spaces.space_tables() if can(r.user, t.app, 'viewer')]
+    ref = _text(c, 'tree')
+    table = next((t for t in tables if _same(t.name, ref) or _same(t.app.name, ref) or _same(f'{t.app.name} › {t.name}', ref)), None)
+    if table is None:
+        raise PlanError(f'"tree" is one of: {", ".join(t.name for t in tables) or "(there are none)"}.')
+    if not can(r.user, table.app, 'editor'):
+        raise PermissionDenied(f'You may not add to {table.label}.')
+    values = dict(c.get('values') or {}) if isinstance(c.get('values'), dict) else {}
+    primary = data.primary_field(table)
+    values[primary.name] = _text(c, 'name', limit=200)
+    if c.get('parent'):
+        parent = r.space(c['parent'])
+        if parent.table_id != table.pk:
+            raise PlanError(f'"{c["parent"]}" is not in {table.name}; a space goes under one of the same tree.')
+        values[data.field(table.tree_field_id).name] = [parent.pk]
+    record = service.create_record(table, values, user=r.user, data=data)
+    under = f' under {data.label(r.space(c["parent"]))}' if c.get('parent') else ''
+    return f'Make the space {data.label(data.record(record.pk))} in {table.name}{under}', f'/s/{record.pk}/'
 
 
 def create_app(r, c):
     name = _text(c, 'name', limit=100)
-    target = r.space(c.get('space'), 'admin')
-    personal = target.is_personal
+    own = bool(c.get('own')) or not r.user.is_superuser
     tables = _list(c, 'tables')
     names = set()
     for t in tables:
@@ -331,8 +334,7 @@ def create_app(r, c):
             raise PlanError(f'Two tables are called "{t["name"]}".')
         names.add(t['name'].strip().lower())
     app = schema.create_app(name, r.user, icon=str(c.get('icon') or '▦')[:8], description=str(c.get('description') or ''),
-                            owner=r.user if personal else None,
-                            default_role=App.Role.NONE if personal else App.Role.VIEWER, space=target)
+                            owner=r.user if own else None, default_role=App.Role.NONE if own else App.Role.VIEWER)
     # every table first (links point at them), then fields, then views and records
     made = [(schema.create_table(app, str(t['name']).strip()[:100], icon=str(t.get('icon') or '')[:8], primary=None,
                                  description=str(t.get('description') or '')), t) for t in tables]
@@ -347,8 +349,8 @@ def create_app(r, c):
             r.view(table, v)
         n = r.add_records(table, t['records']) if t.get('records') else 0
         parts.append(f'{table.name} ({table.fields.count()} fields{f", {n} records" if n else ""})')
-    where = 'your personal space' if personal else target.name
-    return f'Make the app {app.name} in {where}: {", ".join(parts)}', app.get_absolute_url()
+    whose = 'your own app' if own else 'an app for everyone'
+    return f'Make the app {app.name} ({whose}): {", ".join(parts)}', app.get_absolute_url()
 
 
 def change_app(r, c):
@@ -452,41 +454,42 @@ def update_records(r, c):
 
 def _pages():
     from core.extensions import registry
-    if 'pages' not in registry.extensions:
-        raise PlanError('Pages are switched off on this Osmia.')
-    from extensions.pages.models import Page
-    from extensions.pages.service import write_page
-    return Page, write_page
+    if 'docs' not in registry.extensions:
+        raise PlanError('The Documentation app is switched off on this Osmia.')
+    from extensions.docs.models import Page
+    from extensions.docs.service import visible_pages, write_page
+    return Page, write_page, visible_pages
 
 
-def _page(r, Page, c):
-    space = r.space(c.get('space'), 'editor')
+def _page(r, Page, visible_pages, c):
+    space = r.space(c.get('space'), write=True)
     ref = c.get('page')
+    pages = visible_pages(r.user, Page.objects.filter(space=space))
     if isinstance(ref, int) or (isinstance(ref, str) and ref.isdigit()):
-        page = Page.objects.filter(pk=int(ref), space=space).first()
+        page = next((p for p in pages if p.pk == int(ref)), None)
     else:
-        page = next((p for p in Page.objects.filter(space=space) if _same(p.title, ref)), None)
+        page = next((p for p in pages if _same(p.title, ref)), None)
     if page is None:
-        raise PlanError(f'The space {space.name} has no page "{ref}".')
+        raise PlanError(f'The space {r.data().label(space)} has no page "{ref}".')
     return space, page
 
 
 def create_page(r, c):
-    Page, write_page = _pages()
-    space = r.space(c.get('space'), 'editor')
+    Page, write_page, visible_pages = _pages()
+    space = r.space(c.get('space'), write=True)
     parent = None
     if c.get('parent'):
-        parent = next((p for p in Page.objects.filter(space=space) if _same(p.title, c['parent'])), None)
+        parent = next((p for p in visible_pages(r.user, Page.objects.filter(space=space)) if _same(p.title, c['parent'])), None)
         if parent is None:
-            raise PlanError(f'The space {space.name} has no page "{c["parent"]}" to put it under.')
+            raise PlanError(f'The space {r.data().label(space)} has no page "{c["parent"]}" to put it under.')
     page, _ = write_page(space, r.user, _text(c, 'title'), str(c.get('body') or ''), parent=parent,
                          emoji=str(c.get('emoji') or ''), labels=str(c.get('labels') or ''))
-    return f'Write the page {page.title} in {"your personal space" if space.is_personal else space.name}', page.get_absolute_url()
+    return f'Write the page {page.title} in {r.data().label(space)}', page.get_absolute_url()
 
 
 def update_page(r, c):
-    Page, write_page = _pages()
-    space, page = _page(r, Page, c)
+    Page, write_page, visible_pages = _pages()
+    space, page = _page(r, Page, visible_pages, c)
     body = str(c['body']) if 'body' in c else page.body
     if c.get('append'):
         body += str(c['append'])
@@ -498,7 +501,7 @@ def update_page(r, c):
 
 
 OPS = {
-    'create_space': create_space, 'create_app': create_app, 'change_app': change_app,
+    'add_space': add_space, 'create_app': create_app, 'change_app': change_app,
     'add_table': add_table, 'add_field': add_field, 'change_field': change_field, 'add_view': add_view,
     'add_records': add_records, 'update_records': update_records,
     'create_page': create_page, 'update_page': update_page,

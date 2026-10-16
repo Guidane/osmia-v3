@@ -2,9 +2,9 @@
 {% block title %}New app{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
-<h1>{% if personal %}A new app of your own{% else %}A new app in {{ target.icon }} {{ target.name }}{% endif %}</h1>
-<p class="muted">{% if personal %}It goes in your personal space. You build it as you like. Only you see it, until you let others look at it in its settings; nobody else can change it unless an administrator allows them.{% else %}The space's members work with it as their role in the space allows; other spaces can add it as a shortcut and link to its tables.{% endif %}</p>
-<form method="post" class="form card">{% csrf_token %}<input type="hidden" name="space" value="{{ target.key }}">
+<h1>{% if own %}A new app of your own{% else %}A new app for everyone{% endif %}</h1>
+<p class="muted">{% if own %}You build it as you like. Only you see it, until you let others look at it in its settings; nobody else can change it unless an administrator allows them.{% else %}Everyone who logs in can look at it; give teams and people more in its settings. Its records link to spaces (projects, teams, ...) and carry their access tags.{% endif %}</p>
+<form method="post" class="form card">{% csrf_token %}{% if own %}<input type="hidden" name="own" value="1">{% endif %}
   <div class="grid2">
     <div class="field"><label for="name" class="required">Name</label><input id="name" name="name" required autofocus placeholder="e.g. Maintenance"></div>
     <div class="field"><label for="icon">Icon</label><input id="icon" name="icon" maxlength="8" placeholder="an emoji, e.g. 🔧"></div>

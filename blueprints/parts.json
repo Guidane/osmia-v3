@@ -42,6 +42,7 @@
     },
     {
       "key": "categories",
+      "tree": "parent",
       "name": "Categories",
       "icon": "🗂",
       "display": "name",

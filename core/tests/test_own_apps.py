@@ -32,10 +32,12 @@ class OwnAppTests(TestCase):
         self.assertEqual(response.status_code, 302)
         return app, app.tables.get()
 
-    def test_home_page_has_my_apps(self):
-        response = self.client.get('/')
-        self.assertContains(response, 'My apps')
-        self.assertContains(response, 'read only')  # the vendors app
+    def test_the_launcher_has_my_apps(self):
+        app, books = self.make_app()
+        response = self.client.get(reverse('core:launcher'))
+        self.assertContains(response, 'My books')
+        self.assertContains(response, 'Vendors')
+        self.assertContains(self.client.get('/'), 'My books')   # the Apps block of the home space
 
     def test_a_person_makes_and_builds_an_app_of_their_own(self):
         app, books = self.make_app()

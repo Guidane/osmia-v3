@@ -1,2 +1,0 @@
-{% for p in pages %}<a class="side-link" href="{{ p.get_absolute_url }}">{{ p.emoji|default:"📄" }} {{ p.title }} <span class="muted small">{{ p.space.name }} · {{ p.updated_at|timesince }} ago</span></a>{% endfor %}
-{% if more %}<div class="muted small">… and {{ more }} more</div>{% endif %}

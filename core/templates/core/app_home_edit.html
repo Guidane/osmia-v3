@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Edit the home page · {{ app.name }}{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block content %}
+<form method="post" id="page-form" class="page-edit">{% csrf_token %}
+  <h1>✎ The home page of {{ app.name }}</h1>
+  {% include "core/canvas/_editor.html" %}
+  <div class="edit-foot">
+    <button class="btn primary">Save</button>
+    <a class="btn ghost" href="{% url 'core:app' app.slug %}">Cancel</a>
+    {% if layout %}<button class="btn ghost" name="reset" value="1" formnovalidate data-confirm="Put the home page back to how it started?">↺ Start over</button>{% endif %}
+    <span class="muted small">Ctrl+S saves</span>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{% static 'core/editor.js' %}"></script>{% endblock %}

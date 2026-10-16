@@ -1,0 +1,4 @@
+{% if can_write %}<div class="template-picks small-picks">{% for key, t in templates.items %}<a class="template-pick" href="{% url 'docs:new' space.pk %}?template={{ key }}"><span>{{ t.1 }}</span>{{ t.0 }}</a>{% endfor %}</div>{% endif %}
+{% for p in pages %}<a class="work-row" href="{{ p.get_absolute_url }}"><span class="tree-emoji">{{ p.emoji|default:"📄" }}</span><span class="w-main"><span class="w-title">{{ p.title }}</span><span class="w-sub">{{ p.updated_by|default:"" }} · {{ p.updated_at|timesince }} ago</span></span></a>
+{% empty %}<p class="muted small">No pages yet.</p>{% endfor %}
+{% if count %}<a class="small" href="{% url 'docs:space' space.pk %}">All {{ count }} page{{ count|pluralize }} →</a>{% endif %}

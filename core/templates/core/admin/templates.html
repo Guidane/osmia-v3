@@ -19,16 +19,14 @@
   </table>
   <div class="actions" style="padding:12px 14px">
     <button class="btn primary">Install the ticked templates</button>
-    <label class="inline">in <select name="space">{% for s in spaces %}<option value="{{ s.pk }}" {% if s.pk == company.pk %}selected{% endif %}>{{ s.icon }} {{ s.name }}</option>{% endfor %}</select></label>
     <label class="inline"><input type="checkbox" name="sample" value="1" checked> with sample records</label>
-    <span class="help">What they need is installed with them.</span>
+    <span class="help">What they need is listed first, and installed with them.</span>
   </div>
 </form>
 <form method="post" enctype="multipart/form-data" class="card form">{% csrf_token %}
   <h2 style="margin-top:0">Install a template file</h2>
   <div class="inline"><input type="file" name="file" accept=".json,application/json" required>
     <label class="inline"><input type="checkbox" name="sample" value="1"> with its records</label>
-    <label class="inline">in <select name="space">{% for s in spaces %}<option value="{{ s.pk }}" {% if s.pk == company.pk %}selected{% endif %}>{{ s.icon }} {{ s.name }}</option>{% endfor %}</select></label>
     <button class="btn">Install</button></div>
 </form>
 {% endblock %}

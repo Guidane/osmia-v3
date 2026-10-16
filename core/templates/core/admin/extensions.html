@@ -3,19 +3,21 @@
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>◆ Extensions</h1>
-<p class="muted">Apps are made on the website. When an app needs more than tables, views and automations, such as a drawing canvas, that part is an extension: code in the <code>extensions/</code> folder. Extensions can add view types, field types, automation actions, boxes on record pages and pages of their own. Switching one on or off takes effect when Osmia restarts.</p>
+<p class="muted">Apps are made on the website. An <b>extension app</b> is made in code, with screens of its own that stay as they are, like the harness designer's drawing canvas. It keeps its data in ordinary tables, and can add blocks, tabs, panels, fields, view types and automation actions to every app. Switching one on lists what it needs and installs it; switching one off removes only its code: its data stays, as ordinary apps and fields. Either takes effect when Osmia restarts.</p>
 {% for e in extensions %}
   <div class="card">
     <div class="record-head" style="margin:0">
       <h2 style="margin:0;flex:1">{{ e.icon }} {{ e.title }} <span class="muted small">{{ e.version }}</span></h2>
       {% if e.enabled %}<span class="badge ok">on</span>{% else %}<span class="badge">off</span>{% endif %}
-      <form method="post">{% csrf_token %}<input type="hidden" name="name" value="{{ e.name }}"><input type="hidden" name="enable" value="{% if e.enabled %}0{% else %}1{% endif %}">
-        <button class="btn small">{% if e.enabled %}Switch off{% else %}Switch on{% endif %}</button>
-        <button class="btn small" name="restart" value="1">… and restart</button></form>
+      <a class="btn small" href="{% url 'core:extension_switch' e.name %}">{% if e.enabled %}Switch off…{% else %}Switch on…{% endif %}</a>
     </div>
     <p>{{ e.description }}</p>
-    {% if e.blueprints %}<p class="small muted">Comes with the templates: {{ e.blueprints|join:", " }} (on the <a href="{% url 'core:templates' %}">Templates</a> page).</p>{% endif %}
-    {% if e.pages and e.enabled %}<p class="small">{% for p in e.pages %}<a href="{% url p.url_name %}">{{ p.icon }} {{ p.title }}</a> {% endfor %}</p>{% endif %}
+    {% if e.requires %}<p class="small"><b>Needs:</b> {% for r in e.requires %}<code>{{ r }}</code> {% endfor %}
+      {% if e.missing %}<span class="badge failed">{{ e.missing|length }} missing</span>{% else %}<span class="badge ok">all there</span>{% endif %}</p>{% endif %}
+    {% if e.optional %}<p class="small muted">Works with, if they're there: {% for r in e.optional %}<code>{{ r }}</code> {% endfor %}</p>{% endif %}
+    {% if e.blueprints %}<p class="small muted">Brings the templates: {{ e.blueprints|join:", " }}.</p>{% endif %}
+    {% if e.used_by %}<p class="small muted">In use: {{ e.used_by|length }} thing{{ e.used_by|length|pluralize }} use{{ e.used_by|length|pluralize:"s," }} what it brings.</p>{% endif %}
+    {% if e.enabled %}<p class="small">{% for a in e.launch %}<a href="{{ a.url }}">{{ a.icon }} {{ a.title }}</a> {% endfor %}{% for p in e.tabs %}<a href="{% url p.url_name %}">{{ p.icon }} {{ p.title }}</a> {% endfor %}</p>{% endif %}
     <p class="small muted">extensions/{{ e.name }}/</p>
   </div>
 {% empty %}<p class="muted">No extensions are in the extensions folder.</p>{% endfor %}

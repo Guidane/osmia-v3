@@ -3,9 +3,9 @@
   "name": "Projects",
   "icon": "📁",
   "color": "#0d9488",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "position": 25,
-  "description": "Ties the work together: each project has a manager, a team, dates, its tasks and (with Budgets) its own budget.",
+  "description": "Programmes and projects as a tree of spaces: each project has a manager, a team, dates, its tasks and (with Budgets) its own budget. Tasks linked to a project carry its access tags.",
   "requires": ["tasks"],
   "after": ["departments", "budgets"],
   "tables": [
@@ -14,9 +14,15 @@
       "name": "Projects",
       "icon": "📁",
       "display": "name",
+      "tree": "parent",
+      "spaces": true,
       "fields": [
         {"key": "code", "name": "Code", "type": "autonumber", "options": {"prefix": "PRJ-", "digits": 4}},
         {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "kind", "name": "Kind", "type": "select", "options": {"default": "Project", "choices": [
+          {"value": "Portfolio", "color": "#e0e7ff"}, {"value": "Programme", "color": "#dbeafe"}, {"value": "Project", "color": "#dcfce7"}]}},
+        {"key": "parent", "name": "Part of", "type": "link",
+         "options": {"target": "projects", "multiple": false, "inverse": {"key": "sub_projects", "name": "Under it", "multiple": true}}},
         {"key": "status", "name": "Status", "type": "select", "options": {"default": "Planned", "choices": [
           {"value": "Planned", "color": "#e5e7eb"}, {"value": "Active", "color": "#bbf7d0"}, {"value": "On hold", "color": "#fde68a"},
           {"value": "Done", "color": "#bfdbfe"}, {"value": "Cancelled", "color": "#fecaca"}]}},
@@ -43,6 +49,7 @@
           "expression": "IF(OR(ISBLANK({End}), IN({Status}, \"Done\", \"Cancelled\")), BLANK(), DAYS({End}, TODAY()))"}}
       ],
       "views": [
+        {"name": "Programmes", "type": "tree", "config": {"parent_field": "parent", "fields": ["name", "kind", "status", "manager", "progress"]}},
         {"name": "Projects", "type": "grid", "config": {"fields": ["code", "name", "status", "manager", "department", "start", "end", "progress", "task_count", "budget_amount", "budget_left", "days_left"]}},
         {"name": "By status", "type": "kanban", "config": {"group_field": "status", "fields": ["name", "manager", "end", "progress"]}},
         {"name": "Timeline", "type": "gantt", "config": {"start_field": "start", "end_field": "end", "color_field": "status", "progress_field": "progress", "zoom": "week"}},
@@ -64,7 +71,8 @@
   ],
   "records": {
     "projects": [
-      {"Name": "Burn-in test bench", "Status": "Active", "Manager": "alice", "Team": ["alice", "bob"], "Department": "Engineering",
+      {"Name": "Product development", "Kind": "Programme", "Status": "Active", "Manager": "alice", "Department": "Engineering"},
+      {"Name": "Burn-in test bench", "Part of": "Product development", "Status": "Active", "Manager": "alice", "Team": ["alice", "bob"], "Department": "Engineering",
        "Start": "=TODAY()-10", "End": "=TODAY()+30", "Tasks": ["Build the burn-in rack", "Wire the power distribution", "Write the test procedure", "Calibrate the electronic load"],
        "Description": "A rack that runs ten units at full load for 48 hours before they ship."},
       {"Name": "Warehouse re-layout", "Status": "Planned", "Manager": "bob", "Department": "Warehouse",

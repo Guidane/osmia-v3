@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Trees and spaces{% endblock %}
+{% block content_class %}narrow{% endblock %}
+{% block content %}
+<h1>🌳 Trees and spaces</h1>
+<p class="muted">Any table can be a tree: each record has a parent in the same table. Records of every other table link to a tree's nodes as freely as to any record, so one task can be in a project, be done by a team and concern a location. A tree of <b>spaces</b> gives each of its records a page, with what links to it; everyone's home space is the record of a space table whose <i>home</i> field is them. Set this up in each table's settings.</p>
+<div class="card flush"><table class="list" style="border:0">
+  <thead><tr><th>Table</th><th>Parent field</th><th>Spaces</th><th>Home field</th><th></th></tr></thead>
+  {% for r in rows %}<tr>
+    <td><a href="{{ r.table.get_absolute_url }}">{{ r.table.icon|default:"▦" }} {{ r.table.label }}</a></td>
+    <td>{% if r.table.tree_field %}{{ r.table.tree_field.name }}{% else %}<span class="muted">not a tree</span>{% endif %}</td>
+    <td>{% if r.table.is_space %}<span class="badge ok">spaces</span>{% else %}—{% endif %}</td>
+    <td>{% if r.home %}{{ r.home.name }}{% else %}—{% endif %}</td>
+    <td><a class="btn small" href="{% url 'core:table_settings' r.table.app.slug r.table.slug %}">⚙ Settings</a></td>
+  </tr>{% empty %}<tr><td colspan="5" class="muted">No table has a link to itself yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

@@ -179,6 +179,9 @@ def run(auto, record, data, user=None, old=None, trigger='', check=True, extra=N
     "Stop the change" (Blocked) undoes the change that set it off too."""
     from .models import AutomationRun
     from .service import Blocked, acting
+    outer, data = data, data.as_system()   # automations see every record, whoever set them off
+    if record is not None:
+        record = data.record(record.pk)
     if _depth() >= MAX_DEPTH:
         return AutomationRun.objects.create(automation=auto, record_id=getattr(record, 'pk', None), trigger=trigger,
                                             status=AutomationRun.Status.FAILED, user=user,
@@ -238,6 +241,7 @@ def run(auto, record, data, user=None, old=None, trigger='', check=True, extra=N
         _local.depth = _depth() - 1
         _local.apps.pop()
     data.invalidate()
+    outer.invalidate()
     return AutomationRun.objects.create(automation=auto, record_id=getattr(record, 'pk', None), record_label=label,
                                         trigger=trigger, status=status, log='\n'.join(ctx.lines), user=user)
 
@@ -251,6 +255,7 @@ def check_conditions(data, record_ids, user=None):
     autos = list(Automation.objects.filter(active=True, trigger='condition_met').select_related('table'))
     if not autos:
         return
+    data = data.as_system()
     by_table = {}
     for a in autos:
         by_table.setdefault(a.table_id, []).append(a)
@@ -423,7 +428,11 @@ def _who(ctx, step):
     ids.update(int(u) for u in step.get('users') or [] if str(u).isdigit())
     for team in Group.objects.filter(pk__in=[int(t) for t in step.get('teams') or [] if str(t).isdigit()]):
         ids.update(team.user_set.values_list('pk', flat=True))
-    return list(User.objects.filter(pk__in=ids, is_active=True))
+    people = list(User.objects.filter(pk__in=ids, is_active=True))
+    if ctx.record is not None and ctx.record.access:   # nobody is told about a record they can't see
+        from .access import allows
+        people = [u for u in people if allows(u, ctx.record.access, ctx.record.pk)]
+    return people
 
 
 # -- The built-in actions ----------------------------------------------------------------------

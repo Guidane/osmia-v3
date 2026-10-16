@@ -111,7 +111,8 @@
             ]
           }
         }
-      ]
+      ],
+      "tree": "parent"
     },
     {
       "key": "levels",

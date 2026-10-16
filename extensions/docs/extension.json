@@ -1,0 +1,9 @@
+{
+  "name": "docs",
+  "title": "Documentation",
+  "version": "2.0.0",
+  "icon": "📄",
+  "description": "The Documentation app: written pages for people to read, in a page tree with a section for every space. A rich editor (type / for headings, lists, tables, panels, pictures, live views, records, calculations and blocks), page templates, labels, comments, version history and pinned pages. A page carries its space's access tags. Data belongs in apps; pages explain it and show it live.",
+  "blueprints": [],
+  "requires": []
+}
