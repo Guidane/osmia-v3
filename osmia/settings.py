@@ -88,6 +88,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': DATA_DIR / 'db.sqlite3',
         'OPTIONS': {'timeout': 20},
+        # Tests use a file too: the browser tests' live server writes from another thread while the
+        # test reads, and an in-memory database fails at once ("table is locked") where a file waits.
+        'TEST': {'NAME': str(DATA_DIR / 'test-db.sqlite3')},
     }
 }
 

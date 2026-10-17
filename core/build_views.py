@@ -228,7 +228,7 @@ def _options_from_post(post, ftype):
         if ftype == 'currency':
             o['symbol'] = post.get('symbol', '€') or '€'
     if ftype == 'rating':
-        o['max'] = int(post.get('max') or 5)
+        o['max'] = int(post.get('rating_max') or 5)
     if ftype in ('select', 'multiselect'):
         values, colors = post.getlist('choice_value'), post.getlist('choice_color')
         o['choices'] = [{'value': v.strip(), 'color': c} for v, c in zip(values, colors) if v.strip()]

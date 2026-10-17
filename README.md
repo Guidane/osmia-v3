@@ -183,8 +183,20 @@ in `extensions/tutorials/content.py`.
 .\.venv\Scripts\python manage.py migrate
 .\.venv\Scripts\python manage.py install_templates --sample   # or: install_templates tasks orders
 .\.venv\Scripts\python manage.py runserver
-.\.venv\Scripts\python manage.py test
+.\.venv\Scripts\python manage.py test                        # everything
+.\.venv\Scripts\python manage.py test --exclude-tag browser  # without the browser tests (fast)
+.\.venv\Scripts\python manage.py test --tag browser          # only the browser tests
 ```
+
+`core/tests/test_browser.py` clicks through Osmia in a real browser (Playwright, from `requirements-dev.txt`, with
+Edge, Chrome or `playwright install chromium`) behind a live server: adding one record and many (grid, form, "save
+and add another", CSV import), changing every kind of field in the grid and on record pages (and the keyboard),
+deleting one record and several, links, comments, stars and files, the view toolbar, kanban and calendar drag and
+drop, form views, CSV export; building apps, fields of every kind, views, automations and buttons, and what can't be
+removed; home spaces, space pages and app home pages with the slash menu; Documentation pages (versions, comments,
+pins, moving, pictures, live values and calculations); access tags and sharing; templates, users, teams, extensions,
+the AI assistant and the tutorials. It checks what the page shows and what is in the database, and fails on any
+JavaScript error. Without Playwright or a browser it is skipped.
 
 | Piece | Where |
 |---|---|

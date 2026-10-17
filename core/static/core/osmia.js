@@ -198,6 +198,11 @@ Share it with them?`)) {
   // -- Cell editing -------------------------------------------------------------------------
   let selected = null;
   let editor = null;
+  // Opening an editor waits for the cell's value: a second open (a double-click is two clicks) wins,
+  // and what is typed meanwhile goes into the editor once it's there.
+  let opening = 0;
+  let typedAhead = null;
+  let enterAhead = false;
 
   function fieldOf(cell) { return META.fields[cell.dataset.field] || null; }
   async function rawOf(cell) {
@@ -242,16 +247,28 @@ Share it with them?`)) {
     }
     if (kind === 'attachment') { window.location = `/r/${rid}/`; return; }
     if (kind === 'link') {
-      rawOf(cell).then((v) => openPicker({
+      const ticket = ++opening;
+      rawOf(cell).then((v) => ticket === opening && !(opening = 0) && !$('.o-modal-back') && openPicker({
         table: f.target, title: `${f.name}: ${f.target_name}`, multiple: f.multiple, selected: v || [],
         onDone: (items) => save(rid, fid, items.map((i) => i.id), cell),
       }));
       return;
     }
+    const ticket = ++opening;
+    typedAhead = firstKey !== undefined ? firstKey : null;
     rawOf(cell).then((value) => {
+      if (ticket !== opening) return;   // opened again since
+      opening = 0;
+      if (typedAhead !== null) firstKey = typedAhead;
+      typedAhead = null;
+      const enter = enterAhead;
+      enterAhead = false;
       const node = el('div', { class: 'editor' });
       const ed = { node, commit: null };
-      ed.outside = (e) => { if (!node.contains(e.target)) closeEditor(true); };
+      ed.outside = (e) => {
+        if (editor !== ed) { document.removeEventListener('mousedown', ed.outside, true); return; }   // an editor already gone
+        if (!node.contains(e.target)) closeEditor(true);
+      };
       if (['text', 'number', 'date', 'datetime', 'color'].includes(kind)) {
         const type = { number: 'text', date: 'date', datetime: 'datetime-local', color: 'color' }[kind] || 'text';
         const input = el('input', { type });
@@ -340,7 +357,8 @@ Share it with them?`)) {
         return;
       }
       editor = ed;
-      setTimeout(() => document.addEventListener('mousedown', ed.outside, true), 0);
+      setTimeout(() => { if (editor === ed) document.addEventListener('mousedown', ed.outside, true); }, 0);
+      if (enter && ed.commit) { closeEditor(true); move(cell, 0, 1); }   // Enter was pressed before it opened
     });
   }
 
@@ -375,9 +393,27 @@ Share it with them?`)) {
   });
   document.addEventListener('dblclick', (e) => {
     const cell = e.target.closest('.cell.editable');
-    if (cell && !e.target.closest('a, button')) { select(cell); openEditor(cell); }
+    if (!cell || e.target.closest('a, button')) return;
+    const f = fieldOf(cell);
+    if (f && f.editor === 'checkbox') return;   // its clicks tick and untick it
+    select(cell);
+    openEditor(cell);
   });
   document.addEventListener('keydown', (e) => {
+    if (opening && !editor) {   // the editor is on its way: keep what is typed for it
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        typedAhead = (typedAhead || '') + e.key;
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        enterAhead = true;
+      } else if (e.key === 'Escape') {
+        opening = 0;
+        typedAhead = null;
+        enterAhead = false;
+      }
+      return;
+    }
     if (editor || !selected || !document.body.contains(selected)) return;
     if (e.target.matches('input, textarea, select')) return;
     const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
