@@ -3,9 +3,10 @@
   "name": "Organisation",
   "icon": "🏢",
   "color": "#475569",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "position": 10,
-  "description": "The organisation as a tree of spaces: the company, its departments and teams, and a space for each person (their home). Move a person's space under their team.",
+  "group": "Management",
+  "description": "The organisation as a tree of spaces: the company, its departments and teams, and the roles people hold in them (Lead engineer, Buyer, ...). A role's work and pages stay with it when someone else takes it over; each role someone holds is a tab on their Home.",
   "tables": [
     {
       "key": "departments",
@@ -41,7 +42,7 @@
                 "color": "#dcfce7"
               },
               {
-                "value": "Person",
+                "value": "Role",
                 "color": "#fef3c7"
               }
             ]
@@ -63,12 +64,12 @@
         },
         {
           "key": "person",
-          "name": "Person",
+          "name": "Held by",
           "type": "user",
           "options": {
             "home": true
           },
-          "description": "Whose home space this is (for a person's space)."
+          "description": "Who holds the role (for a role): it is a tab on their Home."
         },
         {
           "key": "manager",
@@ -150,22 +151,22 @@
         "Manager": "carla"
       },
       {
-        "Name": "Alice Martin",
-        "Kind": "Person",
+        "Name": "Lead engineer",
+        "Kind": "Role",
         "Part of": "Engineering",
-        "Person": "alice"
+        "Held by": "alice"
       },
       {
-        "Name": "Bob Jansen",
-        "Kind": "Person",
+        "Name": "Warehouse operator",
+        "Kind": "Role",
         "Part of": "Warehouse",
-        "Person": "bob"
+        "Held by": "bob"
       },
       {
-        "Name": "Carla Rossi",
-        "Kind": "Person",
+        "Name": "Buyer",
+        "Kind": "Role",
         "Part of": "Purchasing",
-        "Person": "carla"
+        "Held by": "carla"
       }
     ]
   }

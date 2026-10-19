@@ -5,6 +5,7 @@
   "color": "#db2777",
   "version": "1.0.0",
   "position": 29,
+  "group": "Purchasing",
   "description": "The companies we buy from: contact details, address, account, payment terms, lead time and their contacts.",
   "tables": [
     {

@@ -5,6 +5,7 @@
   "color": "#202634",
   "version": "1.0.0",
   "position": 46,
+  "group": "Production",
   "description": "Harness projects drawn in the harness designer (an extension): devices placed on a canvas and wired pin to pin, checked against the signal rules.",
   "requires": ["devices"],
   "tables": [

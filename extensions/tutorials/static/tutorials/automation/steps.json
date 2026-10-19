@@ -1,0 +1,80 @@
+[
+ {
+  "image": "01.png",
+  "caption": "⚡ Automations › ＋ New automation",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Give it a name",
+  "width": 549,
+  "height": 174
+ },
+ {
+  "image": "03.png",
+  "caption": "When: a record is changed",
+  "width": 493,
+  "height": 175
+ },
+ {
+  "image": "04.png",
+  "caption": "… only when its Priority changes",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "05.png",
+  "caption": "If: ＋ Condition",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "06.png",
+  "caption": "If Priority …",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "07.png",
+  "caption": "If Priority changed to …",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "08.png",
+  "caption": "If Priority changed to Urgent",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "09.png",
+  "caption": "Then: add a step, Notify people",
+  "width": 481,
+  "height": 175
+ },
+ {
+  "image": "10.png",
+  "caption": "Tell the person in Assignee",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "11.png",
+  "caption": "The message; {Title} is filled in",
+  "width": 851,
+  "height": 174
+ },
+ {
+  "image": "12.png",
+  "caption": "Save",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "13.png",
+  "caption": "Saved: it runs from now on",
+  "width": 460,
+  "height": 174
+ }
+]

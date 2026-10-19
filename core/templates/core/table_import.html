@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Import · {{ table.name }}{% endblock %}
+{% block leave_to %}{{ table.get_absolute_url }}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>Import into {{ table.name }}</h1>

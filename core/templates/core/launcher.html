@@ -1,12 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Apps · Osmia{% endblock %}
 {% block content %}
-{% if first_time %}<div class="flash info">There is no home space for you yet: install the <b>Organisation</b> template (⚙ → App templates), and everyone gets a space of their own in it.</div>{% endif %}
 <div class="record-head"><h1>Apps</h1><a class="btn small" href="{% url 'core:app_create' %}">＋ New app</a>{% if user.is_superuser %}<a class="btn small" href="{% url 'core:templates' %}">▤ From a template</a>{% endif %}</div>
-<div class="app-cards">
-  {% for a in apps %}{% include "core/canvas/_app_card.html" %}{% endfor %}
-  {% for a in extension_apps %}{% include "core/canvas/_app_card.html" %}{% endfor %}
-</div>
+{% include "core/canvas/_apps.html" %}
 {% for t in trees %}
   <div class="record-head" style="margin-top:24px"><h2>{{ t.table.icon|default:"◼" }} {{ t.table.name }}</h2><a class="small" href="{{ t.table.get_absolute_url }}">Open the table →</a></div>
   <div class="space-tree">{% for node, label, depth in t.rows %}<a class="space-row" style="padding-left:{{ depth|add:1 }}4px" href="{% url 'core:space' node.pk %}">{{ label }}</a>{% endfor %}</div>

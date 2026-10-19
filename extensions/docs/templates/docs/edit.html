@@ -1,5 +1,6 @@
 {% extends "base.html" %}{% load static %}
 {% block title %}{% if page %}Edit {{ page.title }}{% else %}New page{% endif %} · {{ space_label }}{% endblock %}
+{% block leave_to %}{% if page %}{{ page.get_absolute_url }}{% elif parent %}{{ parent.get_absolute_url }}{% else %}{% url 'docs:space' space.pk %}{% endif %}{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'docs/docs.css' %}">{% endblock %}
 {% block content_class %}wide{% endblock %}
 {% block content %}

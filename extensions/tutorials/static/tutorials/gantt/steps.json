@@ -1,0 +1,32 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Open the Gantt view: a bar from start to due date",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "02.png",
+  "caption": "Drag a bar to move the task",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "Start and due date both moved 3 days",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "04.png",
+  "caption": "Drag the right end to make it longer",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "05.png",
+  "caption": "Only the due date changed",
+  "width": 1280,
+  "height": 450
+ }
+]

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Install templates{% endblock %}
+{% block leave_to %}{% url 'core:templates' %}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>▤ Install {{ chosen|length }} template{{ chosen|length|pluralize }}</h1>

@@ -85,6 +85,10 @@ Share it with them?`)) {
     filter.addEventListener('input', () => {
       const q = filter.value.trim().toLowerCase();
       launcher.querySelectorAll('.launcher-tile, .launcher-space').forEach((t) => { t.style.display = !q || t.dataset.name.includes(q) ? '' : 'none'; });
+      // a group whose apps are all left out goes too
+      launcher.querySelectorAll('.launcher-group').forEach((g) => {
+        g.style.display = [...g.querySelectorAll('.launcher-tile')].some((t) => t.style.display !== 'none') ? '' : 'none';
+      });
     });
     filter.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { const first = [...launcher.querySelectorAll('.launcher-tile, .launcher-space')].find((t) => t.style.display !== 'none'); if (first) first.click(); }

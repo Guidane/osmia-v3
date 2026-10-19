@@ -1,7 +1,7 @@
 """The tutorials: one per thing Osmia does.
 
-Each tutorial has steps (HTML), an optional GIF (static/tutorials/<gif>.gif,
-recorded from the real app with ``manage.py make_tutorial_gifs``), a place to
+Each tutorial has steps (HTML), optional step-by-step pictures (static/tutorials/<pictures>/,
+taken from the real app with ``manage.py make_tutorial_pictures``), a place to
 try it (``try_url``: a URL name) and who it's for:
 
     everyone   anyone who logs in
@@ -19,16 +19,17 @@ class Tutorial:
     category: str
     summary: str
     steps: list
-    gif: str = ''
-    gif_caption: str = ''
+    pictures: str = ''   # the folder of its step-by-step pictures
     try_url: str = ''
     try_label: str = ''
     audience: str = 'everyone'
     tips: list = field(default_factory=list)
     related: list = field(default_factory=list)
+    keywords: str = ''   # other words people search with ("overview", "dashboard"), not shown
 
 
 CATEGORIES = [
+    ('howto', 'How do I…'),
     ('start', 'Getting started'),
     ('spaces', 'Spaces, pages and access'),
     ('build', 'Building apps'),
@@ -42,6 +43,155 @@ CATEGORIES = [
 AUDIENCES = {'everyone': 'Everyone', 'builders': 'App builders', 'admins': 'Administrators'}
 
 TUTORIALS = [
+    # -- How do I…: step by step, for something you want done ---------------------------------
+    Tutorial(
+        'tasks-on-home', 'Show your tasks on your home page', '☑', 'howto',
+        'A live list of your open tasks at the top of your home page, soonest due first.',
+        [
+            'Go to your home page (🏠 <b>Home</b> at the top) and click <b>✎ Edit page</b>.',
+            'Click the empty line at the end of the page, type <kbd>/view</kbd> and press <kbd>Enter</kbd> (or click '
+            '<b>＋ Add</b> and choose <b>View…</b>).',
+            '<b>Put a live view on the page</b> lists every view you can open. Type <kbd>My tasks</kbd> and click '
+            '<b>Tasks › Tasks › My tasks</b>: the open tasks assigned to <i>whoever looks at the page</i>.',
+            'To have it at the top, point at it and click <b>↑</b> in the small bar above it until it is first. Then click '
+            '<b>Save</b>.',
+            'On your page it is a live list: how many there are, a row per task (click one to open it), and its title opens '
+            'the whole view, where you change them.',
+        ],
+        pictures='tasks_home',
+        try_url='core:home', try_label='Open your home page',
+        tips=[
+            'Any view can go on a page this way: the tasks <b>Board</b>, a <b>Calendar</b> of due dates, the <b>List</b> of '
+            'everyone\'s tasks. On a page each shows as a list, with a link to the view itself.',
+            'Want only some of them, say just the urgent ones? Make a view of just those first: '
+            '<a href="/tutorials/own-list/">Make a list of just the records you need</a>.',
+            'Side by side: <kbd>/grid</kbd> makes a grid of 2, 3 or 4 columns; click in a column and type <kbd>/view</kbd> there.',
+            '<b>My work › Assigned to me</b>, on the default home page, already lists your open work across every app; '
+            'a view shows one table, with the columns you choose.',
+        ],
+        related=['arrange-page', 'own-list', 'home'],
+        keywords='overview dashboard home screen start page front page to do todo list summary widget',
+    ),
+    Tutorial(
+        'own-list', 'Make a list of just the records you need', '⚲', 'howto',
+        'A view that keeps a filter, like "urgent tasks" or "my orders this month", for everyone and for pages.',
+        [
+            'Open the table (for tasks: the <b>Tasks</b> app). In the row of view tabs, click <b>＋ View</b> and choose '
+            '<b>▦ Grid</b>: a new view called Grid opens.',
+            'Click <b>⚲ Filter</b>, then <b>＋ Add a filter</b>. Choose a field, a condition and a value: <i>Priority</i> '
+            '<i>is</i> <kbd>Urgent</kbd>, or <i>Assignee</i> <i>is me</i> (whoever looks), or <i>Due</i> <i>is in the next … '
+            'days</i>. Add more filters if you need them, then click <b>Apply</b>.',
+            'Click <b>💾 Save for everyone</b>: the view keeps the filter (and the sort and grouping, if you set them).',
+            'Give it a name: <b>⋯</b> at the top right, <b>⚙ View settings</b>, change <i>Name</i> (say <kbd>Urgent tasks</kbd>) '
+            'and <b>Save</b>. It now has its own tab, and you can put it on any page with <kbd>/view</kbd>.',
+        ],
+        try_url='core:launcher', try_label='Open an app', audience='builders',
+        tips=[
+            'Making views needs the right to change the app. Without it you can still filter and sort a view for yourself '
+            '(until you leave it), or ask whoever builds the app.',
+            'More about filters: <a href="/tutorials/filter/">Filter, sort, group and choose fields</a>.',
+        ],
+        related=['tasks-on-home', 'filter', 'views'],
+        keywords='saved filter query report only some subset create new view',
+    ),
+    Tutorial(
+        'project-tasks', 'See the tasks of a project or a team', '📁', 'howto',
+        'A project\'s page, and a team\'s, already list their tasks, and those of the projects or teams under them.',
+        [
+            'Click the grid of squares at the top left, then <b>All apps →</b>. Below the apps, the Projects tree is listed: '
+            'click the project.',
+            'Its page starts with <b>Linked to this space</b>: its <i>Tasks</i>, and the other records it is linked to. '
+            'A programme shows the tasks of all its projects.',
+            'To give a project a task, open the task and pick the project in its <b>Project</b> field (or open the project\'s '
+            '<b>▤ Details</b> and add the task to its <i>Tasks</i>).',
+            'A team works the same way: open it in the <b>Organisation</b> tree; its page lists the tasks whose '
+            '<i>Department</i> is that team.',
+        ],
+        try_url='core:launcher', try_label='Find a project',
+        related=['spaces', 'tasks-on-home'],
+        keywords='overview programme department team project page work',
+    ),
+    Tutorial(
+        'board', 'Move tasks along a board', '▥', 'howto',
+        'To do, In progress, Done: a column per status, and dragging a card changes it.',
+        [
+            'Open the <b>Tasks</b> app and click the <b>▥ Board</b> tab.',
+            'Each column is a <i>Status</i>. Drag a card to another column to change its status; click a card to open the task.',
+            'To add one, click <b>＋ New</b> at the top right.',
+        ],
+        pictures='kanban',
+        try_url='core:launcher', try_label='Open the Tasks app',
+        related=['kanban', 'tasks-on-home'],
+        keywords='kanban status columns drag progress workflow',
+    ),
+    Tutorial(
+        'arrange-page', 'Move, remove or reset what is on a page', '↕', 'howto',
+        'Blocks, views and cards on your home page (or any page) go where you want them, or away.',
+        [
+            'Click <b>✎ Edit page</b>. Point at a block, a view, a record card, a grid, a panel or a table: a small bar shows '
+            'above it.',
+            '<b>↑</b> and <b>↓</b> move it up and down (out of a grid at its top or bottom); <b>←</b> and <b>→</b> move it '
+            'to the grid column on the left or right; <b>✕</b> takes it away.',
+            'Or click it (it gets a green outline) and press <kbd>Delete</kbd> to take it away, or <kbd>Alt</kbd>+'
+            '<kbd>↑</kbd>/<kbd>↓</kbd> to move it. Headings and app cards are text: change or delete them as you type.',
+            'Click <b>Save</b>. Changed your mind? <b>↺ Reset to default</b>, next to <i>✎ Edit page</i> or in the editor, '
+            'puts the page back as it began.',
+        ],
+        try_url='core:home', try_label='Open your home page',
+        related=['tasks-on-home', 'home'],
+        keywords='delete remove block widget layout rearrange reorder default undo restore home screen dashboard',
+    ),
+    Tutorial(
+        'add-tab', 'Add a tab to your Home', '📌', 'howto',
+        'A page of your own next to Me: a week plan, a dashboard of one project, notes.',
+        [
+            'On <b>Home</b>, click <b>＋</b> at the end of the tabs.',
+            'Name the tab (say <kbd>Week plan</kbd>) and click <b>Add</b>: its page opens in the editor.',
+            'Type <kbd>/</kbd> to fill it: a view by its name (<kbd>/task list</kbd>), a record, notes, a checklist, blocks. '
+            'Click <b>Save</b>.',
+            'To rename it or take it away, open the tab and click <b>✎ Edit page</b>: change its name at the top, or click '
+            '<b>✕ Remove this tab</b>. Only you see your tabs.',
+        ],
+        pictures='add_tab',
+        try_url='core:home', try_label='Open Home',
+        related=['home', 'tasks-on-home', 'arrange-page'],
+        keywords='new tab page personal dashboard own add page home',
+    ),
+    Tutorial(
+        'roles', 'Roles: the positions people hold', '💼', 'howto',
+        'Lead engineer, Buyer, Warehouse operator: a role is a space in the Organisation, held by someone. Its work stays with '
+        'it when someone else takes it over.',
+        [
+            'A role is a record of the <b>Organisation</b> tree with <i>Kind</i> <b>Role</b>, under its team or department, and '
+            '<b>Held by</b> the person in it. Each role you hold is a <b>💼 tab on your Home</b>, and opens the role\'s page.',
+            'Link work to the role rather than to the person (a task\'s department, a budget, a page in the role\'s space): the role\'s '
+            'page shows it under <i>Linked to this space</i>.',
+            'To give someone a role, open <b>Organisation</b>, add a record (or open the role) and set <i>Kind</i> to Role, '
+            '<i>Part of</i> to the team and <i>Held by</i> to the person. When they change job, change <i>Held by</i>: the role, its '
+            'page and everything linked to it go to the new holder.',
+            'Who holds a role (and the editors of the Organisation app) change the role\'s page with <b>✎ Edit page</b>.',
+        ],
+        try_url='core:launcher', try_label='Open the Apps page', audience='builders',
+        related=['home', 'spaces'],
+        keywords='role position job title holder hand over handover organisation person people team',
+    ),
+    Tutorial(
+        'group-apps', 'Put apps in groups', '▦', 'howto',
+        'Management, Production, Purchasing, ...: the launcher and home pages show apps under their group.',
+        [
+            'Open the app, click <b>⋯</b> next to its tabs and <b>⚙ App settings</b>.',
+            'In <b>Group</b>, type a group (or pick one that exists already) and click <b>Save</b>.',
+            'The launcher, the Apps page and the <i>Apps</i> block show it under its group; apps without one come last, under '
+            '<i>Other apps</i>. Apps made from a template come with a group.',
+            'A home page you have changed keeps the cards it has: move them with the page editor (see '
+            '<a href="/tutorials/arrange-page/">Move, remove or reset what is on a page</a>), or put the <i>Apps</i> block '
+            'on it (type <kbd>/block apps</kbd>), which always shows every app by group.',
+        ],
+        try_url='core:launcher', try_label='Open the Apps page', audience='builders',
+        related=['arrange-page', 'own-app'],
+        keywords='category categories folder sort organise organize launcher menu',
+    ),
+
     # -- Getting started ------------------------------------------------------------------
     Tutorial(
         'tour', 'A tour of Osmia', '🧭', 'start',
@@ -54,34 +204,39 @@ TUTORIALS = [
             'and projects, locations, ... A tree\'s nodes can be <b>spaces</b>, each with a page. Records don\'t belong to one place: '
             'a task links to its project, its team and the part it is about (see <a href="/tutorials/spaces/">Spaces and trees</a>).',
             'The <b>top bar</b> starts with the <b>launcher</b>: click the grid of squares at the far left for every app you can open '
-            'as a small card, and the top of each tree of spaces. Type to narrow them down and press <kbd>Enter</kbd> to open the first. '
-            'Then come <b>Osmia</b> and 🏠 (your home space), the search box (it searches every app you can see), 🔔 your '
+            'as a small card, under its group (Management, Production, ...), and the top of each tree of spaces. Type to narrow them down and press <kbd>Enter</kbd> to open the first. '
+            'Then come <b>Osmia</b> and 🏠 (Home: your own page and your roles), the search box (it searches every app you can see), 🔔 your '
             'notifications, ⚙ the administration menu and your name.',
             'Inside an app, its <b>tabs</b> run along the top: <b>⌂ Home</b> (the app\'s own page), then a tab per table; a table '
             'has a row of tabs for its views. <b>⋯</b> at the right has its automations, run log, history and settings, '
             'depending on what you may do there.',
         ],
-        gif='tour', gif_caption='Opening an app from the launcher, then a table, a view and a record.',
-        try_url='core:home', try_label='Open your home space',
+        pictures='tour',
+        try_url='core:home', try_label='Open Home',
         related=['home', 'own-app', 'grid'],
     ),
     Tutorial(
-        'home', 'Your home space', '🏠', 'start',
-        'Where you land: your work across all apps, notifications, pinned pages and your apps; you make it your own.',
+        'home', 'Home: your own page and your roles', '🏠', 'start',
+        'Where you land: a page of your own (your work, notifications, pinned pages, apps), a tab for each role you hold, '
+        'and tabs you add.',
         [
-            'Your home space is your node in the <b>Organisation</b> tree, made for you the first time you log in. An administrator '
-            'moves it under your team.',
+            'Home has tabs. <b>🏠 Me</b> is your own page: only you see it and change it. Then come the tabs you add yourself '
+            '(📌, see <a href="/tutorials/add-tab/">Add a tab to your Home</a>), and a <b>💼 tab for each role you hold</b>: '
+            '<i>Lead engineer</i> in Engineering, say (see <a href="/tutorials/roles/">Roles</a>).',
             'It starts with <b>My work</b>: <b>Assigned to me</b> (open records in any app where you are in a person field: assignee, '
             'owner, keeper, ...; soonest due first, late ones red), <b>Recent</b> (records you opened lately) and <b>Starred</b> '
-            '(records you starred with ☆ next to their title). Then your notifications, pinned pages and every app you can open.',
+            '(records you starred with ☆ next to their title). Then your notifications, pinned pages and every app you can open, '
+            'under its group.',
             'Click <b>✎ Edit page</b> to change it. Type <kbd>/</kbd> anywhere (or press <b>＋ Add</b>) for the <b>slash menu</b>: '
             'headings, lists, tables and panels; <b>Grid, 2 columns</b> (type <kbd>/</kbd> again inside a cell to fill it); an app '
             'by its name (a small card that opens it); <b>View…</b> (a live table, board or calendar of any app); <b>Record…</b>; '
-            'a calculation; and blocks such as <i>My work</i> and <i>Notifications</i>. <b>↺ Start over</b> puts it back as it began.',
+            'a calculation; and blocks such as <i>My work</i> and <i>Notifications</i>. Point at a block for a bar that moves it '
+            '(↑ ↓ ← →) or takes it away (✕). <b>↺ Reset to default</b> puts it back as it began.',
         ],
-        gif='home', gif_caption='Starring a record, then putting an app on the home space with the slash menu.',
-        try_url='core:home', try_label='Open your home space',
-        related=['spaces', 'own-app', 'pages'],
+        pictures='home',
+        try_url='core:home', try_label='Open Home',
+        related=['add-tab', 'roles', 'spaces', 'own-app'],
+        keywords='home page start page roles tabs personal dashboard',
     ),
     Tutorial(
         'spaces', 'Spaces and trees', '🌳', 'spaces',
@@ -93,14 +248,14 @@ TUTORIALS = [
             'A tree of <b>spaces</b> gives each node a <b>page</b>. Open one from the launcher, a link, or <b>◼ Space page</b> on its '
             'record. It starts with what <b>links to it</b> (and to the spaces under it: a programme shows the tasks of all its projects), '
             'the spaces under it and its Documentation pages.',
-            'The people named on a space (its person, its manager) and the editors of its app change its page: <b>✎ Edit page</b>, '
-            'then type <kbd>/</kbd> to put apps, live views, records and blocks on it (see <a href="/tutorials/home/">Your home space</a>).',
+            'The people named on a space (who holds a role, its manager) and the editors of its app change its page: <b>✎ Edit page</b>, '
+            'then type <kbd>/</kbd> to put apps, live views, records and blocks on it (see <a href="/tutorials/home/">Home</a>).',
             'To make a space, add a record to its tree: a project in Projects with <i>Part of</i> set to its programme, a team in '
             'Organisation under its department. A tree never goes round in a circle: Osmia refuses a parent that is under the record.',
             'Builders make any table a tree, and its records spaces, in the table\'s <b>⚙ Table settings</b>: pick the link to itself '
             'that names each record\'s parent, and tick <i>Its records are spaces</i>.',
         ],
-        gif='spaces', gif_caption='Opening a programme’s space, then adding a heading, a grid, an app and a block with the slash menu.',
+        pictures='spaces',
         try_url='core:launcher', try_label='Open the launcher',
         related=['pages', 'tags', 'home'],
     ),
@@ -111,7 +266,7 @@ TUTORIALS = [
             'Open <b>📄 Documentation</b> in the launcher. Every space has its section; pick one, or use <i>Pages of this space</i> on '
             'a space\'s page. Pick a template: <b>Blank</b>, <b>Meeting notes</b>, <b>How-to</b>, <b>Decision</b>, '
             '<b>Retrospective</b> or <b>Project plan</b>.',
-            'Give the page an emoji and a title and write. Type <kbd>/</kbd> (or <b>＋ Add</b>) for headings, lists, <b>task lists</b>, '
+            'Give the page an emoji and a title and write. Type <kbd>/</kbd> (or <b>＋ Add</b>) for headings, lists, <b>checklists</b>, '
             'tables, dividers, <b>info, note, warning and success panels</b>, grids, pictures (or paste one), and live data.',
             'Pages are for explaining; <b>data belongs in apps</b>. A page shows it live: <b>/view</b> puts a live view of any app on '
             'the page; <b>/record</b> (or <kbd>@</kbd>) puts a <b>link</b>, a <b>card</b> with the fields you tick, or <b>one live '
@@ -124,7 +279,7 @@ TUTORIALS = [
             'Whoever can see the space reads its pages; the people who may edit the space\'s page write them. A page carries its '
             'space\'s <b>access tags</b>, and can have its own.',
         ],
-        gif='pages', gif_caption='Writing a how-to with a task list and a live view of tasks, then pinning it.',
+        pictures='pages',
         try_url='docs:index', try_label='Open Documentation',
         related=['spaces', 'tags'],
     ),
@@ -180,7 +335,7 @@ TUTORIALS = [
         'own-app', 'Make an app of your own', '🧩', 'build',
         'Everyone can make apps of their own, and build them as they like.',
         [
-            'Click <b>＋ New app</b> at the bottom of the launcher (or on the <i>Apps</i> block of your home space).',
+            'Click <b>＋ New app</b> at the bottom of the launcher (or on the <i>Apps</i> block of your Home).',
             'Give it a name, an icon (any emoji) and a colour, and the name of its first table, e.g. <i>Machines</i>. '
             'Click <b>Make the app</b>.',
             'Osmia opens the table\'s fields, so you can add the columns you need (see <a href="/tutorials/fields/">Fields</a>). '
@@ -190,7 +345,7 @@ TUTORIALS = [
             'Add more tables with <b>＋</b> after the app\'s tabs; link them together with link fields. <b>⌂ Home</b> is the app\'s '
             'own page: <b>⋯ → ✎ Edit the home page</b> makes it a dashboard with live views and blocks.',
         ],
-        gif='own_app', gif_caption='Making an app with a first table, then adding a field.',
+        pictures='own_app',
         try_url='core:app_create', try_label='Make an app', audience='everyone',
         tips=['Your own app can\'t link to apps you may only read (a link adds a field to the other table), and its '
               'automations can\'t change them. Ask an administrator for edit access if you need that.'],
@@ -218,7 +373,7 @@ TUTORIALS = [
             'Drag the rows of the field list to reorder them and click <b>Save the order</b>. Renaming a field keeps formulas '
             'and automations that use it working. Changing a field\'s type converts the values that fit.',
         ],
-        gif='fields', gif_caption='Adding a single select with coloured choices, and a number.',
+        pictures='fields',
         try_url='core:home', try_label='Open an app you build', audience='builders',
         tips=['Renaming a choice of a select renames it on every record.',
               'The key shown at the right of the field list never changes; templates and automations use it.'],
@@ -308,7 +463,7 @@ TUTORIALS = [
             'If a value isn\'t allowed (a required field left empty, a choice that may not follow the one before, an automation '
             'that refuses it) the cell turns red and Osmia says why.',
         ],
-        gif='grid', gif_caption='Editing a text cell and a status in the grid.',
+        pictures='grid',
         try_url='core:home', try_label='Open an app',
         related=['filter', 'record-page'],
     ),
@@ -325,7 +480,7 @@ TUTORIALS = [
             'What you apply is just for you, in the address bar (you can bookmark it). People who build the app can click '
             '<b>💾 Save for everyone</b> to keep it in the view. <b>✕ Reset</b> goes back to the view as saved.',
         ],
-        gif='filter', gif_caption='Filtering tasks by status, then sorting them.',
+        pictures='filter',
         try_url='core:home', try_label='Open an app',
         related=['grid', 'views'],
     ),
@@ -339,7 +494,7 @@ TUTORIALS = [
             'says why.',
             'Click a card to open the record; <b>＋ Add</b> under a column adds one.',
         ],
-        gif='kanban', gif_caption='Dragging a task from To do to In progress.',
+        pictures='kanban',
         try_url='core:home', try_label='Open an app',
     ),
     Tutorial(
@@ -352,7 +507,7 @@ TUTORIALS = [
             'several days keeps its length.',
             'Hover over a day and click <b>＋</b> to add a record on that day.',
         ],
-        gif='calendar', gif_caption='Moving a task to another day.',
+        pictures='calendar',
         try_url='core:home', try_label='Open an app',
     ),
     Tutorial(
@@ -366,7 +521,7 @@ TUTORIALS = [
             'Choose <b>Days</b>, <b>Weeks</b> or <b>Months</b>; <b>⌖ Today</b> scrolls back to today (the red line). Records without '
             'dates are listed under the chart.',
         ],
-        gif='gantt', gif_caption='Moving a bar and stretching another.',
+        pictures='gantt',
         try_url='core:home', try_label='Open an app',
     ),
     Tutorial(
@@ -380,7 +535,7 @@ TUTORIALS = [
             'When you filter or search, matching records are shown with the records above them, so you can see where they are.',
             'Rollups and formulas that go through the children (e.g. a budget\'s <i>Spent</i> including its sub-budgets) are shown per level.',
         ],
-        gif='tree', gif_caption='Collapsing and opening budgets.',
+        pictures='tree',
         try_url='core:home', try_label='Open an app',
     ),
     Tutorial(
@@ -405,7 +560,7 @@ TUTORIALS = [
             'Required fields must be filled in.',
             'Any table also has a full form under <b>＋ New</b> at the top right.',
         ],
-        gif='form', gif_caption='Asking for a task with a form.',
+        pictures='form',
         try_url='core:home', try_label='Open an app',
     ),
 
@@ -423,7 +578,7 @@ TUTORIALS = [
             'On the right: <b>Comments</b>, the <b>History</b> (who changed what, old → new, and which automation did it) and the '
             '<b>Automations</b> that ran for this record. ↑ ↓ go to the previous and next record; ⋯ deletes it.',
         ],
-        gif='record', gif_caption='Changing a value on a record page and adding a comment.',
+        pictures='record',
         try_url='core:home', try_label='Open an app',
         related=['files', 'buttons'],
     ),
@@ -449,7 +604,7 @@ TUTORIALS = [
             'To make one: build an automation with the trigger <b>A button is pressed</b> (see <a href="/tutorials/automations/">Automations</a>), '
             'then add a <b>Button</b> field and pick it.',
         ],
-        gif='button', gif_caption='Placing an order and receiving it with its buttons.',
+        pictures='button',
         try_url='core:home', try_label='Open an app',
         related=['automations'],
     ),
@@ -468,7 +623,7 @@ TUTORIALS = [
             'with a message, notify people, send an email, call a web address, or run another automation.',
             'Click <b>Save</b>. The <b>Run log</b> shows every time it ran: what it did, or why it failed.',
         ],
-        gif='automation', gif_caption='Building an automation that notifies the assignee.',
+        pictures='automation',
         try_url='core:home', try_label='Open an app you build', audience='builders',
         tips=['All of an automation\'s steps happen together or not at all: if one fails, the others are undone.',
               'Automations can set each other off, up to 8 deep.'],
@@ -558,7 +713,7 @@ TUTORIALS = [
             'To copy an app to another Osmia, open its <b>⚙ App settings</b> and click <b>⬇ Download as template</b> (or with its '
             'records), then <b>Install a template file</b> on the other Osmia.',
         ],
-        gif='templates', gif_caption='The templates page.',
+        pictures='templates',
         try_url='core:templates', try_label='Open the templates', audience='admins',
     ),
     Tutorial(
@@ -607,7 +762,7 @@ TUTORIALS = [
             '<b>Save</b> keeps a new version; <b>Versions</b> goes back to an older one.',
             'Each project is a record of <b>Harness projects</b> with its pictures, notes and counts; its page opens it in the designer.',
         ],
-        gif='designer', gif_caption='Placing two devices on the canvas.',
+        pictures='designer',
         try_url='harness:designer', try_label='Open the designer',
     ),
 ]

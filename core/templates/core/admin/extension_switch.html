@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ ext.title }}{% endblock %}
+{% block leave_to %}{% url 'core:extensions' %}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>{{ ext.icon }} {% if on %}Switch on{% else %}Switch off{% endif %} {{ ext.title }}</h1>

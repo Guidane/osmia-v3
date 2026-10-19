@@ -5,6 +5,7 @@
   "color": "#9333ea",
   "version": "1.0.0",
   "position": 40,
+  "group": "Production",
   "description": "Bills of materials from parts and sub-assemblies: what it costs, how many builds the stock covers, a revision that goes up when the components change, and build tasks.",
   "requires": [
     "parts"

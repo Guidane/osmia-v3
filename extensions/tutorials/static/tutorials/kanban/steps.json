@@ -1,0 +1,20 @@
+[
+ {
+  "image": "01.png",
+  "caption": "A kanban board: a column per status",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Drag a card to another column",
+  "width": 653,
+  "height": 270
+ },
+ {
+  "image": "03.png",
+  "caption": "Its status changed to In progress",
+  "width": 1280,
+  "height": 450
+ }
+]

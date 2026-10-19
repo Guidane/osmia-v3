@@ -45,7 +45,7 @@ def project_panel(request, record, data):
 
 def register(registry):
     registry.app('Harness designer', 'harness:designer', '🧵', 'Place devices on a canvas and wire their connectors pin to pin.',
-                 color='#c2410c', extension='harness')
+                 color='#c2410c', extension='harness', group='Production')
     registry.view_type(DesignerView)
     registry.page('Designer', 'harness:designer', '✏️', app='harness', extension='harness')
     registry.page('Designer', 'harness:designer', '✏️', app='devices', extension='harness')

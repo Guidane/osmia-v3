@@ -7,6 +7,10 @@ app_name = 'core'
 
 urlpatterns = [
     path('', space_views.home, name='home'),
+    path('home/edit/', space_views.home_edit, name='home_edit'),
+    path('home/new/', space_views.home_tab_new, name='home_tab_new'),
+    path('home/<int:pk>/', space_views.home, name='home_page'),
+    path('home/<int:pk>/edit/', space_views.home_edit, name='home_page_edit'),
     path('apps/', space_views.launcher, name='launcher'),
     path('setup/', views.setup, name='setup'),
     path('search/', views.search, name='search'),

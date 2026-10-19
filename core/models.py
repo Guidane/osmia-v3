@@ -16,8 +16,8 @@ stored; ``core.data`` works them out when they're read.
 Structure is a forest: any table can be a tree (``Table.tree_field``, a link to
 itself), and records link to the nodes of as many trees as they like. A table
 marked ``is_space`` is a tree whose records are spaces: each has a page, and
-everyone's home space is the record of such a table whose home field (a user
-field with ``options.home``) is them.
+a space whose holder field (a user field with ``options.home``) names someone
+is a role they hold: a tab on their Home, next to their own page.
 """
 from django.conf import settings
 from django.db import models
@@ -49,6 +49,8 @@ class App(models.Model):
     icon = models.CharField(max_length=8, default='▦', blank=True)
     color = models.CharField(max_length=7, default='#2e7d5b')
     description = models.TextField(blank=True)
+    # The group it's shown under in the launcher and on home pages, e.g. "Management", "Production".
+    group = models.CharField(max_length=60, blank=True)
     position = models.IntegerField(default=100)
     # What everyone logged in may do, unless AppAccess says more for them. Reading only,
     # unless an administrator explicitly lets everyone write.
@@ -444,9 +446,14 @@ class AccessGrant(models.Model):
 
 class Layout(models.Model):
     """A page made of blocks (see core.canvas): a space's page (``record``, a record
-    of a space table) or an app's home tab (``app``)."""
+    of a space table), an app's home tab (``app``) or a page of someone's own on Home (``user``): their main
+    page (no ``title``) and the tabs they add next to it."""
     record = models.OneToOneField(Record, null=True, blank=True, on_delete=models.CASCADE, related_name='layout')
     app = models.OneToOneField(App, null=True, blank=True, on_delete=models.CASCADE, related_name='layout')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE,
+                             related_name='home_pages')
+    title = models.CharField(max_length=60, blank=True)   # a tab of someone's Home; '' is their main page
+    position = models.IntegerField(default=0)
     body = models.TextField(blank=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     updated_at = models.DateTimeField(auto_now=True)

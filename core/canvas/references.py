@@ -37,19 +37,27 @@ def targets(removal):
     return removed_records, removed_slugs
 
 
+def where(layout):
+    """Which page a Layout is, for people: "the page of the space Engineering", "Alice's Home (tab Week plan)"."""
+    if layout.app_id:
+        return f'the home page of the app {layout.app.name}'
+    if layout.user_id:
+        who = layout.user.get_full_name() or layout.user.username
+        return f"{who}'s Home" + (f' (the tab {layout.title})' if layout.title else '')
+    from ..data import Data
+    return f'the page of the space {Data().label(layout.record)}'
+
+
 def used_in(removal, gone):
     """Space pages and app home pages that show something being removed."""
     removed_records, removed_slugs = targets(removal)
     out = []
-    for layout in Layout.objects.select_related('record__table', 'app'):
+    for layout in Layout.objects.select_related('record__table', 'app', 'user'):
         if layout.app_id and layout.app_id in removal.apps:
             continue
         if layout.record_id and layout.record.table_id in removal.tables:
             continue
         if uses(layout.body, removal, gone, removed_records, removed_slugs):
-            if layout.app_id:
-                out.append(f'The home page of the app {layout.app.name} shows it.')
-            else:
-                from ..data import Data
-                out.append(f'The page of the space {Data().label(layout.record)} shows it.')
+            page = where(layout)
+            out.append(f'{page[0].upper()}{page[1:]} shows it.')
     return out

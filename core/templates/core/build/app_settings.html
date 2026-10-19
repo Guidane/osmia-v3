@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Settings · {{ app.name }}{% endblock %}
+{% block leave_to %}{{ app.get_absolute_url }}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>⚙ {{ app.name }}</h1>
@@ -12,6 +13,9 @@
     <div class="inline">{% for c in colors %}<label><input type="radio" name="color" value="{{ c }}" {% if c == app.color %}checked{% endif %}> <span class="swatch" style="background:{{ c }}"></span></label>{% endfor %}<input type="color" name="color_custom" value="{{ app.color }}" onchange="this.form.querySelectorAll('[name=color]').forEach(r=>r.checked=false);this.name='color'"></div>
   </div>
   <div class="field"><label for="description">What it's for</label><textarea id="description" name="description" rows="2">{{ app.description }}</textarea></div>
+  <div class="field"><label for="group">Group</label><input id="group" name="group" value="{{ app.group }}" maxlength="60" list="group-names" placeholder="e.g. Management, Production">
+    <datalist id="group-names">{% for g in group_names %}<option value="{{ g }}">{% endfor %}</datalist>
+    <div class="help">Apps are shown under their group in the launcher and on home pages.</div></div>
   {% if not user.is_superuser and app.owner == user %}
     <div class="field"><label for="default_role">Who can see it</label>
       <select id="default_role" name="default_role"><option value="none" {% if app.default_role == 'none' %}selected{% endif %}>Only me</option>

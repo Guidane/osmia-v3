@@ -1,0 +1,13 @@
+<nav class="tabs home-tabs" aria-label="Your pages and your roles">
+  {% for t in tabs %}<a href="{{ t.url }}" class="{% if t.on %}active{% endif %}">{{ t.icon }} {{ t.label }}{% if t.where %} <span class="muted small">· {{ t.where }}</span>{% endif %}</a>{% endfor %}
+  <details class="menu left home-tab-add">
+    <summary class="muted" title="Add a tab: a page of your own">＋</summary>
+    <div class="menu-panel">
+      <form method="post" action="{% url 'core:home_tab_new' %}" class="inline">{% csrf_token %}
+        <input name="title" maxlength="60" placeholder="Name the tab, e.g. Week plan" required aria-label="Name of the new tab">
+        <button class="btn small primary">Add</button>
+      </form>
+      <p class="muted small" style="margin:6px 0 0">A page of your own, next to Me: put views, records and notes on it.</p>
+    </div>
+  </details>
+</nav>

@@ -100,6 +100,14 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 .tabs a:hover { background: var(--hover); text-decoration: none; }
 .tabs a.active { color: var(--text); background: var(--bg); border-color: var(--border); font-weight: 600; margin-bottom: -1px; }
 .tabs .menu-panel { top: 100%; left: 0; right: auto; }
+.home-tabs { margin-top: 14px; border-bottom: 1px solid var(--border); }
+.home-tabs a.active { background: var(--panel); }
+.home-tab-add .menu-panel { width: 320px; padding: 10px; }
+.home-tab-add form { display: flex; gap: 6px; align-items: center; }
+.home-tab-add input { flex: 1; min-width: 0; }
+.home-tab-add .menu-panel button.btn { width: auto; flex: none; display: inline-flex; }   /* not a menu row */
+h1 .home-title { font: inherit; border: 0; border-bottom: 2px solid var(--border); background: transparent; color: var(--text); padding: 2px; width: min(480px, 70vw); }
+h1 .home-title:focus { outline: none; border-bottom-color: var(--brand); }
 .toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .toolbar .tool { background: none; border: 1px solid transparent; color: var(--text); padding: 5px 10px; border-radius: var(--radius); cursor: pointer; font: inherit; display: inline-flex; gap: 6px; align-items: center; }
 .toolbar .tool:hover { background: var(--hover); text-decoration: none; }
@@ -465,6 +473,8 @@ table.sub { width: 100%; border-collapse: collapse; font-size: 13px; }
 .app-card-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
 .app-card-name { font-size: 13px; font-weight: 600; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .app-card.new { border-style: dashed; color: var(--muted); }
+.app-group-title { margin: 16px 0 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.app-group-title:first-of-type { margin-top: 0; }
 
 /* -- Spaces ------------------------------------------------------------------------ */
 .space-head { margin-bottom: 14px; }

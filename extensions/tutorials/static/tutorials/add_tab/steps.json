@@ -1,0 +1,50 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Home: your own page, and a tab for each role you hold",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Click ＋ at the end of the tabs",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "03.png",
+  "caption": "Name the tab",
+  "width": 474,
+  "height": 174
+ },
+ {
+  "image": "04.png",
+  "caption": "Click Add: its page opens in the editor",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "05.png",
+  "caption": "Click into the page",
+  "width": 1280,
+  "height": 170
+ },
+ {
+  "image": "06.png",
+  "caption": "Type / and what you want on it, e.g. /task list, and press Enter",
+  "width": 510,
+  "height": 328
+ },
+ {
+  "image": "07.png",
+  "caption": "Click Save",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "08.png",
+  "caption": "Your tab, next to Me; ✎ Edit page renames it or takes it away",
+  "width": 1280,
+  "height": 450
+ }
+]

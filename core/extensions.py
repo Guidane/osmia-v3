@@ -26,7 +26,7 @@ An extension reads and writes records only through core.data and
 core.service, so access tags, validation, history and automations apply.
 ``register`` can add:
 
-    registry.app('Title', 'name:url', icon, description)    a card in the launcher: the extension app itself
+    registry.app('Title', 'name:url', icon, description, group='Workspace')    a card in the launcher: the extension app itself
     registry.block('key', 'Label', fn, icon, where, help)    a block for pages' slash menu: fn(request, context) -> html
     registry.page('Title', 'name:url', icon, app='harness')  a tab of the apps made from that template
     registry.view_type(MyViewType)                 a new kind of view (see core.viewtypes.ViewType)
@@ -79,6 +79,7 @@ class ExtensionApp:
     color: str = '#475569'
     extension: str = ''
     visible: object = None   # fn(request) -> bool, or None: everyone
+    group: str = ''          # shown under it in the launcher and on home pages, like an App's
 
     @property
     def url(self):
@@ -89,6 +90,11 @@ class ExtensionApp:
     @property
     def name(self):
         return self.title
+
+    @property
+    def slug(self):
+        """How a page names its card (data-app), next to the apps' slugs."""
+        return 'x-ext-' + self.url_name.replace(':', '-').replace('_', '-')
 
     def get_absolute_url(self):
         return self.url
@@ -167,8 +173,8 @@ class Registry:
     def page(self, title, url_name, icon='◆', app='', extension=''):
         self.pages.append(Page(title, url_name, icon, app, extension))
 
-    def app(self, title, url_name, icon='◆', description='', color='#475569', extension='', visible=None):
-        self.apps.append(ExtensionApp(title, url_name, icon, description, color, extension, visible))
+    def app(self, title, url_name, icon='◆', description='', color='#475569', extension='', visible=None, group=''):
+        self.apps.append(ExtensionApp(title, url_name, icon, description, color, extension, visible, group))
 
     def block(self, key, label, fn, icon='◆', where='any', help=''):
         self.blocks[key] = Block(key, label, fn, icon, where, help)
@@ -305,10 +311,10 @@ def in_use(name):
     blocks = set(provided.get('blocks') or [])
     if blocks:
         used = re.compile(r'data-block="(' + '|'.join(re.escape(b) for b in blocks) + r')"')
-        for layout in Layout.objects.select_related('app', 'record'):
+        from .canvas.references import where as page_name
+        for layout in Layout.objects.select_related('app', 'record', 'user'):
             if used.search(layout.body or ''):
-                where = f'the home page of {layout.app.name}' if layout.app_id else f'the page of the space {layout.record}'
-                out.append(f'A block it brings is on {where}.')
+                out.append(f'A block it brings is on {page_name(layout)}.')
         for source in registry.page_sources:
             for where, body in source():
                 if used.search(body or ''):

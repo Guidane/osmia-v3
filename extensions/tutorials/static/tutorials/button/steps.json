@@ -1,0 +1,38 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Open the order pages",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "02.png",
+  "caption": "Pick a draft order",
+  "width": 519,
+  "height": 214
+ },
+ {
+  "image": "03.png",
+  "caption": "Press Place order",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "04.png",
+  "caption": "An automation checked it and placed it",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "05.png",
+  "caption": "Press Receive everything",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "06.png",
+  "caption": "The lines are booked into stock; the order is Received",
+  "width": 460,
+  "height": 170
+ }
+]

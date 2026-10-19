@@ -5,6 +5,7 @@
   "color": "#3b7dd8",
   "version": "1.0.0",
   "position": 45,
+  "group": "Production",
   "description": "Anything with connectors that takes part in an electrical setup: units we build, test equipment, power supplies, loads, meters, adapters. Each connector has numbered pins with tags, a signal and a cable set.",
   "after": ["parts", "assemblies"],
   "tables": [

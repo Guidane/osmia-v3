@@ -1,0 +1,44 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Search finds a record in any app",
+  "width": 859,
+  "height": 174
+ },
+ {
+  "image": "02.png",
+  "caption": "Open it",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "Click a value to change it",
+  "width": 858,
+  "height": 174
+ },
+ {
+  "image": "04.png",
+  "caption": "Ctrl+Enter saves",
+  "width": 858,
+  "height": 174
+ },
+ {
+  "image": "05.png",
+  "caption": "Write a comment",
+  "width": 530,
+  "height": 200
+ },
+ {
+  "image": "06.png",
+  "caption": "Click Comment",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "07.png",
+  "caption": "History: who changed what, old → new",
+  "width": 460,
+  "height": 182
+ }
+]

@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Edit {% if page %}{{ page.title }}{% else %}your page{% endif %} · Osmia{% endblock %}
+{% block leave_to %}{% if page %}{% url 'core:home_page' page.pk %}{% else %}{% url 'core:home' %}{% endif %}{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block content %}
+<form method="post" id="page-form" class="page-edit">{% csrf_token %}
+  <nav class="crumbs"><a href="{% url 'core:home' %}">🏠 Home</a> › {% if page %}<a href="{% url 'core:home_page' page.pk %}">{{ page.title }}</a> › editing the tab{% else %}editing your page{% endif %}</nav>
+  {% if page %}<h1>📌 <input name="title" value="{{ page.title }}" maxlength="60" required class="home-title" aria-label="Name of the tab"></h1>
+  {% else %}<h1>🏠 Your own page</h1>{% endif %}
+  {% include "core/canvas/_editor.html" %}
+  <div class="edit-foot">
+    <button class="btn primary">Save</button>
+    <a class="btn ghost" href="{% if page %}{% url 'core:home_page' page.pk %}{% else %}{% url 'core:home' %}{% endif %}">Cancel</a>
+    {% if page %}<button class="btn ghost" name="remove" value="1" formnovalidate data-confirm="Take the tab {{ page.title }} away, and what is on it?">✕ Remove this tab</button>
+    {% else %}<button class="btn ghost" name="reset" value="1" formnovalidate data-confirm="Put your page back to the default? What you changed is lost.">↺ Reset to default</button>{% endif %}
+    <span class="muted small">Ctrl+S saves · only you see this page</span>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{% static 'core/editor.js' %}"></script>{% endblock %}

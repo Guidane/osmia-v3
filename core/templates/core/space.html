@@ -1,18 +1,20 @@
 {% extends "base.html" %}
-{% block title %}{% if is_home %}Home{% else %}{{ space_label }}{% endif %} · Osmia{% endblock %}
+{% block title %}{{ space_label }} · Osmia{% endblock %}
 {% block content_class %}wide{% endblock %}
 {% block content %}
 <div class="space-head">
   <nav class="crumbs">{% for a, label in ancestors %}<a href="{% url 'core:space' a.pk %}">{{ label }}</a> › {% endfor %}<span class="muted">{{ space_table.name }}</span></nav>
   <div class="space-title">
-    <span class="space-icon">{% if is_home %}🏠{% else %}{{ space_table.icon|default:"◼" }}{% endif %}</span>
-    <h1>{% if is_home %}{{ space_label }} <span class="muted small">your home space</span>{% else %}{{ space_label }}{% endif %}</h1>
+    <span class="space-icon">{% if home_tabs %}💼{% else %}{{ space_table.icon|default:"◼" }}{% endif %}</span>
+    <h1>{{ space_label }}{% if home_tabs %} <span class="muted small">your role</span>{% endif %}</h1>
     {% if kind %}<span class="badge">{{ kind }}</span>{% endif %}
     {% for t in tags %}<span class="tag-chip" style="--tag:{{ t.color }}" title="Only people holding {{ t.name }} see this space">🏷 {{ t.name }}</span>{% endfor %}
     <div style="flex:1"></div>
     <a class="btn small ghost" href="{{ space.get_absolute_url }}" title="The space's own record: its fields, links and history">▤ Details</a>
+    {% if can_edit and layout %}<form method="post" action="{% url 'core:space_edit' space.pk %}">{% csrf_token %}<button class="btn small ghost" name="reset" value="1" data-confirm="Put this page back to the default every space starts with? What was changed is lost.">↺ Reset to default</button></form>{% endif %}
     {% if can_edit %}<a class="btn small primary" href="{% url 'core:space_edit' space.pk %}">✎ Edit page</a>{% endif %}
   </div>
+  {% if home_tabs %}{% with tabs=home_tabs %}{% include "core/_home_tabs.html" %}{% endwith %}{% endif %}
 </div>
 <div class="page-body canvas">{{ body|safe }}</div>
 {% if can_edit and not layout %}<p class="muted small">This is the page every space in {{ space_table.name }} starts with. <a href="{% url 'core:space_edit' space.pk %}">Edit it</a> to make it this space's own: type <kbd>/</kbd> for apps, views, records and blocks.</p>{% endif %}

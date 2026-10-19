@@ -5,6 +5,7 @@
   "color": "#0d9488",
   "version": "2.0.0",
   "position": 25,
+  "group": "Management",
   "description": "Programmes and projects as a tree of spaces: each project has a manager, a team, dates, its tasks and (with Budgets) its own budget. Tasks linked to a project carry its access tags.",
   "requires": ["tasks"],
   "after": ["departments", "budgets"],

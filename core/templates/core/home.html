@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{% if page %}{{ page.title }}{% else %}Home{% endif %} · Osmia{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block content %}
+<div class="space-head">
+  <div class="space-title">
+    <span class="space-icon">{% if page %}📌{% else %}🏠{% endif %}</span>
+    <h1>{% if page %}{{ page.title }} <span class="muted small">your tab</span>{% else %}{{ user.get_full_name|default:user.username }} <span class="muted small">your own page</span>{% endif %}</h1>
+    <div style="flex:1"></div>
+    {% if layout and not page %}<form method="post" action="{% url 'core:home_edit' %}">{% csrf_token %}<button class="btn small ghost" name="reset" value="1" data-confirm="Put your page back to the default? What you changed is lost.">↺ Reset to default</button></form>{% endif %}
+    <a class="btn small primary" href="{% if page %}{% url 'core:home_page_edit' page.pk %}{% else %}{% url 'core:home_edit' %}{% endif %}">✎ Edit page</a>
+  </div>
+  {% include "core/_home_tabs.html" %}
+</div>
+<div class="page-body canvas">{{ body|safe }}</div>
+{% if not page and tabs|length == 1 and can_hold_roles %}<p class="muted small">You hold no role yet. Your roles (say, <i>Lead engineer</i> in Engineering) are in the Organisation tree; an administrator gives you one, and it gets a tab here.</p>{% endif %}
+{% if not page and not layout %}<p class="muted small">This is the page everyone starts with. <a href="{% url 'core:home_edit' %}">Edit it</a> to make it yours: type <kbd>/</kbd> for apps, views, records and blocks. Only you see and change it.</p>{% endif %}
+{% endblock %}

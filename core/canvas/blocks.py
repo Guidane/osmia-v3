@@ -44,10 +44,8 @@ def notifications(request, context):
 
 
 def apps(request, context):
-    from ..permissions import visible_apps
-    found = visible_apps(request.user)
-    return render_to_string('core/canvas/_apps.html', {'apps': found, 'extension_apps': registry.apps_for(request)},
-                            request=request)
+    from ..space import app_groups
+    return render_to_string('core/canvas/_apps.html', {'groups': app_groups(request), 'new_card': True}, request=request)
 
 
 def children(request, context):
@@ -87,7 +85,7 @@ def tables(request, context):
 def register_core_blocks():
     registry.block('my_work', 'My work', my_work, icon='☑', help='What is assigned to you, what you opened lately, what you starred.')
     registry.block('notifications', 'Notifications', notifications, icon='🔔', help='Your unread notifications.')
-    registry.block('apps', 'Apps', apps, icon='▦', help='Every app you can open, as small cards.')
+    registry.block('apps', 'Apps', apps, icon='▦', help='Every app you can open, as small cards in their groups.')
     registry.block('child_spaces', 'Spaces under this one', children, icon='🌳', where='space',
                    help='The spaces under this space in its tree.')
     registry.block('linked', 'Linked to this space', linked, icon='⇄', where='space',

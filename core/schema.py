@@ -16,11 +16,11 @@ from .models import App, Automation, Field, Link, Record, Table, View, unique_sl
 
 
 def create_app(name, user=None, icon='▦', color='#2e7d5b', description='', blueprint='', blueprint_version='',
-               owner=None, default_role=App.Role.VIEWER):
+               owner=None, default_role=App.Role.VIEWER, group=''):
     slug = unique_slug(name, {s.replace('-', '_') for s in App.objects.values_list('slug', flat=True)}, 'app').replace('_', '-')
     top = App.objects.aggregate(m=Max('position'))['m'] or 0
     return App.objects.create(name=name, slug=slug, icon=icon or '▦', color=color or '#2e7d5b', description=description,
-                              blueprint=blueprint, blueprint_version=blueprint_version, created_by=user, position=top + 10,
+                              group=(group or '').strip()[:60], blueprint=blueprint, blueprint_version=blueprint_version, created_by=user, position=top + 10,
                               owner=owner, default_role=default_role)
 
 

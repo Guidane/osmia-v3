@@ -11,6 +11,7 @@ from ..permissions import can, visible_apps
 from .calc import PageData, result
 from .render import NOT_SHOWN
 from .sanitize import clean
+from ..viewtypes import VIEW_TYPES
 
 EMBEDDABLE = ('grid', 'tree', 'kanban', 'gallery', 'calendar', 'gantt')
 
@@ -23,12 +24,14 @@ def editor_config(request, where='page', upload_url=''):
         for table in app.tables.all():
             for view in table.views.all():
                 if view.type in EMBEDDABLE:
-                    views.append([f'{app.name} › {table.name} › {view.name}', view.pk])
+                    views.append([f'{app.name} › {table.name} › {view.name}', view.pk, VIEW_TYPES[view.type].icon, view.type])
     block_where = where if where in ('space', 'app') else 'page'
     return {
         'records': reverse('core:editor_records'), 'calc': reverse('core:editor_calc'), 'upload': upload_url,
         'views': views,
-        'apps': [{'slug': a.slug, 'name': a.name, 'icon': a.icon, 'color': a.color} for a in apps],
+        'apps': [{'slug': a.slug, 'name': a.name, 'icon': a.icon, 'color': a.color, 'group': a.group,
+                  'url': a.get_absolute_url()}
+                 for a in [*apps, *registry.apps_for(request)]],
         'blocks': [{'key': b.key, 'label': b.label, 'icon': b.icon, 'help': b.help}
                    for b in registry.blocks.values() if b.where == 'any' or b.where == block_where],
     }
@@ -50,8 +53,13 @@ def records_for_link(request):
                     found = data.search(table, q, limit=5)
                 for r in found:
                     out.append({'id': r.pk, 'label': data.label(r), 'where': f'{app.name} › {table.name}'})
-                if len(out) >= 30:
-                    break
+    # records whose own name matches come first: the same name, then names starting with it, then containing it
+    low = q.lower()
+
+    def closeness(item):
+        label = item['label'].lower()
+        return 0 if label == low else 1 if label.startswith(low) else 2 if low in label else 3
+    out.sort(key=closeness)
     return JsonResponse({'records': out[:30]})
 
 

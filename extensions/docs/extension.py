@@ -71,7 +71,7 @@ def pages():
 
 def register(registry):
     registry.app('Documentation', 'docs:index', '📄', 'Pages for people to read, a section for every space.',
-                 color='#7c3aed', extension='docs')
+                 color='#7c3aed', extension='docs', group='Workspace')
     registry.block('space_pages', 'Pages of this space', space_pages_block, icon='📄', where='space',
                    help='The Documentation pages of this space, and buttons to write one.')
     registry.block('pinned_pages', 'Pinned pages', pinned_block, icon='📌', help='The pages you pinned.')

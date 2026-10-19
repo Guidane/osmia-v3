@@ -5,7 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from core import access, blueprints, space as spaces
+from core import access, blueprints, service, space as spaces
 from core.canvas.sanitize import clean
 from core.data import Data
 from core.models import App, AppAccess, Field, Table, View
@@ -153,11 +153,19 @@ class PageTests(TestCase):
         self.assertIn(url, page.body)
         self.assertEqual(self.client.get(url).status_code, 200)
 
-    def test_pages_in_a_home_space(self):
-        home = spaces.home_node(self.ben)   # Ben may write in his own home space, not in Ann's
+    def test_pages_in_a_role(self):
+        # a role names who holds it: Ben may write in his role's space, not in Ann's
+        org = Table.objects.get(app__blueprint='departments', key='departments')
+        data = Data()
+        roles = {}
+        for user, name in [(self.ben, 'Tester'), (self.ann, 'Designer')]:
+            roles[user] = service.create_record(org, {data.field_named(org, 'Name').pk: name,
+                                                      data.field_named(org, 'Kind').pk: 'Role',
+                                                      data.field_named(org, 'Held by').pk: user.pk},
+                                                user=self.admin, data=data)
         self.client.force_login(self.ben)
-        self.assertEqual(self.client.get(reverse('docs:new', args=[home.pk])).status_code, 200)
-        self.assertEqual(self.client.get(reverse('docs:new', args=[spaces.home_node(self.ann).pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse('docs:new', args=[roles[self.ben].pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse('docs:new', args=[roles[self.ann].pk])).status_code, 403)
 
 
 class RecordSnippetTests(TestCase):
@@ -188,6 +196,13 @@ class RecordSnippetTests(TestCase):
 
     def value(self, field):
         return f'<p>Now: <span class="record-value" data-record="{self.task.pk}" data-field="{field.pk}">x › y</span></p>'
+
+    def test_records_named_like_the_search_come_first(self):
+        # the team a task is in also has the task's name among its links; the task itself comes first
+        for task in self.table.records.all():
+            label = Data().label(task)
+            found = self.client.get(reverse('core:editor_records'), {'q': label[-12:]}).json()['records']
+            self.assertEqual(found[0]['label'], label, found[:3])
 
     def test_sanitize_keeps_cards_and_values(self):
         out = clean(self.card(self.title, self.status) + self.value(self.status)

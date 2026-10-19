@@ -1,0 +1,92 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Everyone can make apps of their own",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Open the launcher",
+  "width": 460,
+  "height": 172
+ },
+ {
+  "image": "03.png",
+  "caption": "Click ＋ New app",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "04.png",
+  "caption": "Name the app",
+  "width": 549,
+  "height": 174
+ },
+ {
+  "image": "05.png",
+  "caption": "… and its first table",
+  "width": 894,
+  "height": 174
+ },
+ {
+  "image": "06.png",
+  "caption": "Make the app",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "07.png",
+  "caption": "The table's fields: it starts with Name",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "08.png",
+  "caption": "Add a field: ＋ New field",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "09.png",
+  "caption": "Name it",
+  "width": 894,
+  "height": 174
+ },
+ {
+  "image": "10.png",
+  "caption": "Type: Date",
+  "width": 460,
+  "height": 176
+ },
+ {
+  "image": "11.png",
+  "caption": "Save",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "12.png",
+  "caption": "Back to the table",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "13.png",
+  "caption": "Add a record",
+  "width": 1280,
+  "height": 174
+ },
+ {
+  "image": "14.png",
+  "caption": "Click its name to fill it in",
+  "width": 706,
+  "height": 174
+ },
+ {
+  "image": "15.png",
+  "caption": "Your app is ready; only you see it",
+  "width": 706,
+  "height": 174
+ }
+]

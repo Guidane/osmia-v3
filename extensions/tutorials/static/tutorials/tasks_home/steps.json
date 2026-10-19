@@ -1,0 +1,50 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Your tasks on your home page",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Click ✎ Edit page",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "Click the empty line at the end",
+  "width": 1280,
+  "height": 170
+ },
+ {
+  "image": "04.png",
+  "caption": "Type /view and press Enter",
+  "width": 510,
+  "height": 460
+ },
+ {
+  "image": "05.png",
+  "caption": "Find My tasks: the open tasks of whoever looks",
+  "width": 780,
+  "height": 289
+ },
+ {
+  "image": "06.png",
+  "caption": "Point at it: ↑ in the bar above it moves it up, to the top",
+  "width": 1280,
+  "height": 218
+ },
+ {
+  "image": "07.png",
+  "caption": "Click Save",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "08.png",
+  "caption": "Your tasks are at the top of your home page, always as they are now",
+  "width": 1280,
+  "height": 450
+ }
+]

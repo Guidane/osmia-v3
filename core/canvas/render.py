@@ -113,9 +113,13 @@ def app_card(app):
     return render_to_string('core/canvas/_app_card.html', {'a': app})
 
 
-def _app_card_html(slug, user):
+def _app_card_html(slug, request):
     app = App.objects.filter(slug=slug).first()
-    if app is None or not can(user, app, 'viewer'):
+    if app is None:   # an extension's app, if it's on and theirs to open
+        from ..extensions import registry
+        app = next((a for a in registry.apps_for(request) if a.slug == slug), None)
+        return app_card(app) if app else ''
+    if not can(request.user, app, 'viewer'):
         return ''
     return app_card(app)
 
@@ -132,7 +136,7 @@ def render(body, request, context=None):
     data = PageData(user)
     body = calculate(body or '', user, data)
     body = BLOCK.sub(lambda m: _block_html(m.group(1), request, {**context, 'data': data}), body)
-    body = APP_CARD.sub(lambda m: _app_card_html(m.group(1), user), body)
+    body = APP_CARD.sub(lambda m: _app_card_html(m.group(1), request), body)
     body = EMBED.sub(lambda m: _view_html(int(m.group(1)), user, data), body)
     body = CARD.sub(lambda m: _card_html(m.group(1), user, data), body)
     body = VALUE.sub(lambda m: _value_html(m.group(1), user, data), body)

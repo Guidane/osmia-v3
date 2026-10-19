@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Settings · {{ table.name }}{% endblock %}
+{% block leave_to %}{{ table.get_absolute_url }}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>⚙ {{ table.name }}</h1>
@@ -16,7 +17,7 @@
     <select id="tree_field" name="tree_field"><option value="">— not a tree</option>{% for f in parent_choices %}<option value="{{ f.pk }}" {% if f.pk == table.tree_field_id %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select>
     <div class="help">A link from {{ table.name }} to itself, to one record. In a tree, records sit under their parent (an organisation, programmes and projects, locations, categories). Records of other tables link to its nodes as to any record, and carry the access tags of the space nodes they link to.{% if not parent_choices %} Add a link field from {{ table.name }} to {{ table.name }} (one record) first.{% endif %}</div></div>
   <label class="inline"><input type="checkbox" name="is_space" value="1" {% if table.is_space %}checked{% endif %}{% if not table.tree_field_id %} disabled{% endif %}> Its records are spaces: each has a page, with what links to it</label>
-  <div class="help">A user field marked "home" in a space table makes each person's record their home space.</div>
+  <div class="help">A user field marked "holder" in a space table makes its records roles: each is a tab on the Home of whoever holds it.</div>
   <h2>Order of the tables in {{ app.name }}</h2>
   <ul class="plain sortable">{% for t in tables %}<li class="link-chip" style="display:block;max-width:none;cursor:grab" draggable="true"><input type="hidden" name="table_order" value="{{ t.pk }}">☰ {{ t.name }}</li>{% endfor %}</ul>
   <div class="actions"><button class="btn primary">Save</button><a class="btn" href="{% url 'core:fields' app.slug table.slug %}">Fields</a></div>

@@ -5,6 +5,7 @@
   "color": "#7c3aed",
   "version": "1.0.0",
   "position": 28,
+  "group": "Production",
   "description": "Crimp tools, insertion tools, strippers, meters: where they're kept, who looks after them and when they're due for calibration.",
   "tables": [
     {

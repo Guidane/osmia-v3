@@ -1,5 +1,6 @@
 {% extends "base.html" %}{% load static osmia %}
 {% block title %}{% if field %}{{ field.name }}{% else %}New field{% endif %} · {{ table.name }}{% endblock %}
+{% block leave_to %}{% url 'core:fields' app.slug table.slug %}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <div class="record-head">
@@ -63,7 +64,7 @@
     <label class="inline"><input type="checkbox" name="multiple" value="1" {% if field.options.multiple %}checked{% endif %}> Several at once</label>
   </div>
   <div class="opt-section" data-types="user">
-    <label class="inline"><input type="checkbox" name="home" value="1" {% if field.options.home %}checked{% endif %}> Home: in a table of spaces, the record naming a person is their home space</label>
+    <label class="inline"><input type="checkbox" name="home" value="1" {% if field.options.home %}checked{% endif %}> Holder: in a table of spaces, the records naming a person are roles they hold (a tab on their Home)</label>
   </div>
   <div class="opt-section" data-types="link">
     <div class="field"><label for="access_from">Access tags</label>

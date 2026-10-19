@@ -1,0 +1,86 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Open the List view",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "02.png",
+  "caption": "Click ⚲ Filter",
+  "width": 460,
+  "height": 172
+ },
+ {
+  "image": "03.png",
+  "caption": "＋ Add a filter",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "04.png",
+  "caption": "Pick the field: Status",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "05.png",
+  "caption": "The condition: is",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "06.png",
+  "caption": "The value: In progress",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "07.png",
+  "caption": "Apply",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "08.png",
+  "caption": "Only tasks that are in progress",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "09.png",
+  "caption": "Now ⇅ Sort",
+  "width": 460,
+  "height": 172
+ },
+ {
+  "image": "10.png",
+  "caption": "＋ Sort by",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "11.png",
+  "caption": "Pick the field: Due",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "12.png",
+  "caption": "Latest first",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "13.png",
+  "caption": "Apply",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "14.png",
+  "caption": "\"Save for everyone\" keeps it in the view",
+  "width": 1280,
+  "height": 450
+ }
+]

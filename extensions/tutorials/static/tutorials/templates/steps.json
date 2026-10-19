@@ -1,0 +1,26 @@
+[
+ {
+  "image": "01.png",
+  "caption": "⚙ › App templates: ready-made apps",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Tick the templates you want",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "With sample records, to try them out",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "04.png",
+  "caption": "… and install them",
+  "width": 460,
+  "height": 174
+ }
+]

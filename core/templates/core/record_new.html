@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}New · {{ table.name }}{% endblock %}
+{% block leave_to %}{{ next|default:table.get_absolute_url }}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>New {{ table.name|lower }} <span class="muted small">in {{ app.name }}</span></h1>

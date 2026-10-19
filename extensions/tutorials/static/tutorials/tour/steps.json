@@ -1,0 +1,50 @@
+[
+ {
+  "image": "01.png",
+  "caption": "You land on Home: your own page, and a tab for each role you hold",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "The launcher: every app, and the trees of spaces",
+  "width": 460,
+  "height": 172
+ },
+ {
+  "image": "03.png",
+  "caption": "Pick an app, e.g. Orders",
+  "width": 460,
+  "height": 221
+ },
+ {
+  "image": "04.png",
+  "caption": "Its home and its tables are tabs along the top",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "05.png",
+  "caption": "A table",
+  "width": 460,
+  "height": 185
+ },
+ {
+  "image": "06.png",
+  "caption": "… and its views, one more row of tabs",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "07.png",
+  "caption": "Click a record to open it",
+  "width": 482,
+  "height": 251
+ },
+ {
+  "image": "08.png",
+  "caption": "Everything about one record on one page",
+  "width": 1280,
+  "height": 450
+ }
+]

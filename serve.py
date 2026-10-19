@@ -43,7 +43,19 @@ def clock():
             say(f'Scheduled automations failed: {exc}')
 
 
+def follow_parent():
+    """Stop when the process that started this one stops, however it stops (Windows ends only the process it's
+    told to, not the ones it started): its end of our stdin closes."""
+    try:
+        while sys.stdin.buffer.read(1024):
+            pass
+    except Exception:
+        pass
+    os._exit(0)
+
+
 def child(host, port, threads):
+    threading.Thread(target=follow_parent, daemon=True).start()
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'osmia.settings')
     os.environ['OSMIA_SERVED'] = '1'
     import django
@@ -78,9 +90,12 @@ def main():
         return
     while True:
         cmd = [sys.executable, __file__, '--child', '--host', args.host, '--port', str(args.port), '--threads', str(args.threads)]
+        # its stdin stays open while this process runs: the child stops when it closes (see follow_parent)
+        proc = subprocess.Popen(cmd, cwd=BASE_DIR, stdin=subprocess.PIPE)
         try:
-            code = subprocess.call(cmd, cwd=BASE_DIR)
+            code = proc.wait()
         except KeyboardInterrupt:
+            proc.wait()
             say('Osmia stopped.')
             return
         if code == RESTART_EXIT_CODE:

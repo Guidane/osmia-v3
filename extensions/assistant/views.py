@@ -48,16 +48,16 @@ def _scope(request, values):
 def _choices(user):
     data = Data(user)
     choices = []
-    home = spaces.home_node(user)
-    if home is not None and data.record(home.pk) is not None:
-        choices.append((home.pk, f'🏠 {data.label(home)} (your home)'))
+    mine = [r for r in spaces.roles_of(user) if data.record(r.pk) is not None]
+    for role in mine:
+        choices.append((role.pk, f'💼 {data.label(role)} (your role)'))
     for table in spaces.space_tables():
         if not can(user, table.app, 'viewer'):
             continue
         t = Tree(data, table)
 
         def walk(node, depth):
-            if home is None or node.pk != home.pk:
+            if node.pk not in {r.pk for r in mine}:
                 choices.append((node.pk, '\u2003' * depth + data.label(node)))
             for kid in t.kids(node.pk):
                 walk(kid, depth + 1)

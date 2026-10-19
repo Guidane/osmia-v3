@@ -5,6 +5,7 @@
   "color": "#ea580c",
   "version": "1.0.0",
   "position": 35,
+  "group": "Purchasing",
   "description": "Purchase orders (PO-0001) from a vendor, charged to a budget, with lines of parts. Place, receive line by line or all at once (booked into stock at the location picked for each line), or cancel: all done by automations behind buttons.",
   "requires": [
     "parts",

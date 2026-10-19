@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}New app{% endblock %}
+{% block leave_to %}{% url 'core:launcher' %}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>{% if own %}A new app of your own{% else %}A new app for everyone{% endif %}</h1>
@@ -13,6 +14,9 @@
     <div class="inline">{% for c in colors %}<label><input type="radio" name="color" value="{{ c }}" {% if forloop.first %}checked{% endif %}> <span class="swatch" style="background:{{ c }}"></span></label>{% endfor %}<input type="color" name="color" value="#2e7d5b" title="Another colour"></div>
   </div>
   <div class="field"><label for="description">What it's for</label><textarea id="description" name="description" rows="2"></textarea></div>
+  <div class="field"><label for="group">Group</label><input id="group" name="group" maxlength="60" list="group-names" placeholder="e.g. Management, Production">
+    <datalist id="group-names">{% for g in group_names %}<option value="{{ g }}">{% endfor %}</datalist>
+    <div class="help">Apps are shown under their group in the launcher and on home pages.</div></div>
   <div class="field"><label for="table">First table</label><input id="table" name="table" placeholder="e.g. Machines (you can add more later)"></div>
   <div class="actions"><button class="btn primary">Make the app</button>{% if user.is_superuser %}<a class="btn ghost" href="{% url 'core:templates' %}">Or start from a template</a>{% endif %}</div>
 </form>

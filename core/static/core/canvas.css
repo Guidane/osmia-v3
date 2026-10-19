@@ -102,3 +102,12 @@
 .slash-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; border: 0; background: none; border-radius: 6px; text-align: left; font: inherit; color: var(--text); cursor: pointer; }
 .slash-item.on, .slash-item:hover { background: var(--brand-soft); }
 .slash-icon { width: 26px; height: 26px; flex: 0 0 26px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: var(--panel-2); }
+
+/* -- Moving and taking away pieces while editing ------------------------------------------- */
+.piece-bar { position: absolute; z-index: 70; display: flex; gap: 2px; padding: 2px; background: var(--panel); border: 1px solid var(--border-strong); border-radius: 8px; box-shadow: var(--shadow); }
+.piece-bar[hidden] { display: none; }
+.piece-bar button { border: 0; background: none; padding: 3px 8px; border-radius: 6px; font: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+.piece-bar button:hover { background: var(--brand-soft); }
+.piece-bar button[data-move="remove"]:hover { background: var(--danger); color: #fff; }
+.piece-bar button[hidden] { display: none; }
+.page-body.page-editor .piece-picked { outline: 2px solid var(--brand); outline-offset: 2px; }

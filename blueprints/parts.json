@@ -5,6 +5,7 @@
   "color": "#0891b2",
   "version": "1.0.0",
   "position": 30,
+  "group": "Production",
   "description": "The parts catalogue: part numbers, nested categories, datasheets and pictures, which parts fit into which, and the tools to work with them.",
   "after": ["tools"],
   "tables": [

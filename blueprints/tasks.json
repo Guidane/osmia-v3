@@ -5,6 +5,7 @@
   "color": "#2563eb",
   "version": "1.0.0",
   "position": 20,
+  "group": "Management",
   "description": "Plan and track work: a board, a list, my tasks, a Gantt chart with dependencies, a calendar and subtasks.",
   "after": [
     "departments"

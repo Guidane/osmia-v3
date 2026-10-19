@@ -1,0 +1,56 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Open the List view: a grid",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "02.png",
+  "caption": "Click a cell to select it",
+  "width": 462,
+  "height": 174
+ },
+ {
+  "image": "03.png",
+  "caption": "Click it again to edit it",
+  "width": 462,
+  "height": 174
+ },
+ {
+  "image": "04.png",
+  "caption": "Type the new text",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "05.png",
+  "caption": "Press Enter to save",
+  "width": 462,
+  "height": 174
+ },
+ {
+  "image": "06.png",
+  "caption": "Select a status cell",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "07.png",
+  "caption": "Click again: the choices open",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "08.png",
+  "caption": "Pick one: Blocked",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "09.png",
+  "caption": "Saved straight away",
+  "width": 1280,
+  "height": 450
+ }
+]

@@ -5,6 +5,7 @@
   "color": "#ca8a04",
   "version": "1.0.0",
   "position": 50,
+  "group": "Management",
   "description": "Nested budgets (FY2026 › Operations › Warehouse). What's spent rolls up through the sub-budgets: orders placed on a budget and parts issued to its tasks count, when Orders and Stock are installed.",
   "after": ["departments", "tasks"],
   "tables": [

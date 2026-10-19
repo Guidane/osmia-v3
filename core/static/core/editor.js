@@ -124,6 +124,9 @@
     dirty = true;
     keep();
   };
+  // other words for a kind of view, so "/tasks list" or "/orders board" find it
+  const VIEW_WORDS = { grid: 'list table rows', tree: 'list tree nested', kanban: 'board cards', gallery: 'cards pictures',
+    calendar: 'dates', gantt: 'timeline plan' };
   const ITEMS = [
     { group: 'Text', icon: '¶', label: 'Text', run: style('p') },
     { group: 'Text', icon: 'H1', label: 'Heading 1', run: style('h1') },
@@ -131,7 +134,7 @@
     { group: 'Text', icon: 'H3', label: 'Heading 3', run: style('h3') },
     { group: 'Text', icon: '•', label: 'Bullet list', run: () => { restore(); document.execCommand('insertUnorderedList'); } },
     { group: 'Text', icon: '1.', label: 'Numbered list', run: () => { restore(); document.execCommand('insertOrderedList'); } },
-    { group: 'Text', icon: '☑', label: 'Task list', run: () => placeBlock('<ul class="tasks"><li class="task" data-checked="false" data-focus="1">To do</li></ul><p><br></p>') },
+    { group: 'Text', icon: '☑', label: 'Checklist', keywords: 'checkbox tick to do todo', run: () => placeBlock('<ul class="tasks"><li class="task" data-checked="false" data-focus="1">To do</li></ul><p><br></p>') },
     { group: 'Text', icon: '❝', label: 'Quote', run: style('blockquote') },
     { group: 'Text', icon: '</>', label: 'Code block', run: style('pre') },
     { group: 'Text', icon: '▦', label: 'Table', run: () => placeBlock(tableHtml()) },
@@ -139,11 +142,14 @@
     ...[['info', 'ℹ', 'Info panel'], ['note', '✎', 'Note panel'], ['warning', '⚠', 'Warning panel'], ['success', '✓', 'Success panel']].map(([cls, icon, label]) => (
       { group: 'Panels', icon, label, run: () => placeBlock(`<div class="panel ${cls}"><p data-focus="1">Write here</p></div><p><br></p>`) })),
     ...[2, 3, 4].map((n) => ({ group: 'Layout', icon: '▥', label: `Grid, ${n} columns`, keywords: 'grid columns cells side by side', run: () => placeBlock(gridHtml(n)) })),
-    ...config.apps.map((a) => ({ group: 'Apps', icon: a.icon, label: a.name, keywords: `app ${a.slug}`,
-      run: () => place(`<a class="app-card" data-app="${esc(a.slug)}" href="/a/${esc(a.slug)}/" contenteditable="false">${esc(a.icon)} ${esc(a.name)}</a>&nbsp;`) })),
+    ...config.apps.map((a) => ({ group: 'Apps', icon: a.icon, label: a.name, keywords: `app ${a.slug} ${a.group}`,
+      run: () => place(`<a class="app-card" data-app="${esc(a.slug)}" href="${esc(a.url)}" contenteditable="false">${esc(a.icon)} ${esc(a.name)}</a>&nbsp;`) })),
     { group: 'Live', icon: '⊞', label: 'View…', keywords: 'view table grid kanban calendar embed', run: () => pickView() },
     { group: 'Live', icon: '⇄', label: 'Record…', keywords: 'record link card value', run: () => pick('Put a record on the page', null, (item) => recordDialog(item.id)) },
     { group: 'Live', icon: 'ƒ', label: 'Calculation', keywords: 'calc formula sum', run: () => calcDialog() },
+    // every view, by its name: "/task list" puts the Tasks list on the page
+    ...config.views.map(([label, id, icon, type]) => ({ group: 'Views', icon: icon || '⊞', label,
+      keywords: `view live ${type} ${VIEW_WORDS[type] || ''}`, run: () => placeView(id, label) })),
     ...config.blocks.map((b) => ({ group: 'Blocks', icon: b.icon, label: b.label, help: b.help, keywords: `block ${b.key}`,
       run: () => placeBlock(`<div class="live-block" data-block="${esc(b.key)}" contenteditable="false">${esc(b.icon)} ${esc(b.label)}</div><p><br></p>`) })),
   ];
@@ -159,10 +165,13 @@
   let active = 0;
   const matches = (q) => {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-    return ITEMS.filter((it) => words.every((w) => `${it.label} ${it.group} ${it.keywords || ''}`.toLowerCase().includes(w)));
+    const found = ITEMS.filter((it) => words.every((w) => `${it.label} ${it.group} ${it.keywords || ''}`.toLowerCase().includes(w)));
+    // what is called that comes first: "/task list" is the Tasks list before anything that only means a list
+    const named = (it) => words.every((w) => it.label.toLowerCase().includes(w));
+    return words.length ? [...found.filter(named), ...found.filter((it) => !named(it))] : found;
   };
   const draw = (q) => {
-    shown = matches(q).slice(0, 40);
+    shown = matches(q);   // all of them: the menu scrolls
     active = Math.min(active, Math.max(0, shown.length - 1));
     let group = '';
     menu.innerHTML = shown.length ? shown.map((it, i) => {
@@ -232,7 +241,8 @@
     }
     if (!menu.hidden && slash) {
       const q = query();
-      if (q === null || q.length > 30 || /\s\s/.test(q)) { close(); return; }
+      // long enough for a view by its whole name ("/orders orders by status"); a slash in a sentence soon lets go
+      if (q === null || q.length > 60 || /\s\s/.test(q)) { close(); return; }
       draw(q);
     }
   });
@@ -289,12 +299,13 @@
     }
   });
 
+  function placeView(id, label) {
+    afterCurrentBlock();
+    place(`<div class="embed-view" data-view="${id}" data-title="${esc(label)}" contenteditable="false">⊞ ${esc(label)}</div><p><br></p>`);
+  }
   function pickView() {
     keep();
-    pick('Put a live view on the page', config.views.map(([label, id]) => ({ label, id })), (item) => {
-      afterCurrentBlock();
-      place(`<div class="embed-view" data-view="${item.id}" data-title="${esc(item.label)}" contenteditable="false">⊞ ${esc(item.label)}</div><p><br></p>`);
-    });
+    pick('Put a live view on the page', config.views.map(([label, id]) => ({ label, id })), (item) => placeView(item.id, item.label));
   }
 
   // -- Records: a link, a card with some of its fields, or one field's value in the text ------
@@ -576,6 +587,100 @@
     setTimeout(() => input.focus(), 10);
   }
 
+  // -- Pieces: blocks, views, record cards, grids, panels and tables ----------------------------
+  // Hovering one shows a bar to move it (↑ ↓ in its column, ← → between a grid's cells) or take it away;
+  // a click picks it, and Delete or Backspace takes it away. A grid cell always ends with a line to type on.
+  const PIECE = '.live-block, .embed-view, .record-card, .grid-block, .panel, table, hr';
+  const typable = (cell) => {
+    const last = cell.lastElementChild;
+    if (!last || last.matches(PIECE) || last.getAttribute('contenteditable') === 'false') cell.insertAdjacentHTML('beforeend', '<p><br></p>');
+  };
+  const tidyCells = () => editor.querySelectorAll('.grid-cell').forEach(typable);
+  tidyCells();
+  // the piece ``node`` is in: the nearest one directly in the page or in a grid cell (a block, before its grid)
+  const pieceOf = (node) => {
+    let el = node && (node.nodeType === 1 ? node : node.parentElement);
+    while (el && el !== editor) {
+      if (el.matches(PIECE) && (el.parentElement === editor || el.parentElement.classList.contains('grid-cell'))) return el;
+      el = el.parentElement;
+    }
+    return null;
+  };
+  const bar = document.createElement('div');
+  bar.className = 'piece-bar';
+  bar.hidden = true;
+  bar.innerHTML = '<button type="button" data-move="up" title="Move up">↑</button><button type="button" data-move="down" title="Move down">↓</button>'
+    + '<button type="button" data-move="left" title="To the cell on the left">←</button><button type="button" data-move="right" title="To the cell on the right">→</button>'
+    + '<button type="button" data-move="remove" title="Take it away (Delete)">✕</button>';
+  document.body.append(bar);
+  // a picked piece (clicked, or just moved) keeps the bar until something else is clicked
+  let current = null, picked = null, hideTimer = null;
+  const showBar = (el) => {
+    clearTimeout(hideTimer);
+    current = el;
+    const cell = el.parentElement.classList.contains('grid-cell') ? el.parentElement : null;
+    bar.querySelector('[data-move="left"]').hidden = !(cell && cell.previousElementSibling);
+    bar.querySelector('[data-move="right"]').hidden = !(cell && cell.nextElementSibling);
+    bar.hidden = false;
+    const r = el.getBoundingClientRect();
+    bar.style.top = `${window.scrollY + r.top - bar.offsetHeight + 2}px`;
+    bar.style.left = `${window.scrollX + r.right - bar.offsetWidth}px`;
+  };
+  const hideBar = () => { clearTimeout(hideTimer); hideTimer = setTimeout(() => { if (picked) showBar(picked); else { bar.hidden = true; current = null; } }, 250); };
+  const pickPiece = (el) => {
+    if (picked) picked.classList.remove('piece-picked');
+    picked = el;
+    if (el) { el.classList.add('piece-picked'); showBar(el); } else hideBar();
+  };
+  editor.addEventListener('mouseover', (e) => {
+    if (picked) return;
+    const el = pieceOf(e.target);
+    if (el) showBar(el); else if (!picked) hideBar();
+  });
+  editor.addEventListener('mouseleave', hideBar);
+  bar.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+  bar.addEventListener('mouseleave', hideBar);
+  editor.addEventListener('mousedown', (e) => {
+    const el = pieceOf(e.target);
+    // a piece that isn't for typing into is picked as a whole; clicking anywhere else lets it go
+    pickPiece(el && (el.getAttribute('contenteditable') === 'false' || e.target === el && el.matches('.grid-block')) ? el : null);
+  });
+  const move = (el, how) => {
+    const box = el.parentElement;
+    if (how === 'remove') {
+      if (el.matches('.grid-block') && el.textContent.trim() && !confirm('Take away the grid and everything in it?')) return;
+      el.remove();
+      pickPiece(null);
+      bar.hidden = true;
+    } else if (how === 'up' || how === 'down') {
+      const other = how === 'down' ? el.nextElementSibling : el.previousElementSibling;
+      if (other) other.insertAdjacentElement(how === 'down' ? 'afterend' : 'beforebegin', el);
+      else if (box.classList.contains('grid-cell')) {   // out of the grid, above or below it
+        box.closest('.grid-block').insertAdjacentElement(how === 'down' ? 'afterend' : 'beforebegin', el);
+      } else return;
+    } else {
+      const cell = how === 'left' ? box.previousElementSibling : box.nextElementSibling;
+      if (!cell) return;
+      cell.prepend(el);
+    }
+    tidyCells();
+    dirty = true;
+    if (el.isConnected) { pickPiece(el); el.scrollIntoView({ block: 'nearest' }); }
+  };
+  bar.addEventListener('mousedown', (e) => e.preventDefault());   // the caret stays where it was
+  bar.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-move]');
+    if (b && current) move(current, b.dataset.move);
+  });
+  editor.addEventListener('keydown', (e) => {
+    if (!picked) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); move(picked, 'remove'); }
+    else if (e.key === 'Escape') pickPiece(null);
+    else if (e.altKey && ['ArrowUp', 'ArrowDown'].includes(e.key)) { e.preventDefault(); move(picked, e.key === 'ArrowUp' ? 'up' : 'down'); }
+    else if (!e.ctrlKey && !e.metaKey && e.key.length === 1) pickPiece(null);
+  });
+  editor.addEventListener('input', () => { if (!bar.hidden && current && !current.isConnected) { bar.hidden = true; current = null; } });
+
   // Keyboard: Ctrl+S saves, Ctrl+K links
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); form.requestSubmit(); }
@@ -585,7 +690,15 @@
     }
   });
 
-  form.addEventListener('submit', () => { close(); body.value = editor.innerHTML; dirty = false; });
+  form.addEventListener('submit', () => {
+    close();
+    pickPiece(null);
+    const copy = editor.cloneNode(true);
+    // the lines kept for typing at the end of grid cells go if nothing was typed on them
+    copy.querySelectorAll('.grid-cell > p:last-child').forEach((p) => { if (!p.textContent.trim() && !p.querySelector('img, a, ' + LIVE) && p.previousElementSibling) p.remove(); });
+    body.value = copy.innerHTML;
+    dirty = false;
+  });
   form.addEventListener('input', (e) => { if (e.target !== editor) dirty = true; });
   window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 })();

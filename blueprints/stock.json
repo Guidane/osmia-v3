@@ -5,6 +5,7 @@
   "color": "#16a34a",
   "version": "1.0.0",
   "position": 32,
+  "group": "Production",
   "description": "How many of each part are where: nested locations with codes (A1A), every receipt, issue, count and transfer, average cost, reorder levels and refusing to issue more than is on the shelf.",
   "requires": [
     "parts"

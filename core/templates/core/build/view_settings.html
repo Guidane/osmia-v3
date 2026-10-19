@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ view.name }} settings · {{ table.name }}{% endblock %}
+{% block leave_to %}{{ view.get_absolute_url }}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <div class="record-head">

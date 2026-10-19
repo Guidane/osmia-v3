@@ -40,53 +40,118 @@ class Base(TestCase):
 
 
 class HomeSpaceTests(Base):
-    def test_everyone_lands_in_their_home_space(self):
+    def role(self, user):
+        return spaces.roles_of(user)[0]
+
+    def test_everyone_lands_on_their_own_page_with_a_tab_per_role(self):
         self.client.force_login(self.alice)
         response = self.client.get('/')
-        self.assertContains(response, 'your home space')
-        self.assertContains(response, 'My work')       # the default home page's blocks
-        home = spaces.home_node(self.alice)
-        self.assertEqual(home.table, self.org)
-        self.assertEqual(Data().label(home), 'Alice Martin')   # the sample record naming her
-        self.assertEqual(Tree_parent_label(home), 'Engineering')
+        self.assertContains(response, 'your own page')
+        self.assertContains(response, 'My work')       # the default page's blocks
+        role = self.role(self.alice)
+        self.assertEqual(role.table, self.org)
+        self.assertEqual(Data().label(role), 'Lead engineer')   # the sample role she holds
+        self.assertEqual(Tree_parent_label(role), 'Engineering')
+        self.assertContains(response, reverse('core:space', args=[role.pk]))   # its tab: the role's page
+        self.assertContains(response, 'Lead engineer')
 
-    def test_a_home_space_is_made_for_someone_new(self):
+    def test_someone_new_has_a_page_and_no_role_until_given_one(self):
+        before = Record.objects.filter(table=self.org).count()
         dan = get_user_model().objects.create_user('dan', password='pw', first_name='Dan')
         self.client.force_login(dan)
-        self.assertContains(self.client.get('/'), 'your home space')
-        home = spaces.home_node(dan, create=False)
-        self.assertIsNotNone(home)
+        response = self.client.get('/')
+        self.assertContains(response, 'your own page')
+        self.assertContains(response, 'You hold no role yet')
+        self.assertEqual(spaces.roles_of(dan), [])
+        self.assertEqual(Record.objects.filter(table=self.org).count(), before)   # nothing is made for him
         data = Data()
-        self.assertEqual(data.text(home, data.field_named(self.org, 'Kind')), 'Person')
-        self.assertEqual(spaces.home_node(dan).pk, home.pk)   # made once
+        service.update_record(self.role(self.bob), {data.field_named(self.org, 'Held by').pk: dan.pk},
+                              user=self.admin, data=data)
+        self.assertEqual([data.label(r) for r in spaces.roles_of(dan)], ['Warehouse operator'])
 
-    def test_edit_a_space_page_with_blocks(self):
+    def test_your_own_page_is_yours_to_change(self):
         self.client.force_login(self.alice)
-        home = spaces.home_node(self.alice)
-        self.assertEqual(self.client.get(reverse('core:space_edit', args=[home.pk])).status_code, 200)
         body = ('<h2>Mine</h2><div class="grid-block" data-cols="2"><div class="grid-cell">'
                 '<div class="live-block" data-block="notifications">🔔</div></div>'
                 '<div class="grid-cell"><a class="app-card" data-app="tasks" href="/a/tasks/">Tasks</a></div></div>'
                 '<script>alert(1)</script>')
-        self.client.post(reverse('core:space_edit', args=[home.pk]), {'body': body})
-        layout = Layout.objects.get(record=home)
+        self.client.post(reverse('core:home_edit'), {'body': body})
+        layout = Layout.objects.get(user=self.alice, title='')
         self.assertNotIn('script', layout.body)
-        self.assertIn('data-cols="2"', layout.body)
         response = self.client.get('/')
         self.assertContains(response, 'Mine')
         self.assertContains(response, 'Notifications')
         self.assertContains(response, 'app-card live')
-        self.client.post(reverse('core:space_edit', args=[home.pk]), {'reset': '1'})
-        self.assertFalse(Layout.objects.filter(record=home).exists())
+        self.assertContains(response, 'Reset to default')
+        self.client.force_login(self.bob)
+        self.assertNotContains(self.client.get('/'), 'Mine')   # the page is Alice's alone
+        self.client.force_login(self.alice)
+        self.client.post(reverse('core:home_edit'), {'reset': '1'})
+        self.assertFalse(Layout.objects.filter(user=self.alice).exists())
+        self.assertNotContains(self.client.get('/'), 'Mine')
+
+    def test_tabs_you_add_to_home(self):
+        self.client.force_login(self.alice)
+        response = self.client.post(reverse('core:home_tab_new'), {'title': 'Week plan'})
+        page = Layout.objects.get(user=self.alice, title='Week plan')
+        self.assertRedirects(response, reverse('core:home_page_edit', args=[page.pk]))
+        self.client.post(reverse('core:home_page_edit', args=[page.pk]), {'title': 'This week', 'body': '<p>Ship the rack</p>'})
+        page.refresh_from_db()
+        self.assertEqual(page.title, 'This week')
+        self.assertContains(self.client.get('/'), reverse('core:home_page', args=[page.pk]))   # its tab
+        self.assertContains(self.client.get(reverse('core:home_page', args=[page.pk])), 'Ship the rack')
+        self.assertNotContains(self.client.get('/'), 'Ship the rack')                          # Me is another page
+        self.client.force_login(self.bob)
+        self.assertEqual(self.client.get(reverse('core:home_page', args=[page.pk])).status_code, 404)
+        self.assertEqual(self.client.post(reverse('core:home_page_edit', args=[page.pk]), {'remove': '1'}).status_code, 404)
+        self.client.force_login(self.alice)
+        self.client.post(reverse('core:home_page_edit', args=[page.pk]), {'remove': '1'})
+        self.assertFalse(Layout.objects.filter(pk=page.pk).exists())
+
+    def test_a_role_has_the_home_tabs_for_who_holds_it(self):
+        role = self.role(self.alice)
+        self.client.force_login(self.alice)
+        response = self.client.get(reverse('core:space', args=[role.pk]))
+        self.assertContains(response, '<span class="muted small">your role</span>')
+        self.assertContains(response, 'home-tabs')
+        self.client.force_login(self.bob)
+        response = self.client.get(reverse('core:space', args=[role.pk]))
+        self.assertNotContains(response, '<span class="muted small">your role</span>')
+        self.assertNotContains(response, 'home-tabs')
+
+    def test_a_role_and_what_is_linked_to_it_stay_when_someone_else_takes_it_over(self):
+        role = self.role(self.alice)
+        data = Data()
+        task = self.tasks.records.first()
+        link = next(f for f in data.fields(self.org) if f.type == 'link' and f.opt('target') == self.tasks.pk)
+        service.update_record(role, {link.pk: [task.pk]}, user=self.admin, data=data)
+        service.update_record(role, {data.field_named(self.org, 'Held by').pk: self.bob.pk}, user=self.admin, data=Data())
+        self.assertEqual(spaces.roles_of(self.alice), [])
+        self.assertIn(role.pk, [r.pk for r in spaces.roles_of(self.bob)])
+        self.client.force_login(self.bob)
+        self.assertContains(self.client.get(reverse('core:space', args=[role.pk])), Data().label(task))
+
+    def test_edit_a_space_page_with_blocks(self):
+        self.client.force_login(self.alice)
+        role = self.role(self.alice)
+        self.assertEqual(self.client.get(reverse('core:space_edit', args=[role.pk])).status_code, 200)
+        self.client.post(reverse('core:space_edit', args=[role.pk]), {'body': '<h2>Our role</h2><script>x</script>'})
+        layout = Layout.objects.get(record=role)
+        self.assertNotIn('script', layout.body)
+        response = self.client.get(reverse('core:space', args=[role.pk]))
+        self.assertContains(response, 'Our role')
+        self.assertContains(response, 'Reset to default')
+        self.client.post(reverse('core:space_edit', args=[role.pk]), {'reset': '1'})
+        self.assertFalse(Layout.objects.filter(record=role).exists())
 
     def test_only_its_people_and_editors_change_a_space_page(self):
         team = self.node(self.org, 'Warehouse')
         App.objects.filter(blueprint='departments').update(default_role='viewer')
-        self.client.force_login(self.bob)   # Bob's home is under Warehouse, but he isn't named on it
+        self.client.force_login(self.bob)   # Bob's role is under Warehouse, but he isn't named on Warehouse
         self.assertEqual(self.client.get(reverse('core:space', args=[team.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse('core:space_edit', args=[team.pk])).status_code, 403)
-        home = spaces.home_node(self.bob)
-        self.assertEqual(self.client.get(reverse('core:space_edit', args=[home.pk])).status_code, 200)
+        role = self.role(self.bob)
+        self.assertEqual(self.client.get(reverse('core:space_edit', args=[role.pk])).status_code, 200)
 
     def test_app_home_page(self):
         self.client.force_login(self.admin)
@@ -102,6 +167,40 @@ class HomeSpaceTests(Base):
         response = self.client.get(reverse('core:launcher'))
         self.assertContains(response, 'Projects')
         self.assertContains(response, 'Product development')
+
+
+class AppGroupTests(Base):
+    def test_templates_put_their_apps_in_groups(self):
+        self.assertEqual(App.objects.get(blueprint='departments').group, 'Management')
+        self.assertEqual(App.objects.get(blueprint='stock').group, 'Production')
+
+    def test_apps_are_shown_by_group(self):
+        self.client.force_login(self.admin)
+        App.objects.create(name='Loose ends', slug='loose-ends')
+        groups = dict(self.client.get(reverse('core:launcher')).context['groups'])
+        self.assertIn('Projects', [a.name for a in groups['Management']])
+        self.assertIn('Documentation', [a.name for a in groups['Workspace']])    # an extension's app
+        self.assertEqual([a.name for a in groups[spaces.OTHER_APPS]], ['Loose ends'])
+        self.assertEqual(list(groups)[-1], spaces.OTHER_APPS)
+        self.assertContains(self.client.get(reverse('core:launcher')), 'app-group-title')
+
+    def test_the_first_home_page_is_headings_and_cards_to_edit(self):
+        self.client.force_login(self.alice)
+        body = self.client.get(reverse('core:home_edit')).context['body']
+        self.assertIn('<h3>Management</h3>', body)
+        self.assertIn('data-app="projects"', body)
+        self.assertNotIn('data-block="apps"', body)
+        self.assertIn('Documentation', self.client.get('/').content.decode())   # an extension's card, live
+
+    def test_an_apps_group_is_changed_in_its_settings(self):
+        self.client.force_login(self.admin)
+        app = App.objects.get(blueprint='projects')
+        response = self.client.get(reverse('core:app_settings', args=[app.slug]))
+        self.assertContains(response, '<option value="Production">')
+        self.client.post(reverse('core:app_settings', args=[app.slug]),
+                         {'name': app.name, 'icon': app.icon, 'color': app.color, 'group': ' Programmes '})
+        app.refresh_from_db()
+        self.assertEqual(app.group, 'Programmes')
 
 
 def Tree_parent_label(record):
@@ -295,11 +394,10 @@ class DependencyTests(Base):
 
     def test_a_view_on_a_page_cant_be_deleted(self):
         view = self.tasks.views.filter(type='grid').first()
-        home = spaces.home_node(self.alice)
-        Layout.objects.create(record=home, body=f'<div class="embed-view" data-view="{view.pk}">x</div>')
+        Layout.objects.create(user=self.alice, title='Week', body=f'<div class="embed-view" data-view="{view.pk}">x</div>')
         with self.assertRaises(ValidationError) as caught:
             schema.delete_view(view)
-        self.assertIn('Alice Martin', ' '.join(caught.exception.messages))
+        self.assertIn("Alice's Home (the tab Week)", ' '.join(caught.exception.messages))
 
     def test_the_settings_page_says_what_is_in_the_way(self):
         self.client.force_login(self.admin)

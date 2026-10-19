@@ -3,6 +3,7 @@ import threading
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.shortcuts import redirect
+from django.utils.cache import add_never_cache_headers
 
 _ready = False
 _migrated = False
@@ -42,3 +43,17 @@ class SetupMiddleware:
             elif not request.path.startswith(('/setup/', '/static/')):
                 return redirect('core:setup')
         return self.get_response(request)
+
+
+class FreshPagesMiddleware:
+    """Pages aren't kept by the browser: Back and Forward ask for them again, so they show the records and
+    settings as they are now, never an old copy of a form (see also the leave_to block in base.html)."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if response.get('Content-Type', '').startswith('text/html') and not response.has_header('Cache-Control'):
+            add_never_cache_headers(response)
+        return response

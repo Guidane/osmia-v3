@@ -34,12 +34,13 @@ Changes (later changes can use what earlier ones make; use the exact names from 
 
 {"do": "add_space", "tree": "Organisation", "name": "Operations", "parent": "Company", "values": {"Kind": "Department"}}
     a space is a record of a tree of spaces (listed below); "parent" is the space it goes under (none: at the top).
-{"do": "create_app", "name": "Suppliers", "icon": "🏭", "description": "...", "own": false,
+{"do": "create_app", "name": "Suppliers", "icon": "🏭", "description": "...", "group": "Purchasing", "own": false,
  "tables": [{"name": "Suppliers", "fields": [FIELD, ...], "views": [VIEW, ...], "records": [RECORD, ...]}, ...]}
     own: true makes it the person's own app (only administrators make apps for everyone).
+    group: the group it is shown under in the launcher and on home pages (one of the groups below, or a new one).
     The first field of a table is its name field. To tie records to a space, give the table a link to the tree of
     spaces (e.g. "target": "Projects › Projects"): records then carry that space's access tags.
-{"do": "change_app", "app": "Suppliers", "name": "...", "icon": "...", "description": "..."}
+{"do": "change_app", "app": "Suppliers", "name": "...", "icon": "...", "description": "...", "group": "..."}
 {"do": "add_table", "app": "Suppliers", "name": "Contacts", "fields": [FIELD, ...], "views": [VIEW, ...], "records": [RECORD, ...]}
 {"do": "add_field", "app": "Suppliers", "table": "Suppliers", "field": FIELD}
 {"do": "change_field", "app": "Suppliers", "table": "Suppliers", "field": "Status",
@@ -95,7 +96,8 @@ def _field_line(data, f):
 
 def _app_block(user, data, app, with_records):
     whose = f'the own app of {app.owner}' if app.owner_id else 'for everyone'
-    lines = [f'- App "{app.name}" (address name {app.slug}), {whose}; they may: {_may(role(user, app))}']
+    group = f' in the group "{app.group}"' if app.group else ''
+    lines = [f'- App "{app.name}" (address name {app.slug}){group}, {whose}; they may: {_may(role(user, app))}']
     for table in app.tables.all():
         fields = data.fields(table)
         lines.append(f'  - Table "{table.name}": ' + '; '.join(_field_line(data, f) for f in fields))
@@ -122,9 +124,10 @@ def workspace(user, space=None, app=None, page=None, with_records=False):
     """The part of the prompt that describes what the person can see and do."""
     data = Data(user)
     lines = ['## Their workspace (only what they may see)', '']
-    home = spaces.home_node(user, create=False)
-    if home is not None and data.record(home.pk) is not None:
-        lines.append(f'Their home space is "{data.label(home)}".')
+    roles = [data.label(r) for r in spaces.roles_of(user) if data.record(r.pk) is not None]
+    if roles:
+        lines.append('The roles they hold (spaces: what belongs to a role links to it): '
+                     + ', '.join(f'"{r}"' for r in roles) + '.')
     trees = [t for t in spaces.space_tables() if can(user, t.app, 'viewer')]
     if trees:
         lines += ['', 'Trees of spaces (a space is a record; records of other tables link to spaces):']

@@ -130,14 +130,13 @@ class Runner:
         return Data(self.user)   # fresh: earlier changes may have changed the schema
 
     def space(self, ref, write=False):
-        """A space (a record of a space table) by its name or record number; "home" is the person's own."""
+        """A space (a record of a space table) by its name or record number; "my role" is the person's (first) role."""
         ref = str(ref or '').strip()
         data = self.data()
-        if ref.lower() in ('', 'home', 'my space', 'me', 'personal'):
-            space = spaces.home_node(self.user)
-            space = data.record(space.pk) if space is not None else None
+        if ref.lower() in ('', 'home', 'my space', 'me', 'my role', 'role'):
+            space = next((data.record(r.pk) for r in spaces.roles_of(self.user) if data.record(r.pk) is not None), None)
             if space is None:
-                raise PlanError('You have no home space here.')
+                raise PlanError('You hold no role, so there is no space of yours: name a space.')
         else:
             found = []
             for table in spaces.space_tables():
@@ -334,6 +333,7 @@ def create_app(r, c):
             raise PlanError(f'Two tables are called "{t["name"]}".')
         names.add(t['name'].strip().lower())
     app = schema.create_app(name, r.user, icon=str(c.get('icon') or '▦')[:8], description=str(c.get('description') or ''),
+                            group=str(c.get('group') or ''),
                             owner=r.user if own else None, default_role=App.Role.NONE if own else App.Role.VIEWER)
     # every table first (links point at them), then fields, then views and records
     made = [(schema.create_table(app, str(t['name']).strip()[:100], icon=str(t.get('icon') or '')[:8], primary=None,
@@ -362,6 +362,8 @@ def change_app(r, c):
         app.icon = str(c['icon'])[:8]
     if 'description' in c:
         app.description = str(c.get('description') or '')
+    if 'group' in c:
+        app.group = str(c.get('group') or '').strip()[:60]
     app.save()
     return f'Change the app {old}' + (f' (now called {app.name})' if app.name != old else ''), app.get_absolute_url()
 

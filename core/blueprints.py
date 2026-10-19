@@ -151,7 +151,7 @@ def install(bp, user=None, sample=False, name=None, owner=None):
     if missing:
         raise ValidationError(f'Install {", ".join(missing)} first; "{bp.get("name")}" needs it.')
     app = schema.create_app(name or bp.get('name') or bp['key'], user=user, icon=bp.get('icon', '▦'),
-                            color=bp.get('color', '#2e7d5b'), description=bp.get('description', ''),
+                            color=bp.get('color', '#2e7d5b'), description=bp.get('description', ''), group=bp.get('group', ''),
                             blueprint=bp.get('key', ''), blueprint_version=str(bp.get('version', '')),
                             owner=owner, default_role='none' if owner else 'viewer')
     local = {}
@@ -382,7 +382,8 @@ def export(app, with_records=False):
         return f'{t.app.blueprint or t.app.slug}.{t.key or t.slug}'
 
     out = {'key': app.blueprint or app.slug, 'name': app.name, 'icon': app.icon, 'color': app.color,
-           'description': app.description, 'version': app.blueprint_version or '1.0.0', 'requires': [], 'tables': [],
+           'description': app.description, **({'group': app.group} if app.group else {}),
+           'version': app.blueprint_version or '1.0.0', 'requires': [], 'tables': [],
            'automations': []}
     requires = set()
     for t in tables:

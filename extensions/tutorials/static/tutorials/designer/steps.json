@@ -1,0 +1,50 @@
+[
+ {
+  "image": "01.png",
+  "caption": "The harness designer",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Pick a device: Bench power supply",
+  "width": 556,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "Click the canvas to place it",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "04.png",
+  "caption": "Pick a device: Controller unit",
+  "width": 556,
+  "height": 170
+ },
+ {
+  "image": "05.png",
+  "caption": "Click the canvas to place it",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "06.png",
+  "caption": "Pick a device: CAN test box",
+  "width": 556,
+  "height": 170
+ },
+ {
+  "image": "07.png",
+  "caption": "Click the canvas to place it",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "08.png",
+  "caption": "Now click one connector, then another, to wire them",
+  "width": 556,
+  "height": 170
+ }
+]

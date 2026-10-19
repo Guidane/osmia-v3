@@ -10,13 +10,16 @@
 </div>
 <p class="tut-summary">{{ t.summary }}</p>
 
-{% if gif %}
-<figure class="tut-gif">
-  <img src="{% static gif %}" alt="{{ t.gif_caption }}" loading="lazy">
-  <figcaption>▶ {{ t.gif_caption }}</figcaption>
-</figure>
+{% if pictures %}
+<h2>Step by step</h2>
+<ol class="tut-pictures">
+  {% for s in pictures %}<li>
+    <p>{{ s.caption }}</p>
+    <a href="{% static s.image %}" target="_blank" title="Open it full size"><img src="{% static s.image %}" alt="{{ s.caption }}" width="{{ s.width }}" height="{{ s.height }}" loading="lazy"></a>
+  </li>{% endfor %}
+</ol>
+<h2>In more detail</h2>
 {% endif %}
-
 <ol class="tut-steps">
   {% for step in t.steps %}<li>{{ step|safe }}</li>{% endfor %}
 </ol>

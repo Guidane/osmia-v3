@@ -1,0 +1,68 @@
+[
+ {
+  "image": "01.png",
+  "caption": "⚙ Fields lists the columns of a table",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Click ＋ New field",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "03.png",
+  "caption": "Give it a name",
+  "width": 894,
+  "height": 174
+ },
+ {
+  "image": "04.png",
+  "caption": "Pick its type: Single select",
+  "width": 460,
+  "height": 176
+ },
+ {
+  "image": "05.png",
+  "caption": "Add the choices; each gets a colour",
+  "width": 894,
+  "height": 170
+ },
+ {
+  "image": "06.png",
+  "caption": "Save",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "07.png",
+  "caption": "Another one: ＋ New field",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "08.png",
+  "caption": "Name it",
+  "width": 894,
+  "height": 174
+ },
+ {
+  "image": "09.png",
+  "caption": "Type: Number",
+  "width": 460,
+  "height": 176
+ },
+ {
+  "image": "10.png",
+  "caption": "Save",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "11.png",
+  "caption": "Both fields are on the table now",
+  "width": 1280,
+  "height": 450
+ }
+]

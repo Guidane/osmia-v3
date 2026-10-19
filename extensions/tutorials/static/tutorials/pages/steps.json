@@ -1,0 +1,68 @@
+[
+ {
+  "image": "01.png",
+  "caption": "📄 Documentation: a section for every space",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Engineering's pages",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "Start from a template: How-to",
+  "width": 460,
+  "height": 222
+ },
+ {
+  "image": "04.png",
+  "caption": "Give the page a title",
+  "width": 1054,
+  "height": 191
+ },
+ {
+  "image": "05.png",
+  "caption": "Click into the page and write",
+  "width": 998,
+  "height": 170
+ },
+ {
+  "image": "06.png",
+  "caption": "Type / for a checklist, a table, a panel, ...",
+  "width": 510,
+  "height": 214
+ },
+ {
+  "image": "07.png",
+  "caption": "/view puts a live view of an app on the page",
+  "width": 510,
+  "height": 460
+ },
+ {
+  "image": "08.png",
+  "caption": "Pick the Tasks list",
+  "width": 748,
+  "height": 174
+ },
+ {
+  "image": "09.png",
+  "caption": "Publish",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "10.png",
+  "caption": "The tasks on the page are live: always as they are now",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "11.png",
+  "caption": "📌 pins the page: the Pinned pages block shows it",
+  "width": 460,
+  "height": 170
+ }
+]

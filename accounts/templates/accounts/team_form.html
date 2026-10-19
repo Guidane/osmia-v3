@@ -1,5 +1,6 @@
 {% extends "accounts/_simple.html" %}
 {% block title %}Team{% endblock %}
+{% block leave_to %}{% url 'accounts:team_list' %}{% endblock %}
 {% block box2 %}<h1>{% if team %}{{ team.name }}{% else %}New team{% endif %}</h1>
 <form method="post">{% csrf_token %}{% include "accounts/_form_fields.html" %}
 <div class="actions"><button class="btn primary">Save</button><a class="btn ghost" href="{% url 'accounts:team_list' %}">Cancel</a>

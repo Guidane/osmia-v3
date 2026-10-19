@@ -1,5 +1,6 @@
 {% extends "base.html" %}{% load static %}
 {% block title %}{% if auto %}{{ auto.name }}{% else %}New automation{% endif %} · {{ app.name }}{% endblock %}
+{% block leave_to %}{% url 'core:automations' app.slug %}{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <div class="record-head">

@@ -48,13 +48,10 @@ class PageTests(Workspace):
             self.ok(reverse('core:extension_switch', args=[ext]))
 
     def test_every_space_and_app_home(self):
-        from core.space import home_node
-        home = home_node(self.admin)
-        self.assertContains(self.ok('/'), 'your home space')
+        self.assertContains(self.ok('/'), 'your own page')
         for record in Record.objects.filter(table__is_space=True):
             response = self.ok(reverse('core:space', args=[record.pk]))
             self.assertNotContains(response, 'could not be shown', msg_prefix=str(record.pk))
-        self.assertTrue(home.table.is_space)
         for app in App.objects.all():
             self.ok(reverse('core:app', args=[app.slug]))
             self.ok(reverse('core:app_home_edit', args=[app.slug]))
@@ -297,3 +294,37 @@ class CardTests(Workspace):
         response = self.ok('/')
         self.assertContains(response, 'launcher-tile')
         self.assertContains(response, 'data-name="orders"')
+
+
+class BackAndForwardTests(Workspace):
+    """Back and Forward show pages as they are now and never land in an editing screen."""
+
+    def leave_to(self, url):
+        html = self.ok(url).content.decode()
+        start = html.index('name="osmia-leave-to" content="') + len('name="osmia-leave-to" content="')
+        return html[start:html.index('"', start)]
+
+    def test_pages_are_not_kept_by_the_browser(self):
+        response = self.ok('/')
+        self.assertIn('no-store', response['Cache-Control'])
+
+    def test_editing_screens_name_the_page_they_belong_to(self):
+        tasks = self.table('tasks', 'tasks')
+        app, view, field = tasks.app, tasks.views.first(), tasks.fields.first()
+        self.assertEqual(self.leave_to(reverse('core:app_settings', args=[app.slug])), app.get_absolute_url())
+        self.assertEqual(self.leave_to(reverse('core:field_edit', args=[app.slug, tasks.slug, field.pk])),
+                         reverse('core:fields', args=[app.slug, tasks.slug]))
+        self.assertEqual(self.leave_to(reverse('core:view_settings', args=[app.slug, tasks.slug, view.pk])), view.get_absolute_url())
+        self.assertEqual(self.leave_to(reverse('core:app_home_edit', args=[app.slug])), reverse('core:app', args=[app.slug]))
+        self.assertEqual(self.leave_to(reverse('core:record_new', args=[app.slug, tasks.slug])), tasks.get_absolute_url())
+        self.assertEqual(self.leave_to(reverse('accounts:profile')), '/')
+        # what is only looked at stays where it is
+        self.assertEqual(self.leave_to(app.get_absolute_url()), '')
+        self.assertEqual(self.leave_to(view.get_absolute_url()), '')
+
+    def test_only_a_page_of_this_osmia_comes_next(self):
+        tasks = self.table('tasks', 'tasks')
+        url = reverse('core:record_new', args=[tasks.app.slug, tasks.slug])
+        for outside in ['//evil.example/', 'https://evil.example/', 'javascript:alert(1)']:
+            self.assertEqual(self.leave_to(f'{url}?next={outside}'), tasks.get_absolute_url(), outside)
+        self.assertEqual(self.leave_to(f'{url}?next=/notifications/'), '/notifications/')

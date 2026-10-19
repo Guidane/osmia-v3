@@ -153,12 +153,12 @@ def extension_switch(request, name):
 @admin_required
 def trees(request):
     """Every table that is a tree (or could be one), and which are trees of spaces."""
-    from .space import home_field
+    from .space import holder_field
     rows = []
     for table in Table.objects.select_related('app', 'tree_field'):
         self_links = [f for f in table.fields.filter(type='link') if f.opt('target') == table.pk and not f.opt('multiple')]
         if table.tree_field_id or self_links:
-            rows.append({'table': table, 'home': home_field(table) if table.is_space else None, 'can_be': bool(self_links)})
+            rows.append({'table': table, 'home': holder_field(table) if table.is_space else None, 'can_be': bool(self_links)})
     return render(request, 'core/admin/trees.html', {'rows': rows})
 
 

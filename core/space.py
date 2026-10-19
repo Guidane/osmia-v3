@@ -1,14 +1,16 @@
-"""Spaces and everyone's home space.
+"""Spaces, the roles people hold, and everyone's own page.
 
 A space is a record of a table marked ``is_space`` (a tree): a company, a
-department, a team, a person, a programme, a project, ... Opening one shows
+department, a team, a role, a programme, a project, ... Opening one shows
 its page (a ``Layout`` made of blocks, see core.canvas) and what links to it.
 
-Everyone's home space is the record of a space table whose home field (a user
-field with ``options.home``) is them; it is made for them, at the top of the
-tree, the first time they open Osmia, and an administrator moves it under
-their team. What is "their work" (assigned to them, recently opened, starred)
-is worked out across every app they can see.
+A role is a space whose holder field (a user field with ``options.home``) names
+someone: "Lead engineer" in Engineering, held by Alice. What belongs to the role
+links to it, and stays with it when someone else takes the role over.
+
+Everyone's Home is a page of their own (a ``Layout`` of theirs), with a tab for
+each role they hold. What is "their work" (assigned to them, recently opened,
+starred) is worked out across every app they can see.
 """
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -41,7 +43,8 @@ def set_space(table, flag):
     refresh_tables(linking | {table.pk})
 
 
-def home_field(table):
+def holder_field(table):
+    """The field of a space table naming who holds each record, as a role (a user field with ``options.home``)."""
     return next((f for f in Field.objects.filter(table=table, type='user') if f.opt('home')), None)
 
 
@@ -49,31 +52,22 @@ def _holds(value, user_id):
     return value == user_id or (isinstance(value, list) and user_id in value)
 
 
-def home_node(user, create=True):
-    """The person's home space (a record), made at the top of the first space table with a home field."""
-    first = None
+def roles_of(user):
+    """The roles ``user`` holds: the records of trees of spaces whose holder field names them, oldest first."""
+    found = []
     for table in space_tables():
-        field = home_field(table)
+        field = holder_field(table)
         if field is None:
             continue
-        first = first or (table, field)
-        for record in Record.objects.filter(table=table, data__has_key=field.key).order_by('pk'):
-            if _holds(record.data.get(field.key), user.pk):
-                return record
-    if not create or first is None:
-        return None
-    from . import service
-    from .data import Data
-    table, field = first
-    data = Data()
-    values = {field.pk: user.pk}
-    primary = data.primary_field(table)
-    if primary is not None and primary.pk != field.pk and primary.kind.stored:
-        values[primary.pk] = user.get_full_name() or user.username
-    kind = next((f for f in data.fields(table) if f.key == 'kind' and f.type == 'select'), None)
-    if kind is not None and any(c['value'] == 'Person' for c in kind.opt('choices') or []):
-        values[kind.pk] = 'Person'
-    return service.create_record(table, values, user=None, data=data, force=True, run_automations=False)
+        found += [r for r in Record.objects.filter(table=table, data__has_key=field.key).order_by('pk')
+                  if _holds(r.data.get(field.key), user.pk)]
+    return found
+
+
+def holds(user, record):
+    """Whether ``record`` is a role ``user`` holds."""
+    field = holder_field(record.table_id) if is_space(record) else None
+    return field is not None and _holds(record.data.get(field.key), user.pk)
 
 
 def is_space(record):
@@ -81,9 +75,12 @@ def is_space(record):
     return bool(table and table.is_space and table.tree_field_id)
 
 
-def layout_of(record=None, app=None):
+def layout_of(record=None, app=None, user=None):
+    """The page saved for a space, an app's home, or someone's own Home (None: it is the default one)."""
     if record is not None:
         return Layout.objects.filter(record=record).first()
+    if user is not None:   # their main page; the tabs they add have a title
+        return Layout.objects.filter(user=user, title='').first()
     return Layout.objects.filter(app=app).first()
 
 
@@ -118,6 +115,24 @@ def linked_here(data, record, tree):
         if found:
             out.append((f, target, found))
     return out
+
+
+# -- Apps by group ------------------------------------------------------------------
+
+OTHER_APPS = 'Other apps'
+
+
+def app_groups(request):
+    """The apps the person can open, extension apps too, by group: [(group, [apps])]. Groups come in the
+    order of their first app; apps without one come last, under "Other apps" (no heading if no app has one)."""
+    from .extensions import registry
+    from .permissions import visible_apps
+    groups = {}
+    for a in list(visible_apps(request.user)) + registry.apps_for(request):
+        groups.setdefault(a.group.strip(), []).append(a)
+    if '' in groups and len(groups) > 1:
+        groups.setdefault(OTHER_APPS, []).extend(groups.pop(''))
+    return list(groups.items())
 
 
 # -- Your work ----------------------------------------------------------------------

@@ -8,9 +8,12 @@
 .tut-card.read .tut-done { display: inline; }
 .tut-tags { display: flex; gap: 4px; flex-wrap: wrap; }
 .tut-summary { font-size: 16px; color: var(--muted); margin-top: -6px; }
-.tut-gif { margin: 0 0 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
-.tut-gif img { width: 100%; height: auto; display: block; border-radius: 6px; }
-.tut-gif figcaption { color: var(--muted); font-size: 12px; padding: 6px 4px 0; }
+.tut-pictures { padding-left: 26px; margin: 0 0 8px; }
+.tut-pictures > li { margin-bottom: 22px; }
+.tut-pictures > li::marker { font-weight: 700; color: var(--brand); }
+.tut-pictures p { margin: 0 0 8px; font-weight: 600; line-height: 1.5; }
+.tut-pictures img { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: var(--shadow); background: var(--panel); }
 .tut-steps { padding-left: 22px; }
 .tut-steps > li { margin-bottom: 12px; line-height: 1.6; }
 .tut-steps ul { margin: 6px 0; }

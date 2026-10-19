@@ -14,6 +14,7 @@
       <a href="{% url 'core:app_history' app.slug %}">↺ History</a>
       {% if can_build %}<div class="sep"></div>
         <a href="{% url 'core:app_home_edit' app.slug %}">✎ Edit the home page</a>
+        {% if app_home and layout %}<form method="post" action="{% url 'core:app_home_edit' app.slug %}">{% csrf_token %}<button name="reset" value="1" data-confirm="Put the home page back to the default? What was changed is lost.">↺ Reset the home page</button></form>{% endif %}
         <a href="{% url 'core:table_create' app.slug %}">＋ New table</a>
         <a href="{% url 'core:app_settings' app.slug %}">⚙ App settings</a>{% endif %}
     </div>

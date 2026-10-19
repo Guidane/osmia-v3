@@ -1,0 +1,56 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Home: your own page, with your work, notifications and apps",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Assigned to me: open records where you are the assignee, owner, ...",
+  "width": 798,
+  "height": 203
+ },
+ {
+  "image": "03.png",
+  "caption": "Click ☆ to star a record",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "04.png",
+  "caption": "Back home: Osmia, at the top left",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "05.png",
+  "caption": "Starred records stay here",
+  "width": 460,
+  "height": 188
+ },
+ {
+  "image": "06.png",
+  "caption": "Recent: what you opened lately",
+  "width": 460,
+  "height": 188
+ },
+ {
+  "image": "07.png",
+  "caption": "Make it your own: ✎ Edit page",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "08.png",
+  "caption": "Type / and an app's name: a card that opens it",
+  "width": 510,
+  "height": 444
+ },
+ {
+  "image": "09.png",
+  "caption": "Save",
+  "width": 460,
+  "height": 174
+ }
+]

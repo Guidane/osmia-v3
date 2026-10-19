@@ -1,0 +1,20 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Open the Calendar view: tasks on their due date",
+  "width": 460,
+  "height": 175
+ },
+ {
+  "image": "02.png",
+  "caption": "Drag a task to another day",
+  "width": 674,
+  "height": 178
+ },
+ {
+  "image": "03.png",
+  "caption": "Its due date moved with it",
+  "width": 1280,
+  "height": 450
+ }
+]

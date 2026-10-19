@@ -41,17 +41,22 @@ need (a task links to its project, its team and the location it is about). Paren
 - A tree of **spaces** (Table settings → *Its records are spaces*) gives each node a **page** at `/s/<id>/`, showing what
   links to it and to the spaces under it (a programme shows the tasks of all its projects), the spaces under it and
   its Documentation pages. The Organisation and Projects templates are trees of spaces.
-- **Everyone lands in their home space**: the record of a space table whose *home* user field is them (the
-  Organisation template's *Person*), made for them at the top of the tree the first time they log in. An administrator
-  moves it under their team.
+- **Everyone lands on Home**: a page of their own (only they see and change it), the tabs they add next to it (＋ at
+  the end of the tabs), and a tab for each **role** they hold. A role is a space whose *holder* user field names them
+  (the Organisation template's *Role*, *Held by*): *Lead engineer* in Engineering, say. What belongs to a role links to
+  it, and stays with it when someone else takes it over.
 - A space's page, and an app's **⌂ Home** tab, are pages made of blocks. **✎ Edit page** opens the editor: type `/` (or
-  ＋ Add) for the slash menu: text styles, lists, task lists, tables, panels, **grids** (cells side by side; type `/`
-  inside a cell), an app by its name (a small card that opens it), a live **view** of any app, a **record** (link, card
+  ＋ Add) for the slash menu: text styles, lists, checklists, tables, panels, **grids** (cells side by side; type `/`
+  inside a cell), an app by its name (a small card that opens it), a live **view** of any app by its name (`/tasks
+  list`, `/orders board`), a **record** (link, card
   or live value), a **calculation**, and **blocks** (My work, Notifications, Apps, Spaces under this one, Linked to this
-  space, Pages of this space, Pinned pages, ...). Its people (the person, the manager: any user field naming them) and
+  space, Pages of this space, Pinned pages, ...). Hovering a block, view, card, grid, panel or table shows a bar to
+  move it (↑ ↓, and ← → between a grid's cells) or take it away (✕); click it and press Delete to take it away. Its people (the person, the manager: any user field naming them) and
   the editors of its app change a space's page. See `core/canvas/`.
-- The **launcher** (the grid at the top left, or `/apps/`) has every app you can open as a small card, and the trees of
-  spaces. Inside an app, its home and its tables are **tabs** along the top; a table's views are a second row of tabs.
+- The **launcher** (the grid at the top left, or `/apps/`) has every app you can open as a small card, under its
+  **group** (Management, Production, ...: set in the app's settings; templates come with one), and the trees of
+  spaces. Your home page starts with a heading for each group and a card for each app, which you edit like the rest
+  of the page (the Apps block instead always shows them all). Inside an app, its home and its tables are **tabs** along the top; a table's views are a second row of tabs.
 
 ## Access tags
 
@@ -135,7 +140,7 @@ it on again brings its screens back over the same data. Switching off is refused
 (a view of its view type, a field of its field type, an automation step of its action, its block on a page).
 
 `extensions/docs` is the **Documentation** app: pages for people to read, with a section for each space, a page tree,
-the slash editor (headings, tables, task lists, info/note/warning/success panels, pictures, links), **live views of any
+the slash editor (headings, tables, checklists, info/note/warning/success panels, pictures, links), **live views of any
 app**, and records inside pages: a link, a **card** with the fields you pick, or **one live value in a sentence** ("we
 have €12,400 left"), found with `/record`, by typing `@` or `[[`, or by pasting a record's address. A record's own page
 lists the pages that mention it. `/calculation` puts a calculation anywhere on a page, also in a page table's cell: a
@@ -165,16 +170,20 @@ changed is kept (`assistant.Run`). See `extensions/assistant/plan.py` for the an
 ### Tutorials
 
 `extensions/tutorials` has a tutorial for everything Osmia does (📖 Tutorials in the launcher), grouped from getting
-started to administration; administrators' tutorials are shown to administrators only. The animations are recorded
-from the app itself: after changing pages, run
+started to administration, and first **How do I…**: step-by-step recipes for something you want done (your tasks on
+your home page, a list of just the records you need, ...). Its search takes a question in your own words and shows the
+best matches first. Administrators' tutorials are shown to administrators only. Many show every step with a picture
+of the button or field to use and a little around it, a ring on what to click. The pictures are taken from the app
+itself: after changing pages, run
 
 ```powershell
 .\.venv\Scripts\python -m pip install -r requirements-dev.txt     # once: Playwright
-.\.venv\Scripts\python manage.py make_tutorial_gifs                # or e.g. make_tutorial_gifs grid gantt
+.\.venv\Scripts\python manage.py make_tutorial_pictures           # or e.g. make_tutorial_pictures grid gantt
 ```
 
 It starts a scratch Osmia with every template and its sample records, drives it in a headless browser (Edge or Chrome,
-else `playwright install chromium`) and writes `extensions/tutorials/static/tutorials/*.gif`. The tutorials' text is
+else `playwright install chromium`) and writes the steps of each tutorial to
+`extensions/tutorials/static/tutorials/<name>/` (`01.png`, `02.png`, ... and `steps.json`). The tutorials' text is
 in `extensions/tutorials/content.py`.
 
 ## Developing
@@ -193,7 +202,7 @@ Edge, Chrome or `playwright install chromium`) behind a live server: adding one 
 and add another", CSV import), changing every kind of field in the grid and on record pages (and the keyboard),
 deleting one record and several, links, comments, stars and files, the view toolbar, kanban and calendar drag and
 drop, form views, CSV export; building apps, fields of every kind, views, automations and buttons, and what can't be
-removed; home spaces, space pages and app home pages with the slash menu; Documentation pages (versions, comments,
+removed; Home with its tabs, space pages and app home pages with the slash menu; Documentation pages (versions, comments,
 pins, moving, pictures, live values and calculations); access tags and sharing; templates, users, teams, extensions,
 the AI assistant and the tutorials. It checks what the page shows and what is in the database, and fails on any
 JavaScript error. Without Playwright or a browser it is skipped.
@@ -201,7 +210,7 @@ JavaScript error. Without Playwright or a browser it is skipped.
 | Piece | Where |
 |---|---|
 | Workspace models (apps, tables, fields, records, links, views, automations, history, tags, layouts) | `core/models.py` |
-| Trees, spaces and home spaces | `core/trees.py`, `core/space.py`, `core/space_views.py` |
+| Trees, spaces, roles and Home | `core/trees.py`, `core/space.py`, `core/space_views.py` |
 | Access tags | `core/access.py` |
 | What uses what (removal checks) | `core/dependencies.py` |
 | Pages made of blocks: editor, sanitizer, rendering, calculations, blocks | `core/canvas/`, `core/static/core/editor.js` |

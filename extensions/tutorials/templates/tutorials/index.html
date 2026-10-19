@@ -6,7 +6,7 @@
   <h1>📖 Tutorials</h1>
   <form><input type="search" name="q" value="{{ q }}" placeholder="Find a tutorial…"></form>
 </div>
-<p class="muted">How to do everything in Osmia, step by step. The ones marked ▶ have an animation of the workflow. Tutorials you've read get a ✓.</p>
+<p class="muted">How to do everything in Osmia, step by step. The ones marked 📷 show every step with a picture of where to click. Tutorials you've read get a ✓.</p>
 {% for g in groups %}
   <h2>{{ g.label }}</h2>
   <div class="tut-grid">
@@ -16,7 +16,7 @@
         <span class="tut-body">
           <span class="tut-title">{{ i.t.title }} <span class="tut-done" title="Read">✓</span></span>
           <span class="muted small">{{ i.t.summary }}</span>
-          <span class="tut-tags">{% if i.gif %}<span class="badge ok">▶ animation</span>{% endif %}{% if i.t.audience != 'everyone' %}<span class="badge">{% if i.t.audience == "admins" %}Administrators{% else %}App builders{% endif %}</span>{% endif %}</span>
+          <span class="tut-tags">{% if i.pictures %}<span class="badge ok">📷 pictures</span>{% endif %}{% if i.t.audience != 'everyone' %}<span class="badge">{% if i.t.audience == "admins" %}Administrators{% else %}App builders{% endif %}</span>{% endif %}</span>
         </span>
       </a>
     {% endfor %}

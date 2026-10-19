@@ -1,0 +1,32 @@
+[
+ {
+  "image": "01.png",
+  "caption": "A tree: budgets nested in budgets",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "Click ▾ to close a level",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "Click ▸ to open it again",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "04.png",
+  "caption": "Collapse all",
+  "width": 460,
+  "height": 172
+ },
+ {
+  "image": "05.png",
+  "caption": "Expand all",
+  "width": 460,
+  "height": 172
+ }
+]

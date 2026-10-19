@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 
 from . import automation, filters, formula, schema
 from .data import Data
+from .extensions import registry
 from .fieldtypes import COLORS, ROLLUPS, TYPES, choices_for_form
 from .models import App, AppAccess, Automation, AutomationRun, Field, Table, View
 from .permissions import RANK, can, can_make_apps, require
@@ -49,6 +50,7 @@ def app_create(request):
                 app = schema.create_app(name, request.user, icon=request.POST.get('icon', '').strip() or '▦',
                                         color=request.POST.get('color') or '#2e7d5b',
                                         description=request.POST.get('description', ''),
+                                        group=request.POST.get('group', ''),
                                         owner=request.user if own else None,
                                         default_role=App.Role.NONE if own else App.Role.VIEWER)
                 first = request.POST.get('table', '').strip()
@@ -56,7 +58,13 @@ def app_create(request):
                     table = schema.create_table(app, first)
                     return redirect('core:fields', app.slug, table.slug)
             return redirect(app)
-    return render(request, 'core/build/app_form.html', {'colors': COLORS[8:], 'own': own})
+    return render(request, 'core/build/app_form.html', {'colors': COLORS[8:], 'own': own, 'group_names': group_names()})
+
+
+def group_names():
+    """The groups apps are in already, to pick from."""
+    names = set(App.objects.exclude(group='').values_list('group', flat=True)) | {a.group for a in registry.apps if a.group}
+    return sorted(names, key=str.lower)
 
 
 @login_required
@@ -81,6 +89,7 @@ def app_settings(request, app_slug):
         app.icon = request.POST.get('icon', '').strip() or app.icon
         app.color = request.POST.get('color') or app.color
         app.description = request.POST.get('description', '')
+        app.group = request.POST.get('group', '').strip()[:60]
         if request.user.is_superuser:
             role = request.POST.get('default_role')
             if role in App.Role.values:
@@ -109,6 +118,7 @@ def app_settings(request, app_slug):
     from . import dependencies
     return render(request, 'core/build/app_settings.html', {**app_context(app, request.user), 'roles': App.Role.choices,
                                                             'users': users, 'teams': teams, 'colors': COLORS[8:],
+                                                            'group_names': group_names(),
                                                             'blockers': dependencies.blockers(dependencies.app_removal(app))})
 
 

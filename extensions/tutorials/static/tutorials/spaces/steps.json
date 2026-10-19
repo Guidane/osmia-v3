@@ -1,0 +1,62 @@
+[
+ {
+  "image": "01.png",
+  "caption": "The trees of spaces: the organisation, programmes and projects",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "02.png",
+  "caption": "A programme is a space",
+  "width": 1280,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "Its page shows what links to it, and the spaces under it",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "04.png",
+  "caption": "✎ Edit page",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "05.png",
+  "caption": "Type / for the slash menu",
+  "width": 510,
+  "height": 214
+ },
+ {
+  "image": "06.png",
+  "caption": "A grid: cells side by side",
+  "width": 510,
+  "height": 214
+ },
+ {
+  "image": "07.png",
+  "caption": "In a cell, / again: an app as a small card",
+  "width": 510,
+  "height": 460
+ },
+ {
+  "image": "08.png",
+  "caption": "Blocks: My work, Notifications, Linked to this space, ...",
+  "width": 510,
+  "height": 214
+ },
+ {
+  "image": "09.png",
+  "caption": "Save",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "10.png",
+  "caption": "The space's own page",
+  "width": 1280,
+  "height": 450
+ }
+]

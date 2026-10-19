@@ -12,6 +12,7 @@ from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from . import blueprints, filters, service
@@ -22,6 +23,13 @@ from .models import App, Attachment, Automation, AutomationRun, Change, Comment,
 from .permissions import can, require, visible_apps
 from .space_views import app_context
 from .viewtypes import VIEW_TYPES, get_view_type, query, toolbar_state
+
+
+def local_next(request):
+    """Where to go next (?next= or a posted next), if it's a page of this Osmia; '' if not."""
+    url = request.POST.get('next') or request.GET.get('next') or ''
+    ok = url.startswith('/') and url_has_allowed_host_and_scheme(url, allowed_hosts={request.get_host()})
+    return url if ok else ''
 
 
 # -- Helpers -------------------------------------------------------------------------
@@ -178,7 +186,7 @@ def record_star(request, pk):
     if request.headers.get('x-requested-with') == 'fetch':
         from django.http import JsonResponse
         return JsonResponse({'starred': created})
-    return redirect(request.POST.get('next') or record.get_absolute_url())
+    return redirect(local_next(request) or record.get_absolute_url())
 
 
 @login_required
@@ -410,13 +418,12 @@ def record_new(request, app_slug, table_slug):
                     messages.error(request, m)
         else:
             messages.success(request, f'{data.label(data.record(record.pk))} is added.')
-            back = request.POST.get('next')
             if 'add_another' in request.POST:
                 return redirect(request.get_full_path())
-            return redirect(back if back and back.startswith('/') else record.get_absolute_url())
+            return redirect(local_next(request) or record.get_absolute_url())
     return render(request, 'core/record_new.html', {
         **app_context(app, request.user), 'table': table, 'items': form_items(request, fields, data, preset),
-        'all_users': get_user_model().objects.filter(is_active=True), 'next': request.GET.get('next', '') or request.POST.get('next', ''),
+        'all_users': get_user_model().objects.filter(is_active=True), 'next': local_next(request),
         'link_field': link_field or '', 'link_to': link_to or '', 'needs_share': needs_share,
         'tag_choices': _tag_choices(request), 'chosen_tags': request.POST.getlist('tags'),
         'meta': json.dumps({'fields': fields_meta(data, [table]), 'users': users_meta(data)}),
@@ -443,8 +450,7 @@ def record_delete(request, pk):
             messages.error(request, m)
         return redirect(record)
     messages.success(request, f'{label} is deleted.')
-    back = request.POST.get('next')
-    return redirect(back if back and back.startswith('/') else table.get_absolute_url())
+    return redirect(local_next(request) or table.get_absolute_url())
 
 
 @login_required
@@ -454,7 +460,7 @@ def record_comment(request, pk):
     text = request.POST.get('text', '').strip()
     if text:
         service.add_comment(record, text, request.user)
-    return redirect(request.POST.get('next') or record.get_absolute_url())
+    return redirect(local_next(request) or record.get_absolute_url())
 
 
 @login_required
@@ -474,7 +480,7 @@ def record_upload(request, pk, field_id):
         return JsonResponse({'added': added, 'errors': problems}, status=200 if not problems else 400)
     for p in problems:
         messages.error(request, p)
-    return redirect(request.POST.get('next') or record.get_absolute_url())
+    return redirect(local_next(request) or record.get_absolute_url())
 
 
 @login_required
@@ -483,7 +489,7 @@ def attachment_delete(request, pk):
     attachment = get_object_or_404(Attachment.objects.select_related('record__table__app'), pk=pk)
     record = record_or_404(request, attachment.record_id, 'editor')
     service.remove_attachment(attachment, request.user)
-    return redirect(request.POST.get('next') or record.get_absolute_url())
+    return redirect(local_next(request) or record.get_absolute_url())
 
 
 @login_required
