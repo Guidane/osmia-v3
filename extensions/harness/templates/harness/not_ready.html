@@ -1,8 +1,0 @@
-{% extends "base.html" %}
-{% block title %}Harness designer{% endblock %}
-{% block content_class %}narrow{% endblock %}
-{% block content %}
-<div class="card empty"><h1>🧵 Harness designer</h1>
-<p>The designer works on the <b>Devices</b> and <b>Harness</b> apps, which come with it as templates.</p>
-{% if user.is_superuser %}<a class="btn primary" href="{% url 'core:templates' %}">Install them on the Templates page</a>{% else %}<p class="muted">Ask an administrator to install them.</p>{% endif %}</div>
-{% endblock %}

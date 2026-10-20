@@ -1,1 +1,0 @@
-{% for p, label in projects %}<a class="link-chip" href="{{ p.get_absolute_url }}">{{ label }}</a> <a class="small" href="{{ designer }}?project={{ p.pk }}">open in the designer</a><br>{% empty %}<p class="muted small">No harness project uses this device yet. <a href="{{ designer }}">Open the designer</a>.</p>{% endfor %}

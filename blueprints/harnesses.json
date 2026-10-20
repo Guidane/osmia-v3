@@ -1,0 +1,634 @@
+{
+  "key": "harnesses",
+  "name": "Harnesses",
+  "icon": "🧵",
+  "color": "#c2410c",
+  "version": "2.0.0",
+  "position": 42,
+  "group": "Production",
+  "description": "Wire harnesses as a pinout: each harness's connectors (a part and its gender) on side A and B, and the wires between them, contact to contact, with the function at each end, the set type (straight, twisted, shielded), AWG, length and the wire's part. A harness's page lists its wires under a sub-header for each pair of connectors.",
+  "requires": [
+    "parts"
+  ],
+  "tables": [
+    {
+      "key": "harnesses",
+      "name": "Harnesses",
+      "icon": "🧵",
+      "display": "name",
+      "fields": [
+        {
+          "key": "name",
+          "name": "Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "number",
+          "name": "Number",
+          "type": "autonumber",
+          "options": {
+            "prefix": "H-",
+            "digits": 4
+          }
+        },
+        {
+          "key": "status",
+          "name": "Status",
+          "type": "select",
+          "options": {
+            "default": "Draft",
+            "choices": [
+              {
+                "value": "Draft",
+                "color": "#e5e7eb"
+              },
+              {
+                "value": "Released",
+                "color": "#bbf7d0"
+              },
+              {
+                "value": "Obsolete",
+                "color": "#fecaca"
+              }
+            ]
+          }
+        },
+        {
+          "key": "description",
+          "name": "Description",
+          "type": "text"
+        },
+        {
+          "key": "wire_count",
+          "name": "Wire count",
+          "type": "rollup",
+          "options": {
+            "link": "wires",
+            "func": "count"
+          }
+        },
+        {
+          "key": "total_length",
+          "name": "Wire length (mm)",
+          "type": "rollup",
+          "options": {
+            "link": "wires",
+            "field": "length",
+            "func": "sum"
+          }
+        },
+        {
+          "key": "pictures",
+          "name": "Pictures and drawings",
+          "type": "attachment"
+        },
+        {
+          "key": "notes",
+          "name": "Notes",
+          "type": "longtext"
+        }
+      ],
+      "views": [
+        {
+          "name": "Harnesses",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "number",
+              "name",
+              "status",
+              "description",
+              "wire_count",
+              "total_length"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "connectors",
+      "name": "Connectors",
+      "icon": "🔌",
+      "display": "label",
+      "fields": [
+        {
+          "key": "label",
+          "name": "Connector",
+          "type": "formula",
+          "options": {
+            "expression": "{Designator} & IF(ISBLANK({Part}), \"\", \" · \" & {Part}) & IF(ISBLANK({Gender}), \"\", \" · \" & {Gender})"
+          }
+        },
+        {
+          "key": "designator",
+          "name": "Designator",
+          "type": "text",
+          "required": true,
+          "description": "Its name on the harness, e.g. X1."
+        },
+        {
+          "key": "harness",
+          "name": "Harness",
+          "type": "link",
+          "options": {
+            "target": "harnesses",
+            "multiple": false,
+            "inverse": {
+              "key": "connectors",
+              "name": "Connectors",
+              "multiple": true,
+              "show": {
+                "fields": [
+                  "designator",
+                  "side",
+                  "part",
+                  "gender"
+                ],
+                "sort": [
+                  "designator"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "key": "side",
+          "name": "Side",
+          "type": "select",
+          "options": {
+            "default": "A",
+            "choices": [
+              {
+                "value": "A",
+                "color": "#dbeafe"
+              },
+              {
+                "value": "B",
+                "color": "#fde68a"
+              }
+            ]
+          }
+        },
+        {
+          "key": "part",
+          "name": "Part",
+          "type": "link",
+          "options": {
+            "target": "parts.parts",
+            "multiple": false,
+            "inverse": {
+              "key": "harness_connectors",
+              "name": "On harnesses",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "part_attributes",
+          "name": "Part attributes",
+          "type": "lookup",
+          "options": {
+            "link": "part",
+            "field": "attributes"
+          }
+        },
+        {
+          "key": "gender",
+          "name": "Gender",
+          "type": "formula",
+          "options": {
+            "expression": "ATTRIBUTE({Part attributes}, \"Gender\")"
+          },
+          "description": "From the part's attributes."
+        },
+        {
+          "key": "notes",
+          "name": "Notes",
+          "type": "text"
+        }
+      ],
+      "views": [
+        {
+          "name": "Connectors",
+          "type": "grid",
+          "config": {
+            "group_by": "harness",
+            "fields": [
+              "designator",
+              "side",
+              "part",
+              "gender"
+            ],
+            "sorts": [
+              {
+                "field": "designator",
+                "dir": "asc"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "wires",
+      "name": "Wires",
+      "icon": "〰",
+      "display": "label",
+      "fields": [
+        {
+          "key": "label",
+          "name": "Wire",
+          "type": "formula",
+          "options": {
+            "expression": "{From designator} & \":\" & {A contact} & \" → \" & {To designator} & \":\" & {B contact}"
+          }
+        },
+        {
+          "key": "harness",
+          "name": "Harness",
+          "type": "link",
+          "options": {
+            "target": "harnesses",
+            "multiple": false,
+            "inverse": {
+              "key": "wires",
+              "name": "Wires",
+              "multiple": true,
+              "show": {
+                "fields": [
+                  "a_function",
+                  "source_contact",
+                  "target_contact",
+                  "b_function",
+                  "set_type",
+                  "colour",
+                  "awg",
+                  "length",
+                  "part"
+                ],
+                "sort": [
+                  "source_contact"
+                ],
+                "group_by": [
+                  "from",
+                  "to"
+                ],
+                "group_join": " → ",
+                "group_columns": {
+                  "from": [
+                    "a_function",
+                    "source_contact"
+                  ],
+                  "to": [
+                    "target_contact",
+                    "b_function"
+                  ]
+                },
+                "column_groups": [
+                  {
+                    "label": "A",
+                    "fields": [
+                      "a_function",
+                      "source_contact"
+                    ]
+                  },
+                  {
+                    "label": "B",
+                    "fields": [
+                      "target_contact",
+                      "b_function"
+                    ]
+                  },
+                  {
+                    "label": "Wire details",
+                    "fields": [
+                      "set_type",
+                      "colour",
+                      "awg",
+                      "length",
+                      "part"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "key": "from",
+          "name": "A connector",
+          "type": "link",
+          "options": {
+            "target": "connectors",
+            "multiple": false,
+            "inverse": {
+              "key": "wires_from",
+              "name": "Wires from it",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "a_function",
+          "name": "A function",
+          "type": "text",
+          "description": "What it carries at the A end, e.g. +24 V."
+        },
+        {
+          "key": "source_contact",
+          "name": "A contact",
+          "type": "text",
+          "description": "The contact number on the A connector."
+        },
+        {
+          "key": "to",
+          "name": "B connector",
+          "type": "link",
+          "options": {
+            "target": "connectors",
+            "multiple": false,
+            "inverse": {
+              "key": "wires_to",
+              "name": "Wires to it",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "target_contact",
+          "name": "B contact",
+          "type": "text",
+          "description": "The contact number on the B connector."
+        },
+        {
+          "key": "b_function",
+          "name": "B function",
+          "type": "text",
+          "description": "What it carries at the B end."
+        },
+        {
+          "key": "set_type",
+          "name": "Set type",
+          "type": "select",
+          "options": {
+            "default": "Straight",
+            "choices": [
+              {
+                "value": "Straight",
+                "color": "#e5e7eb"
+              },
+              {
+                "value": "Twisted",
+                "color": "#bfdbfe"
+              },
+              {
+                "value": "Shielded twisted",
+                "color": "#c4b5fd"
+              },
+              {
+                "value": "Shielded",
+                "color": "#a5b4fc"
+              }
+            ]
+          }
+        },
+        {
+          "key": "colour",
+          "name": "Colour",
+          "type": "select",
+          "options": {
+            "choices": [
+              {
+                "value": "black",
+                "color": "#1f2937"
+              },
+              {
+                "value": "brown",
+                "color": "#92400e"
+              },
+              {
+                "value": "red",
+                "color": "#ef4444"
+              },
+              {
+                "value": "orange",
+                "color": "#f97316"
+              },
+              {
+                "value": "yellow",
+                "color": "#facc15"
+              },
+              {
+                "value": "green",
+                "color": "#22c55e"
+              },
+              {
+                "value": "blue",
+                "color": "#3b82f6"
+              },
+              {
+                "value": "violet",
+                "color": "#8b5cf6"
+              },
+              {
+                "value": "grey",
+                "color": "#9ca3af"
+              },
+              {
+                "value": "white",
+                "color": "#f3f4f6"
+              },
+              {
+                "value": "green/yellow",
+                "color": "#a3e635"
+              }
+            ]
+          }
+        },
+        {
+          "key": "awg",
+          "name": "AWG",
+          "type": "number"
+        },
+        {
+          "key": "length",
+          "name": "Length (mm)",
+          "type": "number"
+        },
+        {
+          "key": "part",
+          "name": "Part",
+          "type": "link",
+          "description": "The wire itself, from Parts.",
+          "options": {
+            "target": "parts.parts",
+            "multiple": false,
+            "inverse": {
+              "key": "harness_wires",
+              "name": "Used as wire",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "from_designator",
+          "name": "From designator",
+          "type": "lookup",
+          "options": {
+            "link": "from",
+            "field": "designator"
+          }
+        },
+        {
+          "key": "to_designator",
+          "name": "To designator",
+          "type": "lookup",
+          "options": {
+            "link": "to",
+            "field": "designator"
+          }
+        }
+      ],
+      "views": [
+        {
+          "name": "Wires",
+          "type": "grid",
+          "config": {
+            "group_by": "harness",
+            "fields": [
+              "from",
+              "a_function",
+              "source_contact",
+              "to",
+              "target_contact",
+              "b_function",
+              "set_type",
+              "colour",
+              "awg",
+              "length",
+              "part"
+            ],
+            "sorts": [
+              {
+                "field": "label",
+                "dir": "asc"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "records": {
+    "harnesses": [
+      {
+        "Name": "Burn-in rack loom",
+        "Status": "Draft",
+        "Description": "From the controller's D-sub to the two load boards."
+      }
+    ],
+    "connectors": [
+      {
+        "Designator": "X1",
+        "Harness": "Burn-in rack loom",
+        "Side": "A",
+        "Part": "DSUB-9-PLUG"
+      },
+      {
+        "Designator": "Y1",
+        "Harness": "Burn-in rack loom",
+        "Side": "B",
+        "Part": "DSUB-9-RECEPT"
+      },
+      {
+        "Designator": "Y2",
+        "Harness": "Burn-in rack loom",
+        "Side": "B",
+        "Part": "DSUB-9-RECEPT"
+      }
+    ],
+    "wires": [
+      {
+        "Harness": "Burn-in rack loom",
+        "A connector": "X1 · DSUB-9-PLUG · male",
+        "A contact": "1",
+        "B connector": "Y1 · DSUB-9-RECEPT · female",
+        "B contact": "1",
+        "A function": "+24 V",
+        "B function": "+24 V in",
+        "Set type": "Twisted",
+        "Colour": "red",
+        "AWG": 22,
+        "Length (mm)": 450,
+        "Part": "WIRE-22-RED"
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "A connector": "X1 · DSUB-9-PLUG · male",
+        "A contact": "2",
+        "B connector": "Y1 · DSUB-9-RECEPT · female",
+        "B contact": "3",
+        "A function": "0 V",
+        "B function": "0 V in",
+        "Set type": "Twisted",
+        "Colour": "black",
+        "AWG": 22,
+        "Length (mm)": 450,
+        "Part": "WIRE-22-BLK"
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "A connector": "X1 · DSUB-9-PLUG · male",
+        "A contact": "3",
+        "B connector": "Y1 · DSUB-9-RECEPT · female",
+        "B contact": "5",
+        "A function": "Enable",
+        "B function": "Enable in",
+        "Set type": "Straight",
+        "Colour": "blue",
+        "AWG": 24,
+        "Length (mm)": 450
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "A connector": "X1 · DSUB-9-PLUG · male",
+        "A contact": "6",
+        "B connector": "Y2 · DSUB-9-RECEPT · female",
+        "B contact": "2",
+        "A function": "CAN H",
+        "B function": "CAN H",
+        "Set type": "Shielded twisted",
+        "Colour": "white",
+        "AWG": 24,
+        "Length (mm)": 300
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "A connector": "X1 · DSUB-9-PLUG · male",
+        "A contact": "7",
+        "B connector": "Y2 · DSUB-9-RECEPT · female",
+        "B contact": "7",
+        "A function": "CAN L",
+        "B function": "CAN L",
+        "Set type": "Shielded twisted",
+        "Colour": "green",
+        "AWG": 24,
+        "Length (mm)": 300
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "A connector": "X1 · DSUB-9-PLUG · male",
+        "A contact": "9",
+        "B connector": "Y2 · DSUB-9-RECEPT · female",
+        "B contact": "3",
+        "A function": "CAN GND",
+        "B function": "CAN GND",
+        "Set type": "Straight",
+        "Colour": "black",
+        "AWG": 24,
+        "Length (mm)": 300
+      }
+    ]
+  }
+}

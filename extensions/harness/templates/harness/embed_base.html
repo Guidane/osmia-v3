@@ -1,6 +1,0 @@
-{% load static %}<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{% block title %}Osmia{% endblock %}</title>
-<link rel="stylesheet" href="{% static 'core/osmia.css' %}"><style>:root{--osmia-bar-height:0px}</style></head>
-<body class="{% block body_class %}{% endblock %}">{% block main %}{% endblock %}<script>window.OSMIA_CSRF = "{{ csrf_token }}";</script></body>
-</html>

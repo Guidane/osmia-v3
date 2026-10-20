@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 
 from . import blueprints, filters, service
 from .data import Data
+from .formula import Records
 from .extensions import registry
 from .fieldtypes import TYPES
 from .models import App, Attachment, Automation, AutomationRun, Change, Comment, Field, Notification, Record, Table, View
@@ -309,10 +310,7 @@ def record_context(request, record, data):
             if target is None:
                 continue
             inverse = data.field(f.opt('inverse'))
-            cols = [tf for tf in data.fields(target) if tf != inverse and tf.type not in ('button',)][:7]
-            rows = [{'record': r, 'cells': [cell(data, r, c) for c in cols]} for r in data.linked(record, f)]
-            sections.append({'field': f, 'target': target, 'columns': cols, 'rows': rows, 'inverse': inverse,
-                             'can_add': can(request.user, target.app, 'editor')})
+            sections.append(linked_section(request, data, record, f, target, inverse))
         elif f.type == 'attachment':
             files.append({'field': f, 'items': data.value(record, f)})
         elif f.type == 'button':
@@ -339,6 +337,75 @@ def record_context(request, record, data):
         'can_edit_record': can(request.user, app, 'editor'),
         **access_context(request, record, table),
     }
+
+
+def linked_section(request, data, record, field, target, inverse):
+    """A multiple link's records on a record's page. Its ``show`` option says how: {"fields": [keys], "sort": [keys],
+    "group_by": [keys], "group_join": " → "}; without it, the first seven fields in the order they were linked.
+    Grouped, each group has a sub-header with the values it shares, and adds a row with them already filled in."""
+    show = field.opt('show') or {}
+    by_key = {tf.key: tf for tf in data.fields(target) if tf.type != 'button'}
+    cols = [by_key[k] for k in show.get('fields') or [] if k in by_key and by_key[k] != inverse]
+    if not cols:
+        cols = [tf for tf in data.fields(target) if tf != inverse and tf.type not in ('button',)][:7]
+    records = data.linked(record, field)
+    sort = [by_key[k] for k in show.get('sort') or [] if k in by_key]
+    group = [by_key[k] for k in show.get('group_by') or [] if k in by_key]
+    for f in reversed(group + sort):
+        records = sorted(records, key=lambda r, f=f: f.kind.sort_key(data.value(r, f)))
+    rows = [{'record': r, 'cells': [cell(data, r, c) for c in cols]} for r in records]
+    groups = []
+    if group:
+        new_url = reverse('core:record_new', args=[target.app.slug, target.slug])
+        for row in rows:
+            r = row['record']
+            values = [data.value(r, g) for g in group]
+            key = [tuple(v.ids) if isinstance(v, Records) else str(v) for v in values]
+            if not groups or groups[-1]['key'] != key:
+                presets = ''.join(f'&f_{g.pk}={i}' for g, v in zip(group, values) if isinstance(v, Records) for i in v.ids)
+                groups.append({'key': key, 'rows': [], 'presets': presets,
+                               'headers': [data.html(r, g) for g in group]})
+            groups[-1]['rows'].append(row)
+    keys = [c.key for c in cols]
+    # "group_columns": {"from": ["a_function", "source_contact"]}: the From connector heads those columns (one key or
+    # several next to each other); a value the same as the group above it is left out, so a change stands out
+    above = {}
+    for i, g in enumerate(group):
+        wanted = show.get('group_columns', {}).get(g.key)
+        wanted = [wanted] if isinstance(wanted, str) else list(wanted or [])
+        at = sorted(keys.index(k) for k in wanted if k in keys)
+        if at:
+            above[at[0]] = (i, at[-1] - at[0] + 1)
+    aligned = bool(above)
+    if aligned:
+        previous = None
+        for g in groups:
+            g['cells'], col = [], 0
+            while col < len(cols):
+                if col in above:
+                    i, span = above[col]
+                    same = previous is not None and previous['key'][i] == g['key'][i]
+                    g['cells'].append({'html': '' if same else g['headers'][i], 'span': span})
+                    col += span
+                else:
+                    g['cells'].append({'html': '', 'span': 1})
+                    col += 1
+            placed = {i for i, _ in above.values()}
+            g['rest'] = [h for i, h in enumerate(g['headers']) if i not in placed]
+            previous = g
+    # "column_groups": [{"label": "A", "fields": [...]}, ...]: a row above the column names
+    bands = []
+    if show.get('column_groups'):
+        named = {k: b.get('label', '') for b in show['column_groups'] for k in b.get('fields') or []}
+        for k in keys:
+            label = named.get(k, '')
+            if bands and bands[-1]['label'] == label and label:
+                bands[-1]['span'] += 1
+            else:
+                bands.append({'label': label, 'span': 1})
+    return {'field': field, 'target': target, 'columns': cols, 'rows': rows, 'inverse': inverse, 'groups': groups,
+            'group_join': show.get('group_join') or ' · ', 'aligned': aligned, 'bands': bands,
+            'can_add': can(request.user, target.app, 'editor')}
 
 
 def access_context(request, record, table):

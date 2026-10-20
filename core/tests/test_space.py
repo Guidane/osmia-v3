@@ -418,18 +418,19 @@ class InstallTests(Base):
         self.assertTrue(App.objects.filter(blueprint='orders').exists())
         self.assertTrue(App.objects.filter(blueprint='vendors').exists())
 
-    def test_switching_an_extension_on_and_off(self):
-        from core.extensions import all_extensions, in_use, missing, to_install
-        harness = next(e for e in all_extensions() if e.name == 'harness')
-        self.assertIn('devices', to_install(harness))
-        self.assertTrue(any(req == 'devices' for req, _, _ in missing(harness)))
+    def test_an_extension_lists_the_templates_it_needs(self):
+        import json as _json
+        from core.extensions import all_extensions, missing, to_install
+        with tempfile.TemporaryDirectory() as d, override_settings(EXTENSIONS_DIR=Path(d)):
+            (Path(d) / 'buying').mkdir()
+            (Path(d) / 'buying' / 'extension.json').write_text(_json.dumps(
+                {'name': 'buying', 'title': 'Buying', 'blueprints': [], 'requires': ['orders']}), 'utf-8')
+            ext = next(e for e in all_extensions() if e.name == 'buying')
+            self.assertIn('orders', to_install(ext))
+            self.assertTrue(any(req == 'orders' for req, _, _ in missing(ext)))
+
+    def test_switching_an_extension_off(self):
         with tempfile.TemporaryDirectory() as d, override_settings(EXTENSIONS_STATE=Path(d) / 'extensions.json'):
             self.client.force_login(self.admin)
-            # "on" for this test run already: switching it off is refused while its view type is used
-            blueprints.install_many(['devices', 'harness'], user=self.admin)
-            self.assertTrue(in_use('harness'))
-            self.client.post(reverse('core:extension_switch', args=['harness']))
-            self.assertFalse((Path(d) / 'extensions.json').exists())
-            # its apps can't be removed while it's on
-            devices = App.objects.get(blueprint='devices')
-            self.assertTrue(any('Harness designer' in b for b in dependencies.blockers(dependencies.app_removal(devices))))
+            self.client.post(reverse('core:extension_switch', args=['tutorials']))
+            self.assertIn('tutorials', (Path(d) / 'extensions.json').read_text('utf-8'))

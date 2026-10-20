@@ -1400,19 +1400,11 @@ class AdminTests(BrowserTestCase):
 
     def test_extensions_say_what_they_need_and_what_uses_them(self):
         self.go('/admin/extensions/')
-        self.see('Harness designer')
-        self.go('/admin/extensions/harness/')
-        # on for these tests: it can't be switched off while its view is used
-        blueprints.install_many(['devices', 'harness'], user=self.admin)
-        self.go('/admin/extensions/harness/')
-        self.see("can't be switched off while something uses what it brings")
+        self.see('Documentation')
+        self.go('/admin/extensions/docs/')
+        self.dont_see('Traceback')
         self.go('/admin/trees/')
         self.dont_see('Traceback')
-
-    def test_the_harness_designer_opens(self):
-        blueprints.install_many(['devices', 'harness'], user=self.admin, sample=True)
-        self.go('/x/harness/designer/')
-        expect(self.page.locator('#harness-app')).to_be_visible()
 
 
 class AssistantTests(BrowserTestCase):

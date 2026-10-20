@@ -4,10 +4,10 @@ A no-code workspace on Django that brings a company's ways of tracking data toge
 (parts, stock, orders), work (tasks, projects) and documentation, in one structure. Administrators build **apps** on
 the website (tables, typed fields, links between tables, views and automations), with no code and no migrations.
 **Trees** give it structure (the organisation, programmes and projects, locations, ...), **access tags** decide who sees
-which records, and **extension apps** (code) add what tables and views can't, like the harness designer.
+which records, and **extension apps** (code) add what tables and views can't, like Documentation.
 
 The apps from Osmia 2 (`example software/`) come along as **app templates**: Organisation, Tasks, Projects, Budgets,
-Tools, Vendors, Parts, Stock, Orders and Assemblies, plus Devices and Harness with the harness extension. Their
+Tools, Vendors, Parts, Stock, Orders and Assemblies, and a new one, Harnesses. Their
 behaviour (placing and receiving orders, booking stock at average cost, refusing to issue more than is on the shelf,
 raising an assembly's revision, …) is built with automations, so you can read and change it on the website.
 
@@ -155,10 +155,16 @@ page stays cheap with big tables: it works out at most 500 rows of a table and 1
 version history with restore, and pins. A page carries its space's access tags, and can have its own. Page HTML is
 cleaned against an allowlist when it's saved. Data belongs in apps: pages explain it and show it live.
 
-`extensions/harness` is the wire harness designer from Osmia 2, unchanged in the browser. It reads and writes the
-Devices app (devices, connectors, pins, signals, pin maps) and the Harness app (projects, signal rules) through the
-same service, so their history and automations apply. It adds a card in the launcher, Designer tabs, a "Harness
-designer" view type, and panels on device and project pages.
+**Harnesses** (a template, no screens of its own) keeps a wire harness as its pinout: its connectors on side A or B (a
+designator, a part from Parts and the part's gender, read from its attributes) and its wires, A contact to B contact,
+with the function at each end, the set type (straight, twisted, shielded twisted, shielded), colour, AWG, length and the
+wire's part. A harness's page lists its wires as **A | B | Wire details**: a sub-header for each pair of connectors, the
+A connector above side A and the B connector above side B (left out when it is the same as above), the pinout in the
+middle (A function, A contact, B contact, B function); the ＋ on a sub-header adds a wire between those two
+connectors. That layout is a setting of any multiple link field (**On the record's page**: its columns, their order,
+sub-headers, and in a template the bands above the columns and the columns each sub-header value heads), so any app can
+list linked records the same way. Migration 0008 brings an installed Harnesses app to sides A and B. The old harness designer extension is gone; migration 0007 deletes the Harness and
+Devices apps it brought.
 
 `extensions/assistant` (✨ AI assistant in the launcher) changes Osmia with any AI chat, without an API key: you describe
 a change; Osmia writes a prompt around it (the answer format, the field types, and the trees of spaces, apps, fields

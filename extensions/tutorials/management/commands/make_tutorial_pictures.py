@@ -133,6 +133,12 @@ class Recorder:
         self.page.wait_for_timeout(120)
         return locator.bounding_box()
 
+    def _row(self, locator, box):
+        """The box of the form row ``locator`` is in (its name and help with it), else ``box``."""
+        row = locator.evaluate("""e => { const f = e.closest('.form .field'); if (!f) return null;
+            const r = f.getBoundingClientRect(); return {x: r.x, y: r.y, width: r.width, height: r.height}; }""")
+        return union(box, row) if row else box
+
     def _picture(self, around, rings=(), caption=None):
         """A step: the part of the page ``around`` a box, with rings on ``rings``."""
         caption = caption if caption is not None else self.pending
@@ -200,7 +206,11 @@ class Recorder:
             self._result()
         self.pending = text or ''
 
-    def hold(self, *_, **__):
+    def hold(self, *_, show=None, **__):
+        """A step of what the page shows now (``show``: the part to show, else what was just changed)."""
+        if show is not None:
+            self._settle()
+            self.last = self._locator(show)
         self._result()
 
     shot = hold
@@ -264,7 +274,7 @@ class Recorder:
         self.page.keyboard.type(text, delay=15)
         self.page.wait_for_timeout(200)
         box = locator.bounding_box() or box
-        self._picture(box, [box])
+        self._picture(self._row(locator, box), [box])
         self.last = locator
 
     def select(self, target, value=None, label=None, say=None):
@@ -279,7 +289,7 @@ class Recorder:
         self.page.wait_for_timeout(250)
         if locator.is_visible() and locator.evaluate('e => e.value') in chosen:
             box = self._to_middle(locator)
-            self._picture(box, [box], caption=caption)   # after: what was chosen in it
+            self._picture(self._row(locator, box), [box], caption=caption)   # after: what was chosen in it
         elif before:
             self.steps.append(before)      # it went back to its first entry (+ Add a step…): keep the one before
         self.last = locator
@@ -476,6 +486,26 @@ class Scenarios:
         r.click('[data-tree="collapse"]', wait=False, hold=1100, say='Collapse all')
         r.click('[data-tree="expand"]', wait=False, hold=2000, say='Expand all')
 
+    def harness(self, r):
+        r.goto(self.url('/search/?q=Burn-in rack loom'), say='Find the harness (or open it in the Harnesses app)')
+        r.click('.card a.link-chip:has-text("Burn-in rack loom")', say='Open the harness')
+        wires = self.page.locator('[id^="section-"]').filter(has_text='A contact')
+        r.say('Its wires: side A and side B, the contacts side by side in the middle, then the wire details')
+        r.hold(show=wires)
+        head = wires.locator('.sub-group-head').first
+        r.click(head.locator('.sub-group-add'), say='＋ on a sub-header adds a wire between those two connectors', show=head)
+        r.fill('.field:has(> label:text-is("A function")) input', 'Fan', say='What it carries at the A end')
+        r.fill('.field:has(> label:text-is("A contact")) input', '4', say='The contact on the A connector')
+        r.fill('.field:has(> label:text-is("B contact")) input', '9', say='The contact on the B connector')
+        r.fill('.field:has(> label:text-is("B function")) input', 'Fan in', say='What it carries at the B end')
+        r.select('.field:has(> label:text-is("Set type")) select', value='Straight', say='Set type: straight, twisted, shielded')
+        r.select('.field:has(> label:text-is("Colour")) select', value='yellow', say='Colour')
+        r.fill('.field:has(> label:text-is("AWG")) input', '24', say='AWG')
+        r.fill('.field:has(> label:text-is("Length (mm)")) input', '450', say='Length')
+        r.click('#record-form button.primary', say='Save')
+        r.say('The wire is in its place in the pinout')
+        r.hold(show=self.page.locator('[id^="section-"]').filter(has_text='A contact'))
+
     def form(self, r):
         r.goto(self.url('/a/tasks/tasks/'))
         r.click('.tabs a:has-text("New task")', say='Open the form view "New task"')
@@ -543,18 +573,6 @@ class Scenarios:
         r.point('input[name=templates] >> nth=0', say='Tick the templates you want')
         r.point('input[name=sample]', say='With sample records, to try them out')
         r.point('button.primary:has-text("Install the ticked templates")', say='… and install them')
-
-    def designer(self, r):
-        r.goto(self.url('/x/harness/designer/'), say='The harness designer')
-        self.page.wait_for_timeout(1500)
-        r.hold(1000)
-        canvas = self.page.locator('#canvas')
-        box = canvas.bounding_box()
-        for label, (fx, fy) in [('Bench power supply', (0.22, 0.4)), ('Controller unit', (0.55, 0.38)), ('CAN test box', (0.82, 0.42))]:
-            r.select('#device-select', label=self._device_option(label), say=f'Pick a device: {label}')
-            r.click_at(box['x'] + box['width'] * fx, box['y'] + box['height'] * fy, say='Click the canvas to place it')
-        r.say('Now click one connector, then another, to wire them')
-        r.hold(2400)
 
     def spaces(self, r):
         r.goto(self.url('/apps/'), say='The trees of spaces: the organisation, programmes and projects')
@@ -632,16 +650,13 @@ class Scenarios:
         r.click('.page-actions .star', say='📌 pins the page: the Pinned pages block shows it')
         r.hold(2000)
 
-    def _device_option(self, name):
-        labels = self.page.locator('#device-select option').all_inner_texts()
-        return next((label for label in labels if label.startswith(name)), labels[-1])
 
 
 class Command(BaseCommand):
     help = "Take the tutorials' step-by-step pictures from a scratch Osmia in a headless browser."
     AS_USER = ['home', 'tasks_home', 'add_tab', 'own_app']  # recorded as alice, who isn't an administrator
     ORDER = ['spaces', 'pages', 'tour', 'fields', 'grid', 'filter', 'kanban', 'calendar', 'gantt', 'tree', 'form', 'record', 'button',
-             'automation', 'templates', 'designer']
+             'automation', 'templates', 'harness']
 
     def add_arguments(self, parser):
         parser.add_argument('names', nargs='*', help=f'Which tutorials (default all): {" ".join(self.AS_USER + self.ORDER)}')

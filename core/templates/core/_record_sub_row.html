@@ -1,0 +1,7 @@
+<tr data-record="{{ row.record.pk }}">
+  {% for c in row.cells %}{% with record=row.record %}{% include "core/_cell.html" %}{% endwith %}{% endfor %}
+  <td class="nowrap" style="width:60px">
+    <a href="{{ row.record.get_absolute_url }}" title="Open">⤢</a>
+    {% if can_edit_record and s.field.editable %}<button type="button" class="link unlink" data-record="{{ record.pk }}" data-field="{{ s.field.pk }}" data-remove="{{ row.record.pk }}" title="Unlink">✕</button>{% endif %}
+  </td>
+</tr>

@@ -274,10 +274,15 @@ def _add(app, table, f, local, position, origin=''):
     name = f['name']
     if origin and table.fields.filter(name__iexact=name).exists():
         name = f'{name} ({app.name})'
-    return schema.add_field(table, name, ftype, options, key=f['key'], required=f.get('required', False),
-                            description=f.get('description', ''), position=position,
-                            inverse_name=inverse.get('name'), inverse_key=inverse.get('key', ''),
-                            inverse_multiple=inverse.get('multiple', True), origin=origin or bp_key)
+    added = schema.add_field(table, name, ftype, options, key=f['key'], required=f.get('required', False),
+                             description=f.get('description', ''), position=position,
+                             inverse_name=inverse.get('name'), inverse_key=inverse.get('key', ''),
+                             inverse_multiple=inverse.get('multiple', True), origin=origin or bp_key)
+    if inverse.get('show') and added.opt('inverse'):   # how the other half shows its records on a record's page
+        other = Field.objects.get(pk=added.opt('inverse'))
+        other.options = {**(other.options or {}), 'show': inverse['show']}
+        other.save(update_fields=['options'])
+    return added
 
 
 def _resolve_step(step, app, local, auto_table=None):

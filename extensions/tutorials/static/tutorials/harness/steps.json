@@ -1,0 +1,86 @@
+[
+ {
+  "image": "01.png",
+  "caption": "Find the harness (or open it in the Harnesses app)",
+  "width": 859,
+  "height": 174
+ },
+ {
+  "image": "02.png",
+  "caption": "Open the harness",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "03.png",
+  "caption": "Its wires: side A and side B, the contacts side by side in the middle, then the wire details",
+  "width": 1096,
+  "height": 521
+ },
+ {
+  "image": "04.png",
+  "caption": "＋ on a sub-header adds a wire between those two connectors",
+  "width": 1143,
+  "height": 179
+ },
+ {
+  "image": "05.png",
+  "caption": "What it carries at the A end",
+  "width": 894,
+  "height": 215
+ },
+ {
+  "image": "06.png",
+  "caption": "The contact on the A connector",
+  "width": 894,
+  "height": 215
+ },
+ {
+  "image": "07.png",
+  "caption": "The contact on the B connector",
+  "width": 894,
+  "height": 215
+ },
+ {
+  "image": "08.png",
+  "caption": "What it carries at the B end",
+  "width": 894,
+  "height": 215
+ },
+ {
+  "image": "09.png",
+  "caption": "Set type: straight, twisted, shielded",
+  "width": 894,
+  "height": 194
+ },
+ {
+  "image": "10.png",
+  "caption": "Colour",
+  "width": 894,
+  "height": 194
+ },
+ {
+  "image": "11.png",
+  "caption": "AWG",
+  "width": 894,
+  "height": 193
+ },
+ {
+  "image": "12.png",
+  "caption": "Length",
+  "width": 894,
+  "height": 193
+ },
+ {
+  "image": "13.png",
+  "caption": "Save",
+  "width": 460,
+  "height": 174
+ },
+ {
+  "image": "14.png",
+  "caption": "The wire is in its place in the pinout",
+  "width": 1096,
+  "height": 553
+ }
+]

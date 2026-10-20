@@ -116,15 +116,21 @@ def _names_in(text):
     return [m.group(1).strip().split('.') for m in PLACEHOLDER.finditer(text or '')]
 
 
-def _mentions(texts, field, table_ids):
-    """Whether formulas/templates in ``texts`` (of a table in ``table_ids``) use ``field`` by name."""
-    if not table_ids:
-        return False
+def _mentions(texts, field, home, links):
+    """Whether formulas/templates in ``texts``, read on records of the table ``home``, use ``field`` by name: a field of
+    ``home`` itself as {Name}, a field of a table it links to only through the link, {Supplier.Name}."""
+    through = None if field.table_id == home else \
+        {f.name for f in links if f.table_id == home and f.opt('target') == field.table_id}
     for text in texts:
         for parts in _names_in(text):
-            joined = '.'.join(parts)
-            if field.name in parts or joined == field.name or ('.' in field.name and field.name in joined):
-                return True
+            if through is None:
+                joined = '.'.join(parts)
+                if parts[0] == field.name or joined == field.name or ('.' in field.name and joined.startswith(field.name)):
+                    return True
+            elif len(parts) > 1 and parts[0] in through:
+                rest = '.'.join(parts[1:])
+                if parts[1] == field.name or rest == field.name or ('.' in field.name and rest.startswith(field.name)):
+                    return True
     return False
 
 
@@ -160,8 +166,10 @@ def blockers(removal):
             texts.append(f.opt('filter'))
         if texts:
             for g in gone.values():
-                if g.table_id in _reachable(f.table_id, links) or (f.type == 'rollup' and g.table_id == _target_of(fields, f)):
-                    if _mentions(texts, g, {f.table_id}):
+                # a rollup's filter is read on the records it rolls up
+                home = _target_of(fields, f) if f.type == 'rollup' else f.table_id
+                if g.table_id in _reachable(home, links):
+                    if _mentions(texts, g, home, links):
                         out.append(f'The {f.type} field {f.name} of {f.table.label} uses {g.name}.')
                         break
 
@@ -249,7 +257,7 @@ def _automation_uses(a, removal, gone, fields, links):
             return 'tells the people in it'
     texts = list(_strings(a.conditions)) + list(_strings(a.actions))
     for g in gone.values():
-        if g.table_id in _reachable(a.table_id, links) and _mentions(texts, g, {a.table_id}):
+        if g.table_id in _reachable(a.table_id, links) and _mentions(texts, g, a.table_id, links):
             return f'uses {g.name} in a formula or message'
     return ''
 

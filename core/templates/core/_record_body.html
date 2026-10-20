@@ -56,19 +56,31 @@
       </div>
       {% if s.rows %}
       <div style="overflow-x:auto">
-      <table class="sub">
-        <thead><tr>{% for c in s.columns %}<th class="{{ c|align }}">{{ c.name }}</th>{% endfor %}<th></th></tr></thead>
-        <tbody>
-          {% for row in s.rows %}
-            <tr data-record="{{ row.record.pk }}">
-              {% for c in row.cells %}{% with record=row.record %}{% include "core/_cell.html" %}{% endwith %}{% endfor %}
-              <td class="nowrap" style="width:60px">
-                <a href="{{ row.record.get_absolute_url }}" title="Open">⤢</a>
-                {% if can_edit_record and s.field.editable %}<button type="button" class="link unlink" data-record="{{ record.pk }}" data-field="{{ s.field.pk }}" data-remove="{{ row.record.pk }}" title="Unlink">✕</button>{% endif %}
-              </td>
+      <table class="sub{% if s.groups %} grouped{% endif %}">
+        <thead>
+          {% if s.bands %}<tr class="sub-bands">{% for b in s.bands %}<th colspan="{{ b.span }}">{{ b.label }}</th>{% endfor %}<th></th></tr>{% endif %}
+          <tr>{% for c in s.columns %}<th class="{{ c|align }}">{{ c.name }}</th>{% endfor %}<th></th></tr>
+        </thead>
+        {% if s.groups %}
+          {% for g in s.groups %}<tbody class="sub-group">
+            {% if s.aligned %}
+            <tr class="sub-group-head aligned">
+              {% for h in g.cells %}<th colspan="{{ h.span }}">{% if h.html %}<span class="sub-group-value">{{ h.html }}</span>{% endif %}{% if forloop.first and g.rest %} {% for r in g.rest %}<span class="sub-group-value">{{ r }}</span>{% endfor %}{% endif %}</th>{% endfor %}
+              <th class="nowrap">{% if can_edit_record and s.can_add and s.inverse %}<a class="sub-group-add" href="{% url 'core:record_new' s.target.app.slug s.target.slug %}?link_field={{ s.inverse.pk }}&link_to={{ record.pk }}{{ g.presets }}&next={{ request.get_full_path|urlencode }}" title="Add one here">＋</a>{% endif %}</th>
             </tr>
-          {% endfor %}
+            {% else %}
+            <tr class="sub-group-head"><th colspan="{{ s.columns|length|add:1 }}">
+              {% for h in g.headers %}{% if not forloop.first %}<span class="sub-group-join">{{ s.group_join }}</span>{% endif %}<span class="sub-group-value">{{ h }}</span>{% endfor %}
+              {% if can_edit_record and s.can_add and s.inverse %}<a class="sub-group-add" href="{% url 'core:record_new' s.target.app.slug s.target.slug %}?link_field={{ s.inverse.pk }}&link_to={{ record.pk }}{{ g.presets }}&next={{ request.get_full_path|urlencode }}" title="Add one here">＋</a>{% endif %}
+            </th></tr>
+            {% endif %}
+            {% for row in g.rows %}{% include "core/_record_sub_row.html" %}{% endfor %}
+          </tbody>{% endfor %}
+        {% else %}
+        <tbody>
+          {% for row in s.rows %}{% include "core/_record_sub_row.html" %}{% endfor %}
         </tbody>
+        {% endif %}
       </table>
       </div>
       {% else %}<p class="muted small" style="padding:10px 14px;margin:0">None yet.</p>{% endif %}

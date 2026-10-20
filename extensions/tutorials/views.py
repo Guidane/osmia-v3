@@ -86,7 +86,7 @@ def detail(request, slug):
         raise Http404
     try:
         try_href = reverse(tutorial.try_url) if tutorial.try_url else ''
-    except NoReverseMatch:  # e.g. the designer, with its extension switched off
+    except NoReverseMatch:  # e.g. a page of an extension that is switched off
         try_href = ''
     visible = [t for t in TUTORIALS if _for(request.user, t)]
     i = visible.index(tutorial)

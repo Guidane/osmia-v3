@@ -72,6 +72,27 @@
   <div class="opt-section" data-types="user">
     <label class="inline"><input type="checkbox" name="home" value="1" {% if field.options.home %}checked{% endif %}> Holder: in a table of spaces, the records naming a person are roles they hold (a tab on their Home)</label>
   </div>
+  {% if show_choices %}
+  <div class="opt-section" data-types="link">
+    <input type="hidden" name="show_editing" value="1">
+    <div class="field"><span class="label">On the record's page</span>
+      <div class="help">How a record shows the {{ show_target }} it is linked to: which columns, in what order, and under
+        sub-headers for what they share (a harness's wires under each pair of connectors).</div></div>
+    <div class="grid2">
+      <div class="field"><span class="label">Columns</span>
+        <div class="checklist">{% for f in show_choices %}<label><input type="checkbox" name="show_fields" value="{{ f.key }}" {% if f.key in show.fields %}checked{% endif %}> {{ f.name }}</label>{% endfor %}</div>
+        <div class="help">None ticked: the first seven.</div></div>
+      <div>
+        <div class="field"><label for="show_sort">Sorted by</label>
+          <select id="show_sort" name="show_sort"><option value="">— the order they were linked in</option>
+            {% for f in show_choices %}<option value="{{ f.key }}" {% if f.key in show.sort %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select></div>
+        <div class="field"><span class="label">Sub-headers by</span>
+          <div class="checklist">{% for f in show_choices %}<label><input type="checkbox" name="show_group" value="{{ f.key }}" {% if f.key in show.group_by %}checked{% endif %}> {{ f.name }}</label>{% endfor %}</div></div>
+        <div class="field"><label for="show_join">Between their values</label><input id="show_join" name="show_join" value="{{ show.group_join|default:' · ' }}" maxlength="10"></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
   <div class="opt-section" data-types="link">
     <div class="field"><label for="access_from">Access tags</label>
       <select id="access_from" name="access_from">

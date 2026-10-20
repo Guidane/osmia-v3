@@ -3,7 +3,7 @@
 An app (tables, fields, views, automations) is made on the website, and its
 screens are built from the same parts as every app's: tabs, views and a home
 page made of blocks. An **extension app** is made in code and has its own
-fixed screens, e.g. the harness designer's drawing canvas. It lives in
+fixed screens, e.g. Documentation's page tree and editor. It lives in
 ``extensions/<name>/``:
 
     extension.json     {"name", "title", "version", "description", "icon",

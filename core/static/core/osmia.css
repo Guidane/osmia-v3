@@ -113,6 +113,19 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
   .form.form-table .field > :not(:first-child), .form.form-table .field > label:first-child { grid-column: 1; padding-top: 0; }
 }
 
+/* -- Linked records on a record's page, under sub-headers --------------------------------------- */
+table.sub tbody.sub-group + tbody.sub-group .sub-group-head th { border-top: 2px solid var(--border-strong); }
+table.sub .sub-group-head th { background: var(--panel-2); text-align: left; font-weight: 600; padding: 7px 10px; }
+table.sub .sub-group-head.aligned th { white-space: nowrap; vertical-align: middle; text-align: center; }
+table.sub .sub-bands th { text-align: center; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border); }
+table.sub .sub-bands th:not(:empty) + th:not(:empty), table.sub .sub-group-head.aligned th + th { border-left: 1px solid var(--border); }
+/* grouped: as wide as what is in it, so what belongs together stays together (a pinout's two contacts) */
+table.sub.grouped { width: auto; min-width: 50%; }
+table.sub.grouped td, table.sub.grouped thead th { padding-right: 22px; }
+table.sub .sub-group-head .sub-group-join { color: var(--muted); margin: 0 10px; }
+table.sub .sub-group-head .sub-group-add { float: right; color: var(--muted); padding: 0 6px; border-radius: 6px; }
+table.sub .sub-group-head .sub-group-add:hover { background: var(--brand-soft); color: var(--brand); text-decoration: none; }
+
 /* -- Attributes: name-value pairs, each a tag ------------------------------------------------- */
 .attr-tag { display: inline-flex; align-items: baseline; gap: 4px; margin: 1px 4px 1px 0; padding: 1px 8px; border-radius: 999px;
   background: var(--brand-soft); color: var(--text); font-size: 12px; line-height: 1.6; white-space: nowrap; }

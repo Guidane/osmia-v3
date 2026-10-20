@@ -11,6 +11,7 @@ Extensions can add their own with ``core.extensions.registry.field_type``.
     raw(field, value, data)   the value as the cell editor wants it (JSON)
 """
 import json
+import re
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
@@ -57,6 +58,11 @@ def fmt_number(value, decimals=None, thousands=True):
     else:
         value = value.normalize()
     return f'{value:,f}' if thousands else f'{value:f}'
+
+
+def natural(text):
+    """A key that sorts text with numbers in it the way people count: 2 before 10, "A2" before "A10"."""
+    return tuple((0, int(part), '') if part.isdigit() else (1, 0, part) for part in re.split(r'(\d+)', text.lower()) if part)
 
 
 def json_number(value):
@@ -118,7 +124,7 @@ class FieldType:
             return (0, value.timestamp())
         if isinstance(value, date):
             return (0, value.toordinal())
-        return (0, formula.text(value).lower())
+        return (0, natural(formula.text(value)))
 
     def default(self, field):
         return field.opt('default')
@@ -299,6 +305,8 @@ class Attributes(FieldType):
         return ', '.join(value or [])
 
     def html(self, field, value, data=None):
+        if isinstance(value, Pair):   # one pair, e.g. through a lookup
+            value = [value]
         return format_html_join('', '<span class="attr-tag"><span class="attr-name">{}</span>{}</span>',
                                 ((p.name, format_html(' {}', p.value) if p.value != '' else '') for p in value or []))
 
@@ -306,7 +314,7 @@ class Attributes(FieldType):
         return [{'name': p.name, 'value': p.value} for p in value or []]
 
     def sort_key(self, value):
-        return (1, '') if not value else (0, self.text(None, value).lower())
+        return (1, '') if not value else (0, natural(self.text(None, value)))
 
     def default(self, field):
         return []
@@ -547,8 +555,21 @@ def choice_color(field, value):
     return '#e5e7eb'
 
 
+def ink(color):
+    """Text colour that reads on ``color`` (a #rrggbb background): white on dark ones, the usual on light ones."""
+    try:
+        r, g, b = (int(str(color)[i:i + 2], 16) for i in (1, 3, 5))
+    except ValueError:
+        return ''
+    return '#ffffff' if 0.299 * r + 0.587 * g + 0.114 * b < 140 else ''
+
+
 def badge(field, value):
-    return format_html('<span class="chip" style="background:{}">{}</span>', choice_color(field, value), value)
+    color = choice_color(field, value)
+    text = ink(color)
+    if text:
+        return format_html('<span class="chip" style="background:{};color:{}">{}</span>', color, text, value)
+    return format_html('<span class="chip" style="background:{}">{}</span>', color, value)
 
 
 @register

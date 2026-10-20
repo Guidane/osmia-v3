@@ -176,6 +176,30 @@ TUTORIALS = [
         keywords='role position job title holder hand over handover organisation person people team',
     ),
     Tutorial(
+        'harness', 'Make a wire harness', '🧵', 'howto',
+        'A harness is its connectors and the wires between them, contact to contact: its page shows the pinout.',
+        [
+            'Install the <b>Harnesses</b> template if it isn\'t there (⚙ › App templates; it needs Parts). Open <b>Harnesses</b> '
+            'and click <b>＋ New</b>: give the harness a name.',
+            'On the harness\'s page, under <b>Connectors</b>, click <b>＋ Row</b> for each connector: its <i>Designator</i> '
+            '(X1, Y1, ...), its <i>Side</i> (A or B) and its <i>Part</i>. Its gender comes from the part\'s attributes, '
+            'so a connector reads <i>X1 · DSUB-9-PLUG · male</i>.',
+            'Under <b>Wires</b>, click <b>＋ Form</b> for the first wire between two connectors: the <i>A connector</i>, its '
+            '<i>A contact</i> and <i>A function</i>, the <i>B connector</i>, its <i>B contact</i> and <i>B function</i>, then '
+            'the <i>Set type</i> (straight, twisted, shielded twisted, shielded), colour, AWG, length and the wire\'s part.',
+            'The wires show as <b>A | B | Wire details</b>: each pair of connectors has a sub-header, the A connector above side A '
+            'and the B connector above side B (left out when it is the same as above). The pinout is in the middle: A function, '
+            'A contact, B contact, B function. Click <b>＋</b> on a sub-header to add a wire between those two connectors: they '
+            'are filled in already.',
+            'Click a value in the list to change it, as in a grid. The <b>Wires</b> and <b>Connectors</b> tabs of the app list '
+            'every harness\'s, to filter, sort or export.',
+        ],
+        pictures='harness',
+        try_url='core:launcher', try_label='Open the Apps page',
+        related=['own-list', 'record-page'],
+        keywords='harness wire wiring pinout loom cable connector contact pin awg colour length',
+    ),
+    Tutorial(
         'group-apps', 'Put apps in groups', '▦', 'howto',
         'Management, Production, Purchasing, ...: the launcher and home pages show apps under their group.',
         [
@@ -740,9 +764,9 @@ TUTORIALS = [
         'extensions', 'Extension apps', '◆', 'extensions',
         'Apps made in code, with screens of their own, that keep their data in ordinary apps.',
         [
-            'Apps are made on the website. An <b>extension app</b> is made in code and has fixed screens of its own, like the harness '
-            'designer\'s canvas, Documentation or these tutorials. It shows up in the launcher like any app.',
-            'Its data is in ordinary tables: the harness designer works on the Devices and Harness apps. It can also add to every '
+            'Apps are made on the website. An <b>extension app</b> is made in code and has fixed screens of its own, like '
+            'Documentation, the AI assistant or these tutorials. It shows up in the launcher like any app.',
+            'Its data is in ordinary tables (Documentation keeps its pages in its own). It can also add to every '
             'app: blocks for the slash menu, tabs, boxes on record pages, field types, view types and automation actions.',
             'In ⚙ pick <b>Extensions</b>. <b>Switch on…</b> lists what the extension needs that isn\'t there and installs it with it, '
             'or not at all. While it is on, nothing it needs can be removed.',
@@ -751,24 +775,7 @@ TUTORIALS = [
             'its block on a page, ...). Either takes effect when Osmia restarts; <b>… and restart</b> does that under <code>serve.py</code>.',
         ],
         try_url='core:extensions', try_label='Open the extensions', audience='admins',
-        related=['designer', 'templates'],
-    ),
-    Tutorial(
-        'designer', 'The harness designer', '🧵', 'extensions',
-        'Place devices on a canvas and wire their connectors pin to pin.',
-        [
-            'Devices, their connectors and pins are records in the <b>Devices</b> app: add them there (a connector\'s pins are a '
-            'table on its page, and <b>Clone with its pins</b> copies a connector).',
-            'Open <b>🧵 Harness designer</b> in the launcher (or the <b>Designer</b> tab of the Devices or Harness app). Pick a device in <b>Place device</b> and click the canvas '
-            'to put it there; scroll to zoom and drag empty space to move around.',
-            'Click a connector, then another, to make a harness between them, and pick which pins each wire joins (or '
-            '<b>Match remaining pins by signal</b>). The <b>Signal Rules</b> flag wires that aren\'t allowed.',
-            'Click a harness and <b>Show pinout</b> for its wire table (export it to CSV, or <b>Order parts</b> for a draft order). '
-            '<b>Save</b> keeps a new version; <b>Versions</b> goes back to an older one.',
-            'Each project is a record of <b>Harness projects</b> with its pictures, notes and counts; its page opens it in the designer.',
-        ],
-        pictures='designer',
-        try_url='harness:designer', try_label='Open the designer',
+        related=['templates'],
     ),
 ]
 

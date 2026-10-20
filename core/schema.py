@@ -166,8 +166,13 @@ def update_field(field, name=None, ftype=None, options=None, required=None, desc
             raise ValidationError('A link field can\'t change type (and a field can\'t become a link); add a new field instead.')
         field.type = ftype
     if options is not None:
-        if field.type == 'link':  # only "multiple" and the label may change
-            options = {**old_options, 'multiple': bool(options.get('multiple', old_options.get('multiple')))}
+        if field.type == 'link':  # only "multiple", the label and how it shows on a record's page may change
+            sent = options
+            options = {**old_options, 'multiple': bool(sent.get('multiple', old_options.get('multiple')))}
+            show = sent['show'] if 'show' in sent else old_options.get('show')
+            options.pop('show', None)
+            if show:
+                options['show'] = show
         else:
             options = validate_options(field.table, field.type, options)
         field.options = options

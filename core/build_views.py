@@ -241,6 +241,17 @@ def field_to_table(request, app_slug, table_slug, field_id):
     return redirect('core:fields', app.slug, new.slug)
 
 
+def _show_choices(field):
+    """For a multiple link: the fields of the records it links to, to choose how a record's page shows them."""
+    if field is None or field.type != 'link' or not field.opt('multiple'):
+        return {}
+    target = Table.objects.filter(pk=field.opt('target')).first()
+    if target is None:
+        return {}
+    choices = [f for f in target.fields.order_by('position', 'pk') if f.pk != field.opt('inverse') and f.type != 'button']
+    return {'show_choices': choices, 'show': field.opt('show') or {}, 'show_target': target.name.lower()}
+
+
 def _names_from_choices(table):
     """Where an attributes field of ``table`` can take the names to fill in from: an attributes field of a table
     it links to, [("link.field", "Category › Attributes to fill in")]."""
@@ -265,6 +276,12 @@ def _options_from_post(post, ftype):
             o['symbol'] = post.get('symbol', '€') or '€'
     if ftype == 'rating':
         o['max'] = int(post.get('rating_max') or 5)
+    if ftype == 'link' and post.get('show_editing'):
+        show = {'fields': post.getlist('show_fields'), 'sort': [post['show_sort']] if post.get('show_sort') else [],
+                'group_by': post.getlist('show_group')}
+        if show['group_by'] and post.get('show_join', '').strip():
+            show['group_join'] = f" {post['show_join'].strip()} "
+        o['show'] = {k: v for k, v in show.items() if v}
     if ftype == 'attributes' and post.get('names_from'):
         o['names_from'] = post.get('names_from')
     if ftype in ('select', 'multiselect'):
@@ -376,6 +393,7 @@ def field_edit(request, app_slug, table_slug, field_id=None):
     return render(request, 'core/build/field_form.html', {
         **app_context(app, request.user), 'table': table, 'field': field, 'type_choices': choices_for_form(),
         'types': TYPES, 'all_tables': all_tables, 'colors': COLORS, 'names_from': _names_from_choices(table),
+        **_show_choices(field),
         'meta': json.dumps({'tables': tables_meta, 'links': links,
                             'field': {'type': field.type, 'options': field.options} if field else None,
                             'help': {k: t.help for k, t in TYPES.items()}, 'colors': COLORS}),

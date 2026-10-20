@@ -131,7 +131,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# The harness designer's view tab shows the designer in a frame of Osmia's own pages.
+# Osmia's pages may show each other in frames (e.g. a page shown in another), never other sites'.
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Static files get ?v=<modification time> in their URL, so browsers never keep stale styles or scripts.

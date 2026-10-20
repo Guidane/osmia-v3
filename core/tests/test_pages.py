@@ -44,7 +44,7 @@ class PageTests(Workspace):
                     reverse('accounts:password_change'), reverse('core:launcher'), reverse('core:trees'),
                     reverse('core:tags'), reverse('core:space_edit', args=[Record.objects.filter(table__is_space=True).first().pk])]:
             self.ok(url)
-        for ext in ['docs', 'harness', 'assistant', 'tutorials']:
+        for ext in ['docs', 'assistant', 'tutorials']:
             self.ok(reverse('core:extension_switch', args=[ext]))
 
     def test_every_space_and_app_home(self):
