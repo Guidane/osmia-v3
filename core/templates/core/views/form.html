@@ -7,7 +7,7 @@
     <h1>{{ view.config.title|default:view.name }}</h1>
     {% if view.config.description %}<p class="muted" style="white-space:pre-line">{{ view.config.description }}</p>{% endif %}
     {% if can_edit_records %}
-    <form method="post" enctype="multipart/form-data" class="form" id="record-form">{% csrf_token %}
+    <form method="post" enctype="multipart/form-data" class="form form-table" id="record-form">{% csrf_token %}
       {% for i in items %}{% include "core/_input.html" %}{% endfor %}
   {% if needs_share %}<label class="inline flash warning" style="display:flex"><input type="checkbox" name="share" value="1"> Share this one record with them: they'll see it (and only it) until it's closed or they're taken off it. The tags' owners are told.</label>{% endif %}
 

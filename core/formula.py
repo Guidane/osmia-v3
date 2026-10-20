@@ -35,6 +35,15 @@ class Records(list):
         self.ids = list(ids)
 
 
+class Pair(str):
+    """One attribute of an attributes field: reads as "Resistance: 10 kΩ", and knows its name and value."""
+
+    def __new__(cls, name, value=''):
+        pair = super().__new__(cls, f'{name}: {value}' if value != '' else name)
+        pair.name, pair.value = name, value
+        return pair
+
+
 # -- Tokens ---------------------------------------------------------------------
 
 TOKEN = re.compile(r'''
@@ -608,6 +617,16 @@ def _join(ctx, args):
     need(args, 1, 2, 'JOIN')
     sep = text(args[1]) if len(args) > 1 else ', '
     return sep.join(text(v) for v in flatten([args[0]]) if not is_blank(v))
+
+
+@fn('ATTRIBUTE(attributes, name)', 'The value of one attribute, e.g. ATTRIBUTE({Attributes}, "Resistance").')
+def _attribute(ctx, args):
+    need(args, 2, 2, 'ATTRIBUTE')
+    wanted = text(args[1]).strip().lower()
+    for pair in flatten([args[0]]):
+        if isinstance(pair, Pair) and pair.name.lower() == wanted:
+            return pair.value
+    return None
 
 
 @fn('LEN(text)', 'How many characters.')

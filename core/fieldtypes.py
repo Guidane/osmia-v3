@@ -21,7 +21,7 @@ from django.utils.html import escape, format_html, format_html_join
 from django.utils.safestring import mark_safe
 
 from . import formula
-from .formula import FormulaError, Records
+from .formula import FormulaError, Pair, Records
 
 TYPES = {}
 
@@ -231,6 +231,125 @@ class Json(FieldType):
 
     def raw(self, field, value, data=None):
         return json.dumps(value, indent=2) if value is not None else ''
+
+
+@register
+class Attributes(FieldType):
+    """Name-value pairs, each shown as a tag: Resistance 10 kΩ, Power 0.1 W. Kept as [{"name", "value"}];
+    read (in formulas, filters, search, CSV) as "Resistance: 10 kΩ, Power: 0.1 W"."""
+    key, label, icon, editor = 'attributes', 'Attributes (name: value)', '🏷', 'attributes'
+    filter_ops = ('contains', 'not_contains', 'is_empty', 'not_empty')
+    help = 'Name-value pairs, each a tag: Resistance 10 kΩ, Power 0.1 W.'
+    NAME, VALUE = 60, 200   # longest name and value
+
+    @staticmethod
+    def _split(line):
+        """"Resistance: 10 kΩ" (or "Resistance = 10 kΩ") → (name, value)."""
+        for sep in (':', '='):
+            if sep in line:
+                name, value = line.split(sep, 1)
+                return name, value
+        return line, ''
+
+    def clean(self, field, raw, data=None):
+        if raw is None or raw == '':
+            return []
+        if isinstance(raw, str):
+            stripped = raw.strip()
+            if stripped[:1] in '[{':
+                try:
+                    raw = json.loads(stripped)
+                except ValueError:
+                    pass
+        if isinstance(raw, dict):
+            items = list(raw.items())
+        elif isinstance(raw, str):
+            items = [self._split(line) for line in raw.replace(';', '\n').splitlines()]
+        else:
+            items = []
+            for item in raw if isinstance(raw, list) else [raw]:
+                if isinstance(item, Pair):
+                    items.append((item.name, item.value))
+                elif isinstance(item, dict):
+                    items.append((item.get('name', ''), item.get('value', '')))
+                elif isinstance(item, (list, tuple)) and item:
+                    items.append((item[0], item[1] if len(item) > 1 else ''))
+                else:
+                    items.append(self._split(str(item)))
+        out, seen = [], set()
+        for name, value in items:
+            name = ' '.join(str(name if name is not None else '').split())
+            value = ' '.join(str(value if value is not None else '').split())
+            if not name:
+                if value:
+                    raise ValidationError(f'{field.name}: "{value}" needs a name.')
+                continue
+            if len(name) > self.NAME or len(value) > self.VALUE:
+                raise ValidationError(f'{field.name}: a name is at most {self.NAME} characters, a value {self.VALUE}.')
+            if name.lower() in seen:
+                raise ValidationError(f'{field.name}: two attributes are called "{name}".')
+            seen.add(name.lower())
+            out.append({'name': name, 'value': value})
+        return out
+
+    def load(self, field, stored, data=None):
+        return [Pair(p.get('name', ''), p.get('value', '')) for p in stored or [] if isinstance(p, dict)]
+
+    def text(self, field, value):
+        return ', '.join(value or [])
+
+    def html(self, field, value, data=None):
+        return format_html_join('', '<span class="attr-tag"><span class="attr-name">{}</span>{}</span>',
+                                ((p.name, format_html(' {}', p.value) if p.value != '' else '') for p in value or []))
+
+    def raw(self, field, value, data=None):
+        return [{'name': p.name, 'value': p.value} for p in value or []]
+
+    def sort_key(self, value):
+        return (1, '') if not value else (0, self.text(None, value).lower())
+
+    def default(self, field):
+        return []
+
+    def names(self, field, limit=2000):
+        """The attribute names to suggest: those used in this field so far, and those its source lists."""
+        from .models import Record
+        found = {}
+        source = self.source(field)
+        for f in [field] + ([source[1]] if source else []):
+            for stored in Record.objects.filter(table_id=f.table_id).values_list('data', flat=True)[:limit]:
+                for p in (stored or {}).get(f.key) or []:
+                    if isinstance(p, dict) and p.get('name'):
+                        found.setdefault(p['name'].lower(), p['name'])
+        return sorted(found.values(), key=str.lower)
+
+    def source(self, field):
+        """(link field, attributes field of the linked table) named by ``names_from`` ("category.attribute_names"):
+        where the attributes a record should fill in are listed. None if it isn't set (or is gone)."""
+        from .models import Field
+        link_key, _, attr_key = str(field.opt('names_from') or '').partition('.')
+        if not link_key or not attr_key:
+            return None
+        link = Field.objects.filter(table_id=field.table_id, key=link_key, type='link').first()
+        if link is None:
+            return None
+        listed = Field.objects.filter(table_id=link.opt('target'), key=attr_key, type='attributes').first()
+        return (link, listed) if listed else None
+
+    def expected(self, field, record, data):
+        """What ``record`` should fill in: the attributes its linked records (its category) list, each with the hint
+        for its value, [{"name", "hint"}]."""
+        source = self.source(field)
+        if source is None:
+            return []
+        link, listed = source
+        out, seen = [], set()
+        for linked in data.linked(record, link):
+            for p in data.raw(linked, listed) or []:
+                if p['name'].lower() not in seen:
+                    seen.add(p['name'].lower())
+                    out.append({'name': p['name'], 'hint': p['value']})
+        return out
 
 
 # -- Numbers ---------------------------------------------------------------------------

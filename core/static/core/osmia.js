@@ -306,6 +306,23 @@ Share it with them?`)) {
         });
         place(node, cell, 340);
         ta.focus();
+      } else if (kind === 'attributes') {
+        const box = attributeRows(value || [], f.names || [], firstKey);
+        node.append(box.node, el('div', { class: 'hint', text: 'Enter: next · Ctrl+Enter or click outside saves · Esc cancels' }));
+        const initial = JSON.stringify(box.pairs());
+        if (f.expects) {   // what its category (or whatever the field names) lists to fill in
+          fetch(`/api/records/${rid}/`, { credentials: 'same-origin' }).then((r) => r.json()).then((rec) => {
+            const cellInfo = (rec.cells || {})[fid] || {};
+            if (editor === ed) box.expect(cellInfo.expected || []);
+          }).catch(() => {});
+        }
+        ed.commit = () => { const now = box.pairs(); if (JSON.stringify(now) !== initial) save(rid, fid, now, cell); };
+        node.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') { e.preventDefault(); closeEditor(false); }
+          else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); closeEditor(true); }
+        });
+        place(node, cell, 380);
+        box.focus();
       } else if (kind === 'rating') {
         const max = f.max || 5;
         const row = el('div', { class: 'stars', style: 'font-size:20px;cursor:pointer;padding:2px 6px' });
@@ -365,6 +382,70 @@ Share it with them?`)) {
       if (enter && ed.commit) { closeEditor(true); move(cell, 0, 1); }   // Enter was pressed before it opened
     });
   }
+
+  // Name-value pairs (an attributes field): a row of two inputs per pair, and an empty row to add one.
+  // Enter goes from a name to its value, and from a value to the next row.
+  function attributeRows(pairs, names, typed) {
+    const listId = `attr-names-${Math.random().toString(36).slice(2)}`;
+    const rows = el('div', { class: 'attr-rows' });
+    const node = el('div', { class: 'attr-editor' }, el('datalist', { id: listId }, names.map((n) => el('option', { value: n }))), rows);
+    const addRow = (name = '', value = '') => {
+      const n = el('input', { type: 'text', class: 'attr-in-name', placeholder: 'Name', list: listId, 'aria-label': 'Name' });
+      const v = el('input', { type: 'text', class: 'attr-in-value', placeholder: 'Value', 'aria-label': 'Value' });
+      n.value = name;
+      v.value = value;
+      const row = el('div', { class: 'attr-row' }, n, v,
+        el('button', { type: 'button', class: 'attr-remove', title: 'Take it away', text: '✕', onclick: () => { row.remove(); node.dispatchEvent(new Event('input')); if (!rows.children.length) addRow(); } }));
+      n.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); v.focus(); } });
+      v.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' || e.ctrlKey || e.metaKey) return;
+        e.preventDefault();
+        // to the next row: its value when its name is there already (an attribute its category lists), else its name
+        const next = row.nextElementSibling;
+        (next ? $(next.dataset.expected || $('.attr-in-name', next).value ? '.attr-in-value' : '.attr-in-name', next) : addRow()).focus();
+      });
+      rows.append(row);
+      return n;
+    };
+    pairs.forEach((p) => addRow(p.name, p.value));
+    const blank = addRow(typed !== undefined ? typed : '');
+    // a row for each attribute the record should fill in and hasn't: its name, its hint as the placeholder
+    const expect = (wanted) => {
+      const have = new Set($$('.attr-in-name', rows).map((i) => i.value.trim().toLowerCase()));
+      let first = null;
+      wanted.filter((w) => !have.has(w.name.toLowerCase())).forEach((w) => {
+        const name = addRow(w.name, '');
+        const row = name.closest('.attr-row');
+        row.dataset.expected = '1';
+        const value = $('.attr-in-value', row);
+        value.placeholder = w.hint || 'Value';
+        rows.insertBefore(row, blank.closest('.attr-row'));
+        first = first || value;
+      });
+      if (first && document.activeElement === blank && !blank.value) first.focus();
+    };
+    node.append(el('button', { type: 'button', class: 'btn small ghost attr-add', text: '＋ Add', onclick: () => addRow().focus() }));
+    return {
+      node,
+      pairs: () => $$('.attr-row', rows).filter((r) => !(r.dataset.expected && !$('.attr-in-value', r).value.trim()))
+        .map((r) => ({ name: $('.attr-in-name', r).value.trim(), value: $('.attr-in-value', r).value.trim() }))
+        .filter((p) => p.name || p.value),
+      expect,
+      focus: () => blank.focus(),
+    };
+  }
+  window.OSMIA_attributeRows = attributeRows;
+
+  // In forms the pairs go into the field's text box as "Name: value" lines
+  $$('textarea[data-attributes]').forEach((ta) => {
+    const pairs = ta.value.split('\n').filter((l) => l.trim()).map((l) => { const i = l.indexOf(':'); return i < 0 ? { name: l.trim(), value: '' } : { name: l.slice(0, i).trim(), value: l.slice(i + 1).trim() }; });
+    const box = attributeRows(pairs, JSON.parse(ta.dataset.names || '[]'));
+    const sync = () => { ta.value = box.pairs().map((p) => (p.value ? `${p.name}: ${p.value}` : p.name)).join('\n'); };
+    box.node.addEventListener('input', sync);
+    box.node.addEventListener('click', () => setTimeout(sync, 0));
+    ta.hidden = true;
+    ta.after(box.node);
+  });
 
   function gridCells(cell) {
     const table = cell.closest('table');

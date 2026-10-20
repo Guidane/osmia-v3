@@ -31,6 +31,12 @@
       <div class="field"><label for="max_n">At most</label><input id="max_n" name="max" type="number" step="any" value="{{ field.options.max|default_if_none:'' }}"></div>
     </div>
   </div>
+  <div class="opt-section" data-types="attributes">
+    <div class="field"><label for="names_from">Names to fill in, from</label>
+      <select id="names_from" name="names_from"><option value="">— none: just suggest the names used so far</option>
+        {% for value, label in names_from %}<option value="{{ value }}" {% if field.options.names_from == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <div class="help">An attributes field of a linked record (a part's category) listing what to fill in, with a hint for each value: those show as rows to fill in.</div></div>
+  </div>
   <div class="opt-section" data-types="rating">
     <div class="field"><label for="max_r">Highest rating</label><input id="max_r" name="rating_max" type="number" min="1" max="10" value="{{ field.options.max|default:5 }}"></div>
   </div>

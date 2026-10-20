@@ -100,6 +100,32 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
 .tabs a:hover { background: var(--hover); text-decoration: none; }
 .tabs a.active { color: var(--text); background: var(--bg); border-color: var(--border); font-weight: 600; margin-bottom: -1px; }
 .tabs .menu-panel { top: 100%; left: 0; right: auto; }
+/* -- Record forms as a table: the field's name beside its input, like a record's page ------------------ */
+.form.form-table .field { display: grid; grid-template-columns: minmax(130px, 220px) minmax(0, 1fr); column-gap: 18px; row-gap: 4px;
+  align-items: start; margin: 0; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.form.form-table .field:last-of-type { border-bottom: 0; }
+.form.form-table .field > label:first-child, .form.form-table .field > .label:first-child { grid-column: 1; padding-top: 7px; font-weight: 600; }
+.form.form-table .field > :not(:first-child) { grid-column: 2; min-width: 0; }
+.form.form-table .field .help { margin-top: 0; }
+.form.form-table .actions { margin-top: 14px; }
+@media (max-width: 640px) {
+  .form.form-table .field { grid-template-columns: minmax(0, 1fr); }
+  .form.form-table .field > :not(:first-child), .form.form-table .field > label:first-child { grid-column: 1; padding-top: 0; }
+}
+
+/* -- Attributes: name-value pairs, each a tag ------------------------------------------------- */
+.attr-tag { display: inline-flex; align-items: baseline; gap: 4px; margin: 1px 4px 1px 0; padding: 1px 8px; border-radius: 999px;
+  background: var(--brand-soft); color: var(--text); font-size: 12px; line-height: 1.6; white-space: nowrap; }
+.attr-tag .attr-name { color: var(--muted); font-weight: 600; }
+.attr-editor { display: flex; flex-direction: column; gap: 4px; }
+.attr-rows { display: flex; flex-direction: column; gap: 4px; }
+.attr-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto; gap: 4px; align-items: center; }
+.attr-editor .attr-row input { min-width: 0; border: 1px solid var(--border-strong); border-radius: 6px; padding: 4px 8px; background: var(--panel); color: var(--text); font: inherit; }
+.attr-editor .attr-row input:focus { outline: none; border-color: var(--brand); }
+.attr-remove { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.attr-remove:hover { background: var(--danger-soft); color: var(--danger); }
+.attr-add { align-self: flex-start; }
+.editor .attr-editor { padding: 6px; }
 .home-tabs { margin-top: 14px; border-bottom: 1px solid var(--border); }
 .home-tabs a.active { background: var(--panel); }
 .home-tab-add .menu-panel { width: 320px; padding: 10px; }

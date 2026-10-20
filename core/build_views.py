@@ -225,6 +225,16 @@ def fields(request, app_slug, table_slug):
     return render(request, 'core/build/fields.html', {**app_context(app, request.user), 'table': table, 'rows': rows})
 
 
+def _names_from_choices(table):
+    """Where an attributes field of ``table`` can take the names to fill in from: an attributes field of a table
+    it links to, [("link.field", "Category › Attributes to fill in")]."""
+    out = []
+    for link in table.fields.filter(type='link').order_by('position'):
+        for listed in Field.objects.filter(table_id=link.opt('target'), type='attributes').order_by('position'):
+            out.append((f'{link.key}.{listed.key}', f'{link.name} › {listed.name}'))
+    return out
+
+
 def _options_from_post(post, ftype):
     o = {}
 
@@ -239,6 +249,8 @@ def _options_from_post(post, ftype):
             o['symbol'] = post.get('symbol', '€') or '€'
     if ftype == 'rating':
         o['max'] = int(post.get('rating_max') or 5)
+    if ftype == 'attributes' and post.get('names_from'):
+        o['names_from'] = post.get('names_from')
     if ftype in ('select', 'multiselect'):
         values, colors = post.getlist('choice_value'), post.getlist('choice_color')
         o['choices'] = [{'value': v.strip(), 'color': c} for v, c in zip(values, colors) if v.strip()]
@@ -347,7 +359,7 @@ def field_edit(request, app_slug, table_slug, field_id=None):
     links = [{'id': f.pk, 'name': f.name, 'target': f.opt('target')} for f in data.fields(table) if f.type == 'link']
     return render(request, 'core/build/field_form.html', {
         **app_context(app, request.user), 'table': table, 'field': field, 'type_choices': choices_for_form(),
-        'types': TYPES, 'all_tables': all_tables, 'colors': COLORS,
+        'types': TYPES, 'all_tables': all_tables, 'colors': COLORS, 'names_from': _names_from_choices(table),
         'meta': json.dumps({'tables': tables_meta, 'links': links,
                             'field': {'type': field.type, 'options': field.options} if field else None,
                             'help': {k: t.help for k, t in TYPES.items()}, 'colors': COLORS}),

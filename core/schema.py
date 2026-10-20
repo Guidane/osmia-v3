@@ -137,7 +137,11 @@ def _convert(field, old_type, new_type):
         raw = (record.data or {}).get(field.key)
         if raw in (None, '', []):
             continue
-        if isinstance(raw, list) and new_type not in ('multiselect', 'user', 'json'):
+        if old_type == 'attributes' and isinstance(raw, list):   # name-value pairs as lines of text
+            raw = [{'name': p.get('name', ''), 'value': p.get('value', '')} for p in raw if isinstance(p, dict)]
+            if new_type != 'json':
+                raw = '\n'.join(f"{p['name']}: {p['value']}" if p['value'] else p['name'] for p in raw)
+        if isinstance(raw, list) and new_type not in ('multiselect', 'user', 'json', 'attributes'):
             raw = ', '.join(str(x) for x in raw)
         try:
             value = kind.clean(field, raw)

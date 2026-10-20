@@ -3,7 +3,7 @@
   "name": "Parts",
   "icon": "📦",
   "color": "#0891b2",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "position": 30,
   "group": "Production",
   "description": "The parts catalogue: part numbers, nested categories, datasheets and pictures, which parts fit into which, and the tools to work with them.",
@@ -24,7 +24,8 @@
         {"key": "unit", "name": "Unit", "type": "select", "options": {"default": "pcs", "choices": [
           {"value": "pcs"}, {"value": "m"}, {"value": "kg"}, {"value": "set"}, {"value": "roll"}]}},
         {"key": "datasheet", "name": "Datasheet", "type": "url"},
-        {"key": "attributes", "name": "Attributes", "type": "longtext", "description": "e.g. Resistance: 10 kΩ, one per line."},
+        {"key": "attributes", "name": "Attributes", "type": "attributes", "description": "Name-value pairs, e.g. Resistance 10 kΩ; the part's category lists the ones to fill in.",
+         "options": {"names_from": "category.attribute_names"}},
         {"key": "accepts", "name": "Accepts", "type": "link", "description": "Parts that fit into this one, e.g. a housing's crimp contacts.",
          "options": {"target": "parts", "multiple": true, "inverse": {"key": "fits_into", "name": "Fits into", "multiple": true}}},
         {"key": "mates_with", "name": "Mates with", "type": "link", "description": "The other half, e.g. a plug's receptacle.",
@@ -35,7 +36,7 @@
         {"key": "active", "name": "Active", "type": "checkbox", "options": {"default": "1"}}
       ],
       "views": [
-        {"name": "Parts", "type": "grid", "config": {"fields": ["part_number", "description", "category", "manufacturer", "unit", "pictures", "active"],
+        {"name": "Parts", "type": "grid", "config": {"fields": ["part_number", "description", "category", "manufacturer", "attributes", "unit", "pictures", "active"],
           "sorts": [{"field": "part_number", "dir": "asc"}]}},
         {"name": "Catalogue", "type": "gallery", "config": {"cover_field": "pictures", "fields": ["part_number", "description", "category"]}},
         {"name": "By category", "type": "grid", "config": {"group_by": "category", "fields": ["part_number", "description", "manufacturer", "unit"]}}
@@ -52,7 +53,8 @@
         {"key": "parent", "name": "Part of", "type": "link",
          "options": {"target": "categories", "multiple": false, "inverse": {"key": "subcategories", "name": "Subcategories", "multiple": true}}},
         {"key": "part_count", "name": "Parts here", "type": "rollup", "options": {"link": "parts", "func": "count"}},
-        {"key": "attribute_names", "name": "Attributes to fill in", "type": "longtext"}
+        {"key": "attribute_names", "name": "Attributes to fill in", "type": "attributes",
+         "description": "The attributes its parts fill in, each with a hint for the value: a unit (Ω) or an example (e.g. 0603)."}
       ],
       "views": [{"name": "Categories", "type": "tree", "config": {"parent_field": "parent", "fields": ["name", "part_count", "attribute_names"]}}]
     }
@@ -60,21 +62,21 @@
   "records": {
     "categories": [
       {"Name": "Passives"},
-      {"Name": "Resistors", "Part of": "Passives", "Attributes to fill in": "Resistance\nPower\nTolerance"},
-      {"Name": "Capacitors", "Part of": "Passives", "Attributes to fill in": "Capacitance\nVoltage"},
-      {"Name": "Connectors"},
-      {"Name": "D-sub", "Part of": "Connectors"},
-      {"Name": "Contacts", "Part of": "Connectors"},
-      {"Name": "Wire"}
+      {"Name": "Resistors", "Part of": "Passives", "Attributes to fill in": [{"name": "Resistance", "value": "Ω"}, {"name": "Power", "value": "W"}, {"name": "Tolerance", "value": "%"}, {"name": "Package", "value": "e.g. 0603"}]},
+      {"Name": "Capacitors", "Part of": "Passives", "Attributes to fill in": [{"name": "Capacitance", "value": "F"}, {"name": "Voltage", "value": "V"}, {"name": "Dielectric", "value": "e.g. X7R"}, {"name": "Package", "value": "e.g. 0603"}]},
+      {"Name": "Connectors", "Attributes to fill in": [{"name": "Positions", "value": "how many"}, {"name": "Gender", "value": "male or female"}]},
+      {"Name": "D-sub", "Part of": "Connectors", "Attributes to fill in": [{"name": "Positions", "value": "how many"}, {"name": "Gender", "value": "male or female"}, {"name": "Mounting", "value": "cable or panel"}]},
+      {"Name": "Contacts", "Part of": "Connectors", "Attributes to fill in": [{"name": "Gender", "value": "male or female"}, {"name": "Wire size", "value": "AWG"}, {"name": "Plating", "value": "e.g. gold"}]},
+      {"Name": "Wire", "Attributes to fill in": [{"name": "Wire size", "value": "AWG"}, {"name": "Colour", "value": ""}, {"name": "Insulation", "value": "e.g. PVC"}]}
     ],
     "parts": [
-      {"Part number": "RES-10K-0603", "Description": "Resistor 10 kΩ 1% 0603", "Category": "Resistors", "Manufacturer": "Yageo", "Attributes": "Resistance: 10 kΩ\nPower: 0.1 W\nTolerance: 1%"},
-      {"Part number": "CAP-100N-0603", "Description": "Capacitor 100 nF 50 V X7R 0603", "Category": "Capacitors", "Manufacturer": "Murata"},
-      {"Part number": "DSUB-9-CONTACT", "Description": "D-sub crimp contact, male, 20-24 AWG", "Category": "Contacts", "Manufacturer": "TE", "Tools": ["D-sub crimp tool", "Contact extraction tool"]},
-      {"Part number": "DSUB-9-PLUG", "Description": "D-sub 9 plug housing, crimp", "Category": "D-sub", "Manufacturer": "TE", "Accepts": ["DSUB-9-CONTACT"]},
-      {"Part number": "DSUB-9-RECEPT", "Description": "D-sub 9 receptacle, panel mount", "Category": "D-sub", "Manufacturer": "TE", "Mates with": ["DSUB-9-PLUG"]},
-      {"Part number": "WIRE-22-RED", "Description": "Hook-up wire 22 AWG red", "Category": "Wire", "Unit": "m"},
-      {"Part number": "WIRE-22-BLK", "Description": "Hook-up wire 22 AWG black", "Category": "Wire", "Unit": "m"}
+      {"Part number": "RES-10K-0603", "Description": "Resistor 10 kΩ 1% 0603", "Category": "Resistors", "Manufacturer": "Yageo", "Attributes": [{"name": "Resistance", "value": "10 kΩ"}, {"name": "Power", "value": "0.1 W"}, {"name": "Tolerance", "value": "1%"}, {"name": "Package", "value": "0603"}]},
+      {"Part number": "CAP-100N-0603", "Description": "Capacitor 100 nF 50 V X7R 0603", "Category": "Capacitors", "Manufacturer": "Murata", "Attributes": [{"name": "Capacitance", "value": "100 nF"}, {"name": "Voltage", "value": "50 V"}, {"name": "Dielectric", "value": "X7R"}, {"name": "Package", "value": "0603"}]},
+      {"Part number": "DSUB-9-CONTACT", "Description": "D-sub crimp contact, male, 20-24 AWG", "Category": "Contacts", "Manufacturer": "TE", "Tools": ["D-sub crimp tool", "Contact extraction tool"], "Attributes": [{"name": "Gender", "value": "male"}, {"name": "Wire size", "value": "20-24 AWG"}, {"name": "Plating", "value": "gold"}]},
+      {"Part number": "DSUB-9-PLUG", "Description": "D-sub 9 plug housing, crimp", "Category": "D-sub", "Manufacturer": "TE", "Accepts": ["DSUB-9-CONTACT"], "Attributes": [{"name": "Positions", "value": "9"}, {"name": "Gender", "value": "male"}, {"name": "Mounting", "value": "cable"}]},
+      {"Part number": "DSUB-9-RECEPT", "Description": "D-sub 9 receptacle, panel mount", "Category": "D-sub", "Manufacturer": "TE", "Mates with": ["DSUB-9-PLUG"], "Attributes": [{"name": "Positions", "value": "9"}, {"name": "Gender", "value": "female"}, {"name": "Mounting", "value": "panel"}]},
+      {"Part number": "WIRE-22-RED", "Description": "Hook-up wire 22 AWG red", "Category": "Wire", "Unit": "m", "Attributes": [{"name": "Wire size", "value": "22 AWG"}, {"name": "Colour", "value": "red"}, {"name": "Insulation", "value": "PVC"}]},
+      {"Part number": "WIRE-22-BLK", "Description": "Hook-up wire 22 AWG black", "Category": "Wire", "Unit": "m", "Attributes": [{"name": "Wire size", "value": "22 AWG"}, {"name": "Colour", "value": "black"}, {"name": "Insulation", "value": "PVC"}]}
     ]
   }
 }

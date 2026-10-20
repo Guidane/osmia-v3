@@ -51,7 +51,9 @@ def record_json(data, record):
         'label': data.label(record),
         'url': record.get_absolute_url(),
         'table': record.table_id,
-        'cells': {f.pk: {'html': str(data.html(record, f)), 'raw': data.raw(record, f)} for f in data.fields(record.table_id)},
+        'cells': {f.pk: {'html': str(data.html(record, f)), 'raw': data.raw(record, f),
+                         **({'expected': f.kind.expected(f, record, data)} if f.type == 'attributes' else {})}
+                  for f in data.fields(record.table_id)},
         'values': {f.key: _plain(data.raw(record, f)) for f in data.fields(record.table_id) if f.type != 'button'},
     }
 

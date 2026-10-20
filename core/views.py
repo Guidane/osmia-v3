@@ -81,6 +81,9 @@ def fields_meta(data, tables):
                 item['target_name'] = target.name if target else ''
             if f.type == 'rating':
                 item['max'] = int(f.opt('max', 5))
+            if f.type == 'attributes':
+                item['names'] = f.kind.names(f)
+                item['expects'] = f.kind.source(f) is not None   # the editor asks what this record should fill in
             meta[f.pk] = item
     return meta
 
@@ -112,7 +115,9 @@ def form_items(request, fields, data, preset=None):
             linked = [{'id': r.pk, 'name': data.label(r)} for r in data.records_by_ids(ids)]
         if f.type == 'user':
             values = [int(v) for v in values if str(v).isdigit()]
-        items.append({'f': f, 'pk': f.pk, 'name': name, 'value': value, 'values': values, 'json': json.dumps(linked)})
+        names = json.dumps(f.kind.names(f)) if f.type == 'attributes' else '[]'
+        items.append({'f': f, 'pk': f.pk, 'name': name, 'value': value, 'values': values, 'json': json.dumps(linked),
+                      'names_json': names})
     return items
 
 

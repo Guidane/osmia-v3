@@ -359,6 +359,11 @@ TUTORIALS = [
             'The list shows every field with its type and settings.',
             'Click <b>＋ New field</b>, give it a name and pick a <b>type</b>. The settings below change with the type:',
             '<ul><li><b>Text</b>, <b>Long text</b>, <b>Email</b>, <b>Link (URL)</b>, <b>Phone</b>, <b>Colour</b>, <b>JSON</b></li>'
+            '<li><b>Attributes</b>: name-value pairs, each shown as a tag (<i>Resistance</i> 10 kΩ, <i>Power</i> 0.1 W); type a name, '
+            'Enter, its value, Enter for the next. Names used before are suggested. In its settings, <i>Names to fill in, from</i> takes '
+            'them from a linked record (a part\'s category lists Resistance, Power, ...): each shows as a row to fill in. '
+            'A formula reads one with '
+            '<kbd>ATTRIBUTE({Attributes}, "Resistance")</kbd>.</li>'
             '<li><b>Number</b>, <b>Currency</b>, <b>Percent</b> (with decimals, lowest and highest), <b>Rating</b> (stars)</li>'
             '<li><b>Checkbox</b>, <b>Date</b>, <b>Date and time</b> (default <code>today</code> / <code>now</code>)</li>'
             '<li><b>Single select</b> and <b>Multiple select</b>: type the choices and pick their colours. For a single select you can '

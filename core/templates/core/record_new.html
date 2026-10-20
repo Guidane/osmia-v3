@@ -4,7 +4,7 @@
 {% block content_class %}narrow{% endblock %}
 {% block content %}
 <h1>New {{ table.name|lower }} <span class="muted small">in {{ app.name }}</span></h1>
-<form method="post" enctype="multipart/form-data" class="form card" id="record-form">{% csrf_token %}
+<form method="post" enctype="multipart/form-data" class="form card form-table" id="record-form">{% csrf_token %}
   <input type="hidden" name="next" value="{{ next }}">
   <input type="hidden" name="link_field" value="{{ link_field }}"><input type="hidden" name="link_to" value="{{ link_to }}">
   {% for i in items %}{% include "core/_input.html" %}{% empty %}<p class="muted">This table has no fields you can fill in yet.</p>{% endfor %}

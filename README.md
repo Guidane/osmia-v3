@@ -83,7 +83,8 @@ exception (they build every app, and see the records their tags allow). See `cor
 - **Fields**: text, long text, email, URL, phone, colour, number, currency, percent, rating, checkbox, date, date and
   time, single and multiple select (with optional rules for which choice may follow which), user, **link to records**
   (two-way: the other table gets the matching field), **lookup**, **rollup** (sum, count, average, min/max, … with an
-  optional filter), **formula**, autonumber (`PO-0001`), files, created/changed at/by, record id, JSON and **button**
+  optional filter), **formula**, autonumber (`PO-0001`), files, created/changed at/by, record id, JSON, **attributes**
+  (name-value pairs shown as tags: *Resistance* 10 kΩ; `ATTRIBUTE({Attributes}, "Resistance")` reads one) and **button**
   (runs an automation). A field can be "set by automations only".
 - **Views**: grid (edit cells in place, keyboard, copy/paste, group, totals, column widths), tree (nested by a parent
   link), kanban (drag cards between columns), gallery, calendar (drag to another day), gantt (drag bars, stretch their
