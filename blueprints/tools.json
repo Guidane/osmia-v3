@@ -3,10 +3,10 @@
   "name": "Tools",
   "icon": "🛠️",
   "color": "#7c3aed",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "position": 28,
   "group": "Production",
-  "description": "Crimp tools, insertion tools, strippers, meters: where they're kept, who looks after them and when they're due for calibration.",
+  "description": "Crimp tools, insertion tools, strippers, meters: their types (a tree, each listing what its tools fill in), where they're kept, who looks after them and when they're due for calibration.",
   "tables": [
     {
       "key": "tools",
@@ -15,9 +15,10 @@
       "display": "name",
       "fields": [
         {"key": "name", "name": "Name", "type": "text", "required": true},
-        {"key": "type", "name": "Type", "type": "select", "options": {"choices": [
-          {"value": "Crimp tool", "color": "#ddd6fe"}, {"value": "Insertion / extraction", "color": "#bfdbfe"}, {"value": "Stripper", "color": "#bbf7d0"},
-          {"value": "Meter", "color": "#fde68a"}, {"value": "Other", "color": "#e5e7eb"}]}},
+        {"key": "type", "name": "Type", "type": "link",
+         "options": {"target": "tool_types", "multiple": false, "inverse": {"key": "tools", "name": "Tools", "multiple": true}}},
+        {"key": "attributes", "name": "Attributes", "type": "attributes", "description": "Name-value pairs, e.g. Wire size 20-24 AWG; the tool's type lists the ones to fill in.",
+         "options": {"names_from": "type.attribute_names"}},
         {"key": "part_number", "name": "Part number", "type": "text"},
         {"key": "manufacturer", "name": "Manufacturer", "type": "text"},
         {"key": "asset_tag", "name": "Asset tag", "type": "text"},
@@ -31,10 +32,26 @@
         {"key": "notes", "name": "Notes", "type": "longtext"}
       ],
       "views": [
-        {"name": "Tools", "type": "grid", "config": {"fields": ["name", "type", "part_number", "manufacturer", "asset_tag", "kept_at", "keeper", "calibration_due"]}},
+        {"name": "Tools", "type": "grid", "config": {"fields": ["name", "type", "attributes", "part_number", "manufacturer", "asset_tag", "kept_at", "keeper", "calibration_due"]}},
         {"name": "Pictures", "type": "gallery", "config": {"cover_field": "pictures", "fields": ["name", "type", "kept_at", "keeper"]}},
-        {"name": "Calibration", "type": "calendar", "config": {"date_field": "calibration_due", "color_field": "type"}}
+        {"name": "Calibration", "type": "calendar", "config": {"date_field": "calibration_due"}}
       ]
+    },
+    {
+      "key": "tool_types",
+      "tree": "parent",
+      "name": "Tool types",
+      "icon": "🗂",
+      "display": "name",
+      "fields": [
+        {"key": "name", "name": "Name", "type": "text", "required": true},
+        {"key": "parent", "name": "Part of", "type": "link",
+         "options": {"target": "tool_types", "multiple": false, "inverse": {"key": "under_it", "name": "Under it", "multiple": true}}},
+        {"key": "tool_count", "name": "Tools here", "type": "rollup", "options": {"link": "tools", "func": "count"}},
+        {"key": "attribute_names", "name": "Attributes to fill in", "type": "attributes",
+         "description": "The attributes its tools fill in, each with a hint for the value: a unit (AWG) or an example (e.g. D-sub)."}
+      ],
+      "views": [{"name": "Tool types", "type": "tree", "config": {"parent_field": "parent", "fields": ["name", "tool_count", "attribute_names"]}}]
     }
   ],
   "automations": [
@@ -43,11 +60,24 @@
      "actions": [{"type": "notify", "user_fields": ["keeper"], "message": "{Name} ({Asset tag}) is due for calibration on {Calibration due}"}]}
   ],
   "records": {
+    "tool_types": [
+      {"Name": "Hand tools"},
+      {"Name": "Crimp tool", "Part of": "Hand tools", "Attributes to fill in": [{"name": "Wire size", "value": "AWG"}, {"name": "Contact type", "value": "e.g. D-sub"}, {"name": "Ratchet", "value": "yes or no"}]},
+      {"Name": "Insertion / extraction", "Part of": "Hand tools", "Attributes to fill in": [{"name": "Contact type", "value": "e.g. D-sub"}, {"name": "Contact size", "value": "e.g. 20"}]},
+      {"Name": "Stripper", "Part of": "Hand tools", "Attributes to fill in": [{"name": "Wire size", "value": "AWG"}, {"name": "Cable type", "value": "e.g. round"}]},
+      {"Name": "Test equipment"},
+      {"Name": "Meter", "Part of": "Test equipment", "Attributes to fill in": [{"name": "Measures", "value": "e.g. V, A, Ω"}, {"name": "Accuracy", "value": "%"}, {"name": "Digits", "value": "e.g. 6½"}]},
+      {"Name": "Other"}
+    ],
     "tools": [
-      {"Name": "D-sub crimp tool", "Type": "Crimp tool", "Part number": "M22520/2-01", "Manufacturer": "Daniels", "Asset tag": "T-001", "Kept at": "Bench 2", "Looked after by": "alice", "Calibrated on": "=TODAY()-350", "Calibration every (months)": 12},
-      {"Name": "Contact extraction tool", "Type": "Insertion / extraction", "Part number": "M81969/1-04", "Asset tag": "T-002", "Kept at": "Bench 2", "Looked after by": "alice"},
-      {"Name": "Precision wire stripper", "Type": "Stripper", "Manufacturer": "Knipex", "Asset tag": "T-003", "Kept at": "Bench 1", "Looked after by": "bob"},
-      {"Name": "Bench multimeter", "Type": "Meter", "Manufacturer": "Keysight", "Part number": "34465A", "Asset tag": "M-010", "Kept at": "Test bench", "Looked after by": "alice", "Calibrated on": "=TODAY()-200", "Calibration every (months)": 12}
+      {"Name": "D-sub crimp tool", "Type": "Crimp tool", "Part number": "M22520/2-01", "Manufacturer": "Daniels", "Asset tag": "T-001", "Kept at": "Bench 2", "Looked after by": "alice", "Calibrated on": "=TODAY()-350", "Calibration every (months)": 12,
+       "Attributes": [{"name": "Wire size", "value": "20-24 AWG"}, {"name": "Contact type", "value": "D-sub"}, {"name": "Ratchet", "value": "yes"}]},
+      {"Name": "Contact extraction tool", "Type": "Insertion / extraction", "Part number": "M81969/1-04", "Asset tag": "T-002", "Kept at": "Bench 2", "Looked after by": "alice",
+       "Attributes": [{"name": "Contact type", "value": "D-sub"}, {"name": "Contact size", "value": "20"}]},
+      {"Name": "Precision wire stripper", "Type": "Stripper", "Manufacturer": "Knipex", "Asset tag": "T-003", "Kept at": "Bench 1", "Looked after by": "bob",
+       "Attributes": [{"name": "Wire size", "value": "10-24 AWG"}, {"name": "Cable type", "value": "round"}]},
+      {"Name": "Bench multimeter", "Type": "Meter", "Manufacturer": "Keysight", "Part number": "34465A", "Asset tag": "M-010", "Kept at": "Test bench", "Looked after by": "alice", "Calibrated on": "=TODAY()-200", "Calibration every (months)": 12,
+       "Attributes": [{"name": "Measures", "value": "V, A, Ω, Hz"}, {"name": "Accuracy", "value": "0.0035%"}, {"name": "Digits", "value": "6½"}]}
     ]
   }
 }

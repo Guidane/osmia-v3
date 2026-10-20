@@ -256,6 +256,57 @@ def delete_field(field, checked=False):
     _drop_fields(Field.objects.filter(pk__in=dependencies.field_removal(field).fields))
 
 
+@transaction.atomic
+def choices_to_table(field, name='', tree=False, icon='', key=''):
+    """Turn a single select's choices into a table of their own (Type → a table of tool types): a record per choice,
+    a tree of them if ``tree``, and the field becomes a link to them under its own name, key and place, each record
+    linked to the one it had chosen. Views, filters and formulas that use the field keep working (a view coloured by
+    it isn't any more: colours come from choices). Returns the new table."""
+    from .data import Data
+    if field.type != 'select':
+        raise ValidationError("Only a single select's choices can become a table.")
+    table = field.table
+    name = (name or '').strip() or f'{field.name} list'
+    if table.app.tables.filter(name__iexact=name).exists():
+        raise ValidationError(f'{table.app.name} already has a table called "{name}".')
+    new = create_table(table.app, name, icon=icon or '🗂', key=key, primary='Name')
+    if tree:
+        parent = add_field(new, 'Part of', 'link', {'target': new.pk, 'multiple': False}, key='parent',
+                           inverse_name='Under it', inverse_key='under_it', inverse_multiple=True)
+        new.tree_field = parent
+        new.save(update_fields=['tree_field'])
+    data = Data()
+    made = {}
+    for c in field.opt('choices') or []:
+        record = Record.objects.create(table=new, data={new.display_field.key: c['value']},
+                                       position=len(made) + 1)
+        made[c['value']] = record
+    old_key, old_name, position = field.key, field.name, field.position
+    link = add_field(table, f'{old_name} ({name})', 'link', {'target': new.pk, 'multiple': False},
+                     inverse_name=table.name if not new.fields.filter(name__iexact=table.name).exists() else f'{table.name} ({old_name})',
+                     inverse_multiple=True)
+    owner, backwards = data.owner_of(link)
+    links = []
+    for record in Record.objects.filter(table=table):
+        chosen = made.get((record.data or {}).get(old_key))
+        if chosen is not None:
+            links.append(Link(field=owner, source=chosen, target=record) if backwards else Link(field=owner, source=record, target=chosen))
+        if old_key in (record.data or {}):
+            record.data.pop(old_key)
+            record.save(update_fields=['data'])
+    Link.objects.bulk_create(links)
+    for view in View.objects.filter(table=table):   # colours came from the choices
+        cfg = dict(view.config or {})
+        if cfg.get('color_field') == old_key:
+            cfg.pop('color_field')
+            view.config = cfg
+            view.save(update_fields=['config'])
+    field.delete()
+    link.name, link.key, link.position = old_name, old_key, position
+    link.save(update_fields=['name', 'key', 'position'])
+    return new
+
+
 def _drop_fields(fields):
     doomed = list(fields)
     tables = {f.table_id for f in doomed}

@@ -74,6 +74,7 @@ urlpatterns = [
     path('a/<slug:app_slug>/<slug:table_slug>/fields/', build_views.fields, name='fields'),
     path('a/<slug:app_slug>/<slug:table_slug>/fields/new/', build_views.field_edit, name='field_create'),
     path('a/<slug:app_slug>/<slug:table_slug>/fields/<int:field_id>/', build_views.field_edit, name='field_edit'),
+    path('a/<slug:app_slug>/<slug:table_slug>/fields/<int:field_id>/to-table/', build_views.field_to_table, name='field_to_table'),
     path('a/<slug:app_slug>/<slug:table_slug>/views/new/', build_views.view_create, name='view_create'),
     path('a/<slug:app_slug>/<slug:table_slug>/v/<int:view_id>/', views.view_page, name='view'),
     path('a/<slug:app_slug>/<slug:table_slug>/v/<int:view_id>/settings/', build_views.view_settings, name='view_settings'),

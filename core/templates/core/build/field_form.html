@@ -152,6 +152,17 @@
     {% if field %}<div style="flex:1"></div><button class="btn danger" name="delete" value="1" formnovalidate data-confirm="Delete the field {{ field.name }} and its values in every record?">Delete field</button>{% endif %}
   </div>
 </form>
+{% if field and field.type == 'select' %}
+<form method="post" action="{% url 'core:field_to_table' app.slug table.slug field.pk %}" class="form card">{% csrf_token %}
+  <h2 style="margin-top:0">Turn the choices into a table</h2>
+  <p class="muted small">For choices that need more than a name: a table with a record for each choice (they can have fields of
+    their own, such as the attributes to fill in, and be nested in a tree), and {{ field.name }} becomes a link to it. Every
+    record keeps what it had chosen.</p>
+  <div class="field"><label for="to_table_name">Name of the table</label><input id="to_table_name" name="name" required value="{{ field.name }} list" maxlength="100"></div>
+  <label class="inline"><input type="checkbox" name="tree" value="1" checked> A tree: choices can be nested (Hand tools › Crimp tool)</label>
+  <div class="actions"><button class="btn" data-confirm="Turn the choices of {{ field.name }} into a table?">Make the table</button></div>
+</form>
+{% endif %}
 {{ meta|json_script:"field-meta" }}
 {% endblock %}
 {% block scripts %}<script src="{% static 'core/field_form.js' %}"></script>{% endblock %}

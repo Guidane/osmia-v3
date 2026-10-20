@@ -225,6 +225,22 @@ def fields(request, app_slug, table_slug):
     return render(request, 'core/build/fields.html', {**app_context(app, request.user), 'table': table, 'rows': rows})
 
 
+@login_required
+@require_POST
+def field_to_table(request, app_slug, table_slug, field_id):
+    """A single select's choices become a table of their own; the field, a link to it."""
+    app = _app(request, app_slug)
+    table = get_object_or_404(Table, app=app, slug=table_slug)
+    field = get_object_or_404(Field, pk=field_id, table=table)
+    try:
+        new = schema.choices_to_table(field, request.POST.get('name', ''), tree=bool(request.POST.get('tree')))
+    except ValidationError as exc:
+        _errors(request, exc)
+        return redirect('core:field_edit', app.slug, table.slug, field.pk)
+    messages.success(request, f'{field.name} is now a link to the table {new.name}: give it fields of its own.')
+    return redirect('core:fields', app.slug, new.slug)
+
+
 def _names_from_choices(table):
     """Where an attributes field of ``table`` can take the names to fill in from: an attributes field of a table
     it links to, [("link.field", "Category › Attributes to fill in")]."""

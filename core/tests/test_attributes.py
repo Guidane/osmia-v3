@@ -152,3 +152,75 @@ class PartsTemplateTests(WorkspaceTestCase):
         self.assertEqual(len(by_number['RES-10K-0603']), 4)
         self.assertEqual(by_number['WIRE-22-RED'], [{'name': 'Colour', 'value': 'crimson'}])   # changed by someone: kept
         self.assertEqual(by_number['WIRE-22-BLK'][1], {'name': 'Colour', 'value': 'black'})
+
+
+class ChoicesToTableTests(WorkspaceTestCase):
+    def test_a_select_becomes_a_link_to_a_table_of_its_choices(self):
+        kind = schema.add_field(self.parts, 'Kind', 'select', {'choices': [{'value': 'Resistor'}, {'value': 'Wire'}]})
+        size = schema.add_field(self.parts, 'Size', 'formula', {'expression': 'UPPER({Kind})'})
+        view = self.parts.views.first()
+        view.config = {'fields': ['part_number', 'kind'], 'color_field': 'kind'}
+        view.save()
+        part = service.create_record(self.parts, {kind.pk: 'Wire'}, user=self.user)
+        kinds = schema.choices_to_table(kind, 'Kinds', tree=True)
+        link = self.parts.fields.get(key='kind')
+        self.assertEqual((link.type, link.name, link.position), ('link', 'Kind', kind.position))
+        self.assertEqual(kinds.tree_field.key, 'parent')
+        data = Data()
+        self.assertEqual([data.label(r) for r in data.records(kinds)], ['Resistor', 'Wire'])
+        self.assertEqual(data.text(data.record(part.pk), link), 'Wire')          # what it had chosen
+        self.assertEqual(data.text(data.record(part.pk), size), 'WIRE')          # formulas keep working
+        view.refresh_from_db()
+        self.assertEqual(view.config, {'fields': ['part_number', 'kind']})       # colours came from the choices
+        self.assertNotIn('kind', Record.objects.get(pk=part.pk).data)
+
+    def test_only_a_single_select(self):
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            schema.choices_to_table(self.parts.fields.get(key='part_number'), 'X')
+
+
+class ToolsTemplateTests(WorkspaceTestCase):
+    def test_tool_types_list_what_each_tool_fills_in(self):
+        from django.contrib.auth import get_user_model
+        for name in ('alice', 'bob'):
+            get_user_model().objects.create_user(name, password='x')
+        blueprints.install_many(['tools'], user=self.user, sample=True)
+        tools = Table.objects.get(app__blueprint='tools', key='tools')
+        types = Table.objects.get(app__blueprint='tools', key='tool_types')
+        self.assertEqual(types.tree_field.key, 'parent')
+        data = Data()
+        attrs = data.field_named(tools, 'Attributes')
+        for tool in data.records(tools):
+            listed = [e['name'] for e in attrs.kind.expected(attrs, tool, data)]
+            self.assertTrue(listed, data.label(tool))
+            self.assertEqual(listed, [p['name'] for p in data.raw(tool, attrs)], data.label(tool))
+
+    def test_an_installed_tools_app_is_brought_up_to_date(self):
+        from django.apps import apps
+        from django.contrib.auth import get_user_model
+        for name in ('alice', 'bob'):
+            get_user_model().objects.create_user(name, password='x')
+        bp = blueprints.available()['tools']
+        old = json.loads(json.dumps(bp))   # the template as it was: Type a list of choices, no tool types
+        old['tables'] = [t for t in old['tables'] if t['key'] == 'tools']
+        tools_def = old['tables'][0]
+        tools_def['fields'] = [f for f in tools_def['fields'] if f['key'] != 'attributes']
+        type_field = next(f for f in tools_def['fields'] if f['key'] == 'type')
+        type_field.clear()
+        type_field.update({'key': 'type', 'name': 'Type', 'type': 'select', 'options': {'choices': [
+            {'value': v} for v in ['Crimp tool', 'Insertion / extraction', 'Stripper', 'Meter', 'Other']]}})
+        tools_def['views'] = [{'name': 'Tools', 'type': 'grid', 'config': {'fields': ['name', 'type', 'kept_at']}}]
+        old['records'] = {'tools': [{k: v for k, v in r.items() if k != 'Attributes'} for r in old['records']['tools']]}
+        blueprints.install(old, user=self.user, sample=True)
+        importlib.import_module('core.migrations.0006_tool_types').tool_types(apps, None)
+        tools = Table.objects.get(app__blueprint='tools', key='tools')
+        types = Table.objects.get(app__blueprint='tools', key='tool_types')
+        data = Data()
+        crimp = next(r for r in data.records(tools) if data.label(r) == 'D-sub crimp tool')
+        self.assertEqual(data.text(crimp, data.field_named(tools, 'Type')), 'Crimp tool')
+        self.assertEqual(data.raw(crimp, data.field_named(tools, 'Attributes'))[0], {'name': 'Wire size', 'value': '20-24 AWG'})
+        meter = next(r for r in data.records(types) if data.label(r) == 'Meter')
+        from core.trees import Tree
+        self.assertEqual(data.label(Tree(data, types).ancestors(meter.pk)[-1]), 'Test equipment')
+        self.assertIn('attributes', tools.views.get(name='Tools').config['fields'])

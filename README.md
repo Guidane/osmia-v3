@@ -85,7 +85,9 @@ exception (they build every app, and see the records their tags allow). See `cor
   (two-way: the other table gets the matching field), **lookup**, **rollup** (sum, count, average, min/max, … with an
   optional filter), **formula**, autonumber (`PO-0001`), files, created/changed at/by, record id, JSON, **attributes**
   (name-value pairs shown as tags: *Resistance* 10 kΩ; `ATTRIBUTE({Attributes}, "Resistance")` reads one) and **button**
-  (runs an automation). A field can be "set by automations only".
+  (runs an automation). A field can be "set by automations only". A single select whose choices need more than a
+  name can be **turned into a table** of its own (a tree, if you like): Tools' Type became Tool types, each listing
+  the attributes its tools fill in.
 - **Views**: grid (edit cells in place, keyboard, copy/paste, group, totals, column widths), tree (nested by a parent
   link), kanban (drag cards between columns), gallery, calendar (drag to another day), gantt (drag bars, stretch their
   end, dependency arrows, progress), form, and detail (list and full record side by side). Filters, sorts, grouping and
