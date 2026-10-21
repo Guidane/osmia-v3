@@ -1,4 +1,4 @@
-<tr data-record="{{ row.record.pk }}">
+<tr data-record="{{ row.record.pk }}"{% if row.set %} class="{{ row.set }}"{% endif %}>
   {% for c in row.cells %}{% with record=row.record %}{% include "core/_cell.html" %}{% endwith %}{% endfor %}
   <td class="nowrap" style="width:60px">
     <a href="{{ row.record.get_absolute_url }}" title="Open">⤢</a>

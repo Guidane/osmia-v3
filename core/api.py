@@ -75,9 +75,56 @@ def table_records(request, table_id):
         limit = min(int(request.GET.get('limit', 30)), 500)
     except ValueError:
         limit = 30
-    found = data.search(table, request.GET.get('q', ''), limit=limit)
-    full = request.GET.get('full')
-    return JsonResponse({'records': [record_json(data, r) if full else {'id': r.pk, 'label': data.label(r)} for r in found]})
+    under = request.GET.get('under', '')   # "<link field id>:<record id>": linked to that node of a tree, or under it
+    browse = _browse(data, table) if request.GET.get('rich') else None
+    if under.count(':') == 1 and all(p.isdigit() for p in under.split(':')):
+        field_id, node = (int(p) for p in under.split(':'))
+        field = data.field(field_id)
+        if field is None or field.table_id != table.pk:
+            return JsonResponse({'error': 'No such field.'}, status=400)
+        from .trees import Tree
+        nodes = {node} | set(Tree(data, field.opt('target')).descendant_ids(node))
+        found = [r for r in data.search(table, request.GET.get('q', ''), limit=5000)
+                 if set(getattr(data.value(r, field), 'ids', None) or []) & nodes][:limit]
+    else:
+        found = data.search(table, request.GET.get('q', ''), limit=limit)
+    if request.GET.get('full'):
+        return JsonResponse({'records': [record_json(data, r) for r in found]})
+    if not request.GET.get('rich'):
+        return JsonResponse({'records': [{'id': r.pk, 'label': data.label(r)} for r in found]})
+    return JsonResponse({'records': [_rich(data, table, r) for r in found], 'browse': browse})
+
+
+def _rich(data, table, record):
+    """A record for a picker that shows more than its name: a line about it and a small picture of it."""
+    from .models import Attachment
+    display = table.display_field_id
+    detail = next((f for f in data.fields(table) if f.type == 'text' and f.pk != display), None)
+    picture = Attachment.objects.filter(record=record, is_image=True).order_by('position', 'pk').first()
+    return {'id': record.pk, 'label': data.label(record),
+            'detail': (data.text(record, detail) or '')[:90] if detail else '',
+            'thumb': picture.get_absolute_url() + '?thumb=1' if picture else ''}
+
+
+def _browse(data, table):
+    """A tree the records link to (a part's category), to browse them by: {field, name, nodes: [{id, label, depth}]}."""
+    from .trees import Tree
+    for f in data.fields(table):
+        if f.type != 'link':
+            continue
+        target = data.table(f.opt('target'))
+        if target is None or not target.tree_field_id or target.pk == table.pk:
+            continue
+        tree, nodes = Tree(data, target), []
+
+        def walk(node, depth):
+            nodes.append({'id': node.pk, 'label': data.label(node), 'depth': depth})
+            for kid in tree.kids(node.pk):
+                walk(kid, depth + 1)
+        for root_node in tree.roots():
+            walk(root_node, 0)
+        return {'field': f.pk, 'name': f.name, 'nodes': nodes}
+    return None
 
 
 @login_required

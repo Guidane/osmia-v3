@@ -1,6 +1,6 @@
-"""A request to the AI assistant: what someone asked, the prompt Osmia made of it, the
+"""A request to the AI prompt generator: what someone asked, the prompt Osmia made of it, the
 answer they pasted back, and what checking or applying it did. Also the record of
-what the AI changed (the history of each record says "AI assistant" too)."""
+what the AI changed (the history of each record says "AI prompt generator" too)."""
 from django.conf import settings
 from django.db import models
 from django.urls import reverse

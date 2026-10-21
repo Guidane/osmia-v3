@@ -20,6 +20,7 @@
   {% else %}
     <a class="btn small ghost" href="{{ record.get_absolute_url }}" title="Open on its own page">⤢</a>
   {% endif %}
+  {% if can_edit_record and not in_view %}<a class="btn small ghost" href="{% url 'core:record_new' record_app.slug record_table.slug %}?copy={{ record.pk }}" title="A new {{ record_table.name|lower }} starting from this one's values">⧉ Copy</a>{% endif %}
   {% if can_edit_record %}
   <details class="menu toolbar-menu">
     <summary class="btn small ghost">⋯</summary>
@@ -47,16 +48,17 @@
       <div class="card-head">
         <h3>{{ s.field.name }} <span class="muted small">· {{ s.rows|length }}</span></h3>
         {% if can_edit_record and s.field.editable %}
-          <button type="button" class="btn small link-add" data-record="{{ record.pk }}" data-field="{{ s.field.pk }}" data-target="{{ s.target.pk }}" data-target-name="{{ s.target.name }}">⇄ Link</button>
+          {% if s.link_existing %}<button type="button" class="btn small ghost link-add" data-record="{{ record.pk }}" data-field="{{ s.field.pk }}" data-target="{{ s.target.pk }}" data-target-name="{{ s.target.name }}" title="Link {{ s.target.name|lower }} that are there already">⇄ Link</button>{% endif %}
           {% if s.can_add and s.inverse %}
-            <button type="button" class="btn small quick-add" data-table="{{ s.target.pk }}" data-field="{{ s.inverse.pk }}" data-record="{{ record.pk }}" data-form="{% url 'core:record_new' s.target.app.slug s.target.slug %}?link_field={{ s.inverse.pk }}&link_to={{ record.pk }}&next={{ request.get_full_path|urlencode }}" title="Add a row here and fill it in">＋ Row</button>
-            <a class="btn small ghost" href="{% url 'core:record_new' s.target.app.slug s.target.slug %}?link_field={{ s.inverse.pk }}&link_to={{ record.pk }}&next={{ request.get_full_path|urlencode }}" title="Open the full form">＋ Form</a>
+            {% if s.pick %}<button type="button" class="btn small pick-add" data-table="{{ s.target.pk }}" data-link-field="{{ s.inverse.pk }}" data-record="{{ record.pk }}" data-pick-field="{{ s.pick.pk }}" data-pick-table="{{ s.pick.options.target }}" data-qty-field="{{ s.pick_qty.pk|default:'' }}" data-title="Add {{ s.pick.name|lower }}s to {{ record_label }}">＋ Add {{ s.pick.name|lower }}</button>{% endif %}
+            {% if not s.footer %}<a class="btn small {% if s.pick %}ghost{% else %}primary{% endif %}" href="{% url 'core:record_new' s.target.app.slug s.target.slug %}?link_field={{ s.inverse.pk }}&link_to={{ record.pk }}&next={{ request.get_full_path|urlencode }}" title="A new one, in a form">＋ New</a>{% endif %}
           {% endif %}
         {% endif %}
       </div>
       {% if s.rows %}
       <div style="overflow-x:auto">
       <table class="sub{% if s.groups %} grouped{% endif %}">
+        {% if s.edges %}<colgroup>{% for e in s.edges %}<col{% if e %} class="band-edge"{% endif %}>{% endfor %}<col></colgroup>{% endif %}
         <thead>
           {% if s.bands %}<tr class="sub-bands">{% for b in s.bands %}<th colspan="{{ b.span }}">{{ b.label }}</th>{% endfor %}<th></th></tr>{% endif %}
           <tr>{% for c in s.columns %}<th class="{{ c|align }}">{{ c.name }}</th>{% endfor %}<th></th></tr>
@@ -81,9 +83,11 @@
           {% for row in s.rows %}{% include "core/_record_sub_row.html" %}{% endfor %}
         </tbody>
         {% endif %}
+        {% if s.footer and can_edit_record %}<tfoot><tr class="sub-foot">{% for c in s.footer %}<td colspan="{{ c.span }}">{% for b in c.buttons %}{{ b }} {% endfor %}</td>{% endfor %}<td></td></tr></tfoot>{% endif %}
       </table>
       </div>
-      {% else %}<p class="muted small" style="padding:10px 14px;margin:0">None yet.</p>{% endif %}
+      {% else %}<p class="muted small" style="padding:10px 14px;margin:0">None yet.</p>
+      {% if s.footer and can_edit_record %}<div class="sub-foot-empty">{% for c in s.footer %}{% for b in c.buttons %}{{ b }} {% endfor %}{% endfor %}</div>{% endif %}{% endif %}
     </div>
     {% endfor %}
 
@@ -129,6 +133,14 @@
   </div>
 
   <div>
+    {% for c in note_cells %}
+    <div class="card note-card">
+      <h3 title="{{ c.field.description }}">{{ c.field.kind.icon }} {{ c.field.name }}</h3>
+      <div class="props note-props">
+        <div class="v cell{% if cell_editing and c.field.editable and can_edit_record %} editable{% endif %}" data-record="{{ record.pk }}" data-field="{{ c.field.pk }}" data-raw="{{ c.raw }}">{{ c.html|default:'<span class="muted small">Nothing yet.</span>' }}</div>
+      </div>
+    </div>
+    {% endfor %}
     <div class="card flush">
       <div class="side-tabs">
         <button type="button" class="on" data-side="comments">Comments ({{ comments|length }})</button>

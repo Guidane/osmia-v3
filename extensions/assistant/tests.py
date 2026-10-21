@@ -85,7 +85,7 @@ class PlanTests(TestCase):
         acme = next(r for r in data.records(suppliers) if data.label(r) == 'Acme')
         self.assertEqual(data.text(acme, data.field_named(suppliers, 'Order total')), '150')
         self.assertEqual(suppliers.views.get(name='Board').config, {'group_field': 'status'})
-        self.assertTrue(Change.objects.filter(source='AI assistant', table=suppliers).exists())   # the history says so
+        self.assertTrue(Change.objects.filter(source='AI prompt generator', table=suppliers).exists())   # the history says so
 
     def test_automations_only_run_when_applying(self):
         with mock.patch('core.automation._automations', return_value=[]) as autos:

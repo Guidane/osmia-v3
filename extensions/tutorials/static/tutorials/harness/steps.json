@@ -13,74 +13,104 @@
  },
  {
   "image": "03.png",
-  "caption": "Its wires: side A and side B, the contacts side by side in the middle, then the wire details",
+  "caption": "Its parts: connectors (with a designator and a side), contacts, wire, cable ties, ...",
   "width": 1096,
-  "height": 521
+  "height": 443
  },
  {
   "image": "04.png",
-  "caption": "＋ on a sub-header adds a wire between those two connectors",
-  "width": 1143,
-  "height": 179
+  "caption": "Its pinout: side A and side B, the contacts side by side in the middle, then the wire details",
+  "width": 1096,
+  "height": 625
  },
  {
   "image": "05.png",
+  "caption": "＋ on a sub-header adds a wire between those two connectors",
+  "width": 1094,
+  "height": 196
+ },
+ {
+  "image": "06.png",
   "caption": "What it carries at the A end",
   "width": 894,
   "height": 215
  },
  {
-  "image": "06.png",
+  "image": "07.png",
   "caption": "The contact on the A connector",
   "width": 894,
   "height": 215
  },
  {
-  "image": "07.png",
+  "image": "08.png",
   "caption": "The contact on the B connector",
   "width": 894,
   "height": 215
  },
  {
-  "image": "08.png",
+  "image": "09.png",
   "caption": "What it carries at the B end",
   "width": 894,
   "height": 215
  },
  {
-  "image": "09.png",
+  "image": "10.png",
   "caption": "Set type: straight, twisted, shielded",
   "width": 894,
-  "height": 194
+  "height": 233
  },
  {
-  "image": "10.png",
+  "image": "11.png",
   "caption": "Colour",
   "width": 894,
   "height": 194
  },
  {
-  "image": "11.png",
+  "image": "12.png",
   "caption": "AWG",
   "width": 894,
   "height": 193
  },
  {
-  "image": "12.png",
+  "image": "13.png",
   "caption": "Length",
   "width": 894,
   "height": 193
  },
  {
-  "image": "13.png",
+  "image": "14.png",
   "caption": "Save",
   "width": 460,
   "height": 174
  },
  {
-  "image": "14.png",
+  "image": "15.png",
   "caption": "The wire is in its place in the pinout",
   "width": 1096,
-  "height": 553
+  "height": 657
+ },
+ {
+  "image": "16.png",
+  "caption": "Wires of one set (P1, a twisted pair) stay together, with an outline; a shield is a row of its own in its set",
+  "width": 1094,
+  "height": 172
+ },
+ {
+  "image": "17.png",
+  "caption": "Build harness: a new build, with its harness ID",
+  "width": 460,
+  "height": 170
+ },
+ {
+  "image": "18.png",
+  "caption": "Open the build: its checklist has every wire",
+  "width": 1280,
+  "height": 450
+ },
+ {
+  "image": "19.png",
+  "caption": "Tick Placed and Verified for each wire as you go",
+  "width": 1096,
+  "height": 584
  }
 ]

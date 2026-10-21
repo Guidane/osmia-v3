@@ -490,7 +490,10 @@ class Scenarios:
         r.goto(self.url('/search/?q=Burn-in rack loom'), say='Find the harness (or open it in the Harnesses app)')
         r.click('.card a.link-chip:has-text("Burn-in rack loom")', say='Open the harness')
         wires = self.page.locator('[id^="section-"]').filter(has_text='A contact')
-        r.say('Its wires: side A and side B, the contacts side by side in the middle, then the wire details')
+        parts = self.page.locator('[id^="section-"]').filter(has_text='Quantity').first
+        r.say('Its parts: connectors (with a designator and a side), contacts, wire, cable ties, ...')
+        r.hold(show=parts)
+        r.say('Its pinout: side A and side B, the contacts side by side in the middle, then the wire details')
         r.hold(show=wires)
         head = wires.locator('.sub-group-head').first
         r.click(head.locator('.sub-group-add'), say='＋ on a sub-header adds a wire between those two connectors', show=head)
@@ -505,6 +508,17 @@ class Scenarios:
         r.click('#record-form button.primary', say='Save')
         r.say('The wire is in its place in the pinout')
         r.hold(show=self.page.locator('[id^="section-"]').filter(has_text='A contact'))
+        r.say('Wires of one set (P1, a twisted pair) stay together, with an outline; a shield is a row of its own in its set')
+        r.hold(show=self.page.locator('tr.set-row').first)
+        r.click('.run-button:has-text("Build harness")', say='Build harness: a new build, with its harness ID')
+        r.hold(1500)
+        builds = self.page.locator('[id^="section-"]').filter(has_text='Harness ID').first
+        r.hold(show=builds)
+        r.goto(self.url(builds.locator('tr[data-record] a[title="Open"]').last.get_attribute('href')),
+               say='Open the build: its checklist has every wire')
+        checklist = self.page.locator('[id^="section-"]').filter(has_text='Verified').first
+        r.click(checklist.locator('tbody tr[data-record] .cell.editable .check').first, wait=False, hold=700,
+                say='Tick Placed and Verified for each wire as you go', show=checklist)
 
     def form(self, r):
         r.goto(self.url('/a/tasks/tasks/'))
@@ -522,7 +536,7 @@ class Scenarios:
         r.goto(self.url('/search/?q=PO-0001'), say='Search finds a record in any app')
         r.click('.card a.link-chip', say='Open it')
         r.hold(1000)
-        r.click('.props .k:has-text("Notes") + .v', wait=False, hold=500, say='Click a value to change it')
+        r.click('.note-card .v', wait=False, hold=500, say='Click a value to change it: the notes, in a card of their own')
         self.page.keyboard.press('Control+a')
         r.type('Connectors for the burn-in rack, deliver to bench 2')
         r.say('Ctrl+Enter saves')
@@ -827,12 +841,9 @@ class Command(BaseCommand):
         r.hold(900)
         r.click('.crumbs a', say='Back to the table')
         r.hold(900)
-        r.click('#add-record', hold=900, say='Add a record')
-        cell = page.locator('#grid tbody tr[data-record]').first.locator('td.cell.primary')
-        r.click(cell, wait=False, hold=200, say='Click its name to fill it in')
-        r.click(cell, wait=False, hold=300)
-        r.type('Lathe')
-        page.keyboard.press('Enter')
+        r.click('a.btn:has-text("New")', hold=900, say='Add a record: ＋ New')
+        r.fill('.form input[type=text]', 'Lathe', say='Fill in its name')
+        r.click('#record-form button.primary', say='Add it')
         page.wait_for_timeout(700)
         r.say('Your app is ready; only you see it')
         r.hold(2200)

@@ -73,20 +73,26 @@
  },
  {
   "image": "13.png",
-  "caption": "Add a record",
-  "width": 1280,
-  "height": 174
+  "caption": "Add a record: ＋ New",
+  "width": 460,
+  "height": 170
  },
  {
   "image": "14.png",
-  "caption": "Click its name to fill it in",
-  "width": 706,
-  "height": 174
+  "caption": "Fill in its name",
+  "width": 894,
+  "height": 193
  },
  {
   "image": "15.png",
-  "caption": "Your app is ready; only you see it",
-  "width": 706,
+  "caption": "Add it",
+  "width": 460,
   "height": 174
+ },
+ {
+  "image": "16.png",
+  "caption": "Your app is ready; only you see it",
+  "width": 1280,
+  "height": 450
  }
 ]

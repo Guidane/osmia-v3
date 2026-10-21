@@ -3,10 +3,10 @@
   "name": "Harnesses",
   "icon": "🧵",
   "color": "#c2410c",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "position": 42,
   "group": "Production",
-  "description": "Wire harnesses as a pinout: each harness's connectors (a part and its gender) on side A and B, and the wires between them, contact to contact, with the function at each end, the set type (straight, twisted, shielded), AWG, length and the wire's part. A harness's page lists its wires under a sub-header for each pair of connectors.",
+  "description": "Wire harnesses: each harness's parts (connectors, contacts, wire, cable ties, ..., with how many) and its pinout, A contact to B contact between its connectors, the wires of a set (a twisted pair) kept together; its build time from a time per wire; and its builds, each with a harness ID and a checklist of every wire, placed and verified.",
   "requires": [
     "parts"
   ],
@@ -69,6 +69,24 @@
           }
         },
         {
+          "key": "time_per_wire",
+          "name": "Time per wire (min)",
+          "type": "number",
+          "options": {
+            "default": "3"
+          },
+          "description": "How long making one wire of the pinout takes, both ends and all."
+        },
+        {
+          "key": "build_time",
+          "name": "Build time (min)",
+          "type": "formula",
+          "options": {
+            "expression": "{Time per wire (min)} * {Wire count}"
+          },
+          "description": "The time per wire, times every wire of the pinout."
+        },
+        {
           "key": "total_length",
           "name": "Wire length (mm)",
           "type": "rollup",
@@ -76,6 +94,16 @@
             "link": "wires",
             "field": "length",
             "func": "sum"
+          }
+        },
+        {
+          "key": "build",
+          "name": "Build",
+          "type": "button",
+          "options": {
+            "label": "Build harness",
+            "color": "#c2410c",
+            "automation": "build"
           }
         },
         {
@@ -100,6 +128,7 @@
               "status",
               "description",
               "wire_count",
+              "build_time",
               "total_length"
             ]
           }
@@ -108,24 +137,17 @@
     },
     {
       "key": "connectors",
-      "name": "Connectors",
-      "icon": "🔌",
+      "name": "Harness parts",
+      "icon": "📦",
       "display": "label",
       "fields": [
         {
           "key": "label",
-          "name": "Connector",
+          "name": "Harness part",
           "type": "formula",
           "options": {
-            "expression": "{Designator} & IF(ISBLANK({Part}), \"\", \" · \" & {Part}) & IF(ISBLANK({Gender}), \"\", \" · \" & {Gender})"
+            "expression": "IF(ISBLANK({Designator}), {Part}, {Designator} & IF(ISBLANK({Part}), \"\", \" · \" & {Part}) & IF(ISBLANK({Gender}), \"\", \" · \" & {Gender}))"
           }
-        },
-        {
-          "key": "designator",
-          "name": "Designator",
-          "type": "text",
-          "required": true,
-          "description": "Its name on the harness, e.g. X1."
         },
         {
           "key": "harness",
@@ -136,38 +158,25 @@
             "multiple": false,
             "inverse": {
               "key": "connectors",
-              "name": "Connectors",
+              "name": "Parts",
               "multiple": true,
               "show": {
                 "fields": [
+                  "part",
+                  "quantity",
+                  "unit",
                   "designator",
                   "side",
-                  "part",
                   "gender"
                 ],
                 "sort": [
                   "designator"
-                ]
+                ],
+                "link_existing": false,
+                "add_by": "part",
+                "add_quantity": "quantity"
               }
             }
-          }
-        },
-        {
-          "key": "side",
-          "name": "Side",
-          "type": "select",
-          "options": {
-            "default": "A",
-            "choices": [
-              {
-                "value": "A",
-                "color": "#dbeafe"
-              },
-              {
-                "value": "B",
-                "color": "#fde68a"
-              }
-            ]
           }
         },
         {
@@ -182,7 +191,51 @@
               "name": "On harnesses",
               "multiple": true
             }
+          },
+          "required": true
+        },
+        {
+          "key": "quantity",
+          "name": "Quantity",
+          "type": "number",
+          "options": {
+            "default": "1"
+          },
+          "description": "How many, in the part's unit (pieces, metres, ...)."
+        },
+        {
+          "key": "unit",
+          "name": "Unit",
+          "type": "lookup",
+          "options": {
+            "link": "part",
+            "field": "unit"
           }
+        },
+        {
+          "key": "designator",
+          "name": "Designator",
+          "type": "text",
+          "required": false,
+          "description": "For a connector: its name on the harness, e.g. X1. The pinout wires between the parts that have one."
+        },
+        {
+          "key": "side",
+          "name": "Side",
+          "type": "select",
+          "options": {
+            "choices": [
+              {
+                "value": "A",
+                "color": "#dbeafe"
+              },
+              {
+                "value": "B",
+                "color": "#fde68a"
+              }
+            ]
+          },
+          "description": "For a connector: the side it is on."
         },
         {
           "key": "part_attributes",
@@ -210,14 +263,16 @@
       ],
       "views": [
         {
-          "name": "Connectors",
+          "name": "Harness parts",
           "type": "grid",
           "config": {
             "group_by": "harness",
             "fields": [
+              "part",
+              "quantity",
+              "unit",
               "designator",
               "side",
-              "part",
               "gender"
             ],
             "sorts": [
@@ -232,7 +287,7 @@
     },
     {
       "key": "wires",
-      "name": "Wires",
+      "name": "Pinout",
       "icon": "〰",
       "display": "label",
       "fields": [
@@ -253,7 +308,7 @@
             "multiple": false,
             "inverse": {
               "key": "wires",
-              "name": "Wires",
+              "name": "Pinout",
               "multiple": true,
               "show": {
                 "fields": [
@@ -261,6 +316,7 @@
                   "source_contact",
                   "target_contact",
                   "b_function",
+                  "set",
                   "set_type",
                   "colour",
                   "awg",
@@ -303,12 +359,46 @@
                   {
                     "label": "Wire details",
                     "fields": [
+                      "set",
                       "set_type",
                       "colour",
                       "awg",
                       "length",
                       "part"
                     ]
+                  }
+                ],
+                "link_existing": false,
+                "keep_together": "set",
+                "group_lines": [
+                  [
+                    "part"
+                  ],
+                  [
+                    "designator",
+                    "gender"
+                  ]
+                ],
+                "add_below": [
+                  {
+                    "band": "A",
+                    "label": "Connector on A",
+                    "link": "connectors",
+                    "values": {
+                      "side": "A"
+                    }
+                  },
+                  {
+                    "band": "B",
+                    "label": "Connector on B",
+                    "link": "connectors",
+                    "values": {
+                      "side": "B"
+                    }
+                  },
+                  {
+                    "band": "Wire details",
+                    "label": "Wire"
                   }
                 ]
               }
@@ -327,7 +417,8 @@
               "name": "Wires from it",
               "multiple": true
             }
-          }
+          },
+          "description": "The connector at the A end: a part of the harness with a designator."
         },
         {
           "key": "a_function",
@@ -353,7 +444,8 @@
               "name": "Wires to it",
               "multiple": true
             }
-          }
+          },
+          "description": "The connector at the B end."
         },
         {
           "key": "target_contact",
@@ -366,6 +458,12 @@
           "name": "B function",
           "type": "text",
           "description": "What it carries at the B end."
+        },
+        {
+          "key": "set",
+          "name": "Set",
+          "type": "text",
+          "description": "Wires with the same set (P1, P2, ...) go together: twisted or shielded as their set type says."
         },
         {
           "key": "set_type",
@@ -389,9 +487,14 @@
               {
                 "value": "Shielded",
                 "color": "#a5b4fc"
+              },
+              {
+                "value": "Shield",
+                "color": "#d1d5db"
               }
             ]
-          }
+          },
+          "description": "How the wires of a set go together. A shielded set's shield is a row of its own in the set, set type Shield: the contacts it is connected to (on A, on B or both)."
         },
         {
           "key": "colour",
@@ -488,11 +591,16 @@
             "link": "to",
             "field": "designator"
           }
+        },
+        {
+          "key": "id",
+          "name": "Record id",
+          "type": "record_id"
         }
       ],
       "views": [
         {
-          "name": "Wires",
+          "name": "Pinout",
           "type": "grid",
           "config": {
             "group_by": "harness",
@@ -503,6 +611,7 @@
               "to",
               "target_contact",
               "b_function",
+              "set",
               "set_type",
               "colour",
               "awg",
@@ -518,6 +627,319 @@
           }
         }
       ]
+    },
+    {
+      "key": "builds",
+      "name": "Builds",
+      "icon": "🛠",
+      "display": "harness_id",
+      "fields": [
+        {
+          "key": "harness_id",
+          "name": "Harness ID",
+          "type": "autonumber",
+          "options": {
+            "prefix": "SN-",
+            "digits": 5
+          },
+          "description": "The ID of the harness built: write it on its label."
+        },
+        {
+          "key": "harness",
+          "name": "Harness",
+          "type": "link",
+          "options": {
+            "target": "harnesses",
+            "multiple": false,
+            "inverse": {
+              "key": "builds",
+              "name": "Builds",
+              "multiple": true,
+              "show": {
+                "fields": [
+                  "harness_id",
+                  "started",
+                  "built_by",
+                  "placed",
+                  "verified",
+                  "progress"
+                ],
+                "link_existing": false,
+                "add": false
+              }
+            }
+          }
+        },
+        {
+          "key": "started",
+          "name": "Started",
+          "type": "created_time"
+        },
+        {
+          "key": "built_by",
+          "name": "Built by",
+          "type": "created_by"
+        },
+        {
+          "key": "wire_count",
+          "name": "Wires",
+          "type": "rollup",
+          "options": {
+            "link": "checks",
+            "func": "count"
+          }
+        },
+        {
+          "key": "placed",
+          "name": "Placed",
+          "type": "rollup",
+          "options": {
+            "link": "checks",
+            "field": "placed",
+            "func": "sum"
+          }
+        },
+        {
+          "key": "verified",
+          "name": "Verified",
+          "type": "rollup",
+          "options": {
+            "link": "checks",
+            "field": "verified",
+            "func": "sum"
+          }
+        },
+        {
+          "key": "progress",
+          "name": "Progress",
+          "type": "formula",
+          "options": {
+            "expression": "IF({Wires} = 0, \"\", IF({Verified} = {Wires}, \"Done\", IF({Placed} = 0, \"Not started\", {Placed} & \" of \" & {Wires} & \" placed, \" & {Verified} & \" verified\")))"
+          }
+        },
+        {
+          "key": "notes",
+          "name": "Notes",
+          "type": "longtext"
+        }
+      ],
+      "views": [
+        {
+          "name": "Builds",
+          "type": "grid",
+          "config": {
+            "fields": [
+              "harness_id",
+              "harness",
+              "started",
+              "built_by",
+              "progress"
+            ],
+            "sorts": [
+              {
+                "field": "harness_id",
+                "dir": "desc"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "key": "checks",
+      "name": "Build checklist",
+      "icon": "☑",
+      "display": "label",
+      "fields": [
+        {
+          "key": "label",
+          "name": "Check",
+          "type": "formula",
+          "options": {
+            "expression": "{Build} & \" · \" & {Wire}"
+          }
+        },
+        {
+          "key": "build",
+          "name": "Build",
+          "type": "link",
+          "options": {
+            "target": "builds",
+            "multiple": false,
+            "inverse": {
+              "key": "checks",
+              "name": "Checklist",
+              "multiple": true,
+              "show": {
+                "fields": [
+                  "a_function",
+                  "a_contact",
+                  "b_contact",
+                  "b_function",
+                  "set",
+                  "placed",
+                  "verified"
+                ],
+                "sort": [
+                  "a_contact"
+                ],
+                "keep_together": "set",
+                "link_existing": false,
+                "group_by": [
+                  "a_connector",
+                  "b_connector"
+                ],
+                "group_join": " → ",
+                "group_columns": {
+                  "a_connector": [
+                    "a_function",
+                    "a_contact"
+                  ],
+                  "b_connector": [
+                    "b_contact",
+                    "b_function"
+                  ]
+                },
+                "column_groups": [
+                  {
+                    "label": "A",
+                    "fields": [
+                      "a_function",
+                      "a_contact"
+                    ]
+                  },
+                  {
+                    "label": "B",
+                    "fields": [
+                      "b_contact",
+                      "b_function"
+                    ]
+                  },
+                  {
+                    "label": "Build",
+                    "fields": [
+                      "set",
+                      "placed",
+                      "verified"
+                    ]
+                  }
+                ],
+                "add": false,
+                "group_lines": [
+                  [
+                    "part"
+                  ],
+                  [
+                    "designator",
+                    "gender"
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        {
+          "key": "wire",
+          "name": "Wire",
+          "type": "link",
+          "options": {
+            "target": "wires",
+            "multiple": false,
+            "inverse": {
+              "key": "checks",
+              "name": "In builds",
+              "multiple": true
+            }
+          }
+        },
+        {
+          "key": "a_connector",
+          "name": "A connector",
+          "type": "lookup",
+          "options": {
+            "link": "wire",
+            "field": "from"
+          }
+        },
+        {
+          "key": "a_function",
+          "name": "A function",
+          "type": "lookup",
+          "options": {
+            "link": "wire",
+            "field": "a_function"
+          }
+        },
+        {
+          "key": "a_contact",
+          "name": "A contact",
+          "type": "lookup",
+          "options": {
+            "link": "wire",
+            "field": "source_contact"
+          }
+        },
+        {
+          "key": "b_contact",
+          "name": "B contact",
+          "type": "lookup",
+          "options": {
+            "link": "wire",
+            "field": "target_contact"
+          }
+        },
+        {
+          "key": "b_function",
+          "name": "B function",
+          "type": "lookup",
+          "options": {
+            "link": "wire",
+            "field": "b_function"
+          }
+        },
+        {
+          "key": "b_connector",
+          "name": "B connector",
+          "type": "lookup",
+          "options": {
+            "link": "wire",
+            "field": "to"
+          }
+        },
+        {
+          "key": "set",
+          "name": "Set",
+          "type": "lookup",
+          "options": {
+            "link": "wire",
+            "field": "set"
+          }
+        },
+        {
+          "key": "placed",
+          "name": "Placed",
+          "type": "checkbox"
+        },
+        {
+          "key": "verified",
+          "name": "Verified",
+          "type": "checkbox"
+        }
+      ],
+      "views": [
+        {
+          "name": "Build checklist",
+          "type": "grid",
+          "config": {
+            "group_by": "build",
+            "fields": [
+              "wire",
+              "placed",
+              "verified"
+            ]
+          }
+        }
+      ]
     }
   ],
   "records": {
@@ -525,27 +947,51 @@
       {
         "Name": "Burn-in rack loom",
         "Status": "Draft",
-        "Description": "From the controller's D-sub to the two load boards."
+        "Description": "From the controller's D-sub to the two load boards.",
+        "Time per wire (min)": 3
       }
     ],
     "connectors": [
       {
+        "Harness": "Burn-in rack loom",
+        "Part": "DSUB-9-PLUG",
+        "Quantity": 1,
         "Designator": "X1",
-        "Harness": "Burn-in rack loom",
-        "Side": "A",
-        "Part": "DSUB-9-PLUG"
+        "Side": "A"
       },
       {
+        "Harness": "Burn-in rack loom",
+        "Part": "DSUB-9-RECEPT",
+        "Quantity": 1,
         "Designator": "Y1",
-        "Harness": "Burn-in rack loom",
-        "Side": "B",
-        "Part": "DSUB-9-RECEPT"
+        "Side": "B"
       },
       {
-        "Designator": "Y2",
         "Harness": "Burn-in rack loom",
-        "Side": "B",
-        "Part": "DSUB-9-RECEPT"
+        "Part": "DSUB-9-RECEPT",
+        "Quantity": 1,
+        "Designator": "Y2",
+        "Side": "B"
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "Part": "DSUB-9-CONTACT",
+        "Quantity": 6
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "Part": "WIRE-22-RED",
+        "Quantity": 0.5
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "Part": "WIRE-22-BLK",
+        "Quantity": 0.5
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "Part": "TIE-100",
+        "Quantity": 4
       }
     ],
     "wires": [
@@ -561,7 +1007,8 @@
         "Colour": "red",
         "AWG": 22,
         "Length (mm)": 450,
-        "Part": "WIRE-22-RED"
+        "Part": "WIRE-22-RED",
+        "Set": "P1"
       },
       {
         "Harness": "Burn-in rack loom",
@@ -575,7 +1022,8 @@
         "Colour": "black",
         "AWG": 22,
         "Length (mm)": 450,
-        "Part": "WIRE-22-BLK"
+        "Part": "WIRE-22-BLK",
+        "Set": "P1"
       },
       {
         "Harness": "Burn-in rack loom",
@@ -601,7 +1049,8 @@
         "Set type": "Shielded twisted",
         "Colour": "white",
         "AWG": 24,
-        "Length (mm)": 300
+        "Length (mm)": 300,
+        "Set": "P2"
       },
       {
         "Harness": "Burn-in rack loom",
@@ -614,7 +1063,20 @@
         "Set type": "Shielded twisted",
         "Colour": "green",
         "AWG": 24,
-        "Length (mm)": 300
+        "Length (mm)": 300,
+        "Set": "P2"
+      },
+      {
+        "Harness": "Burn-in rack loom",
+        "A connector": "X1 · DSUB-9-PLUG · male",
+        "A contact": "8",
+        "B connector": "Y2 · DSUB-9-RECEPT · female",
+        "B contact": "8",
+        "A function": "Shield",
+        "B function": "Shield",
+        "Set type": "Shield",
+        "Length (mm)": 300,
+        "Set": "P2"
       },
       {
         "Harness": "Burn-in rack loom",
@@ -630,5 +1092,53 @@
         "Length (mm)": 300
       }
     ]
-  }
+  },
+  "automations": [
+    {
+      "key": "build",
+      "table": "harnesses",
+      "name": "Build harness",
+      "trigger": "button",
+      "description": "A new build of the harness, with its harness ID, and a checklist of every wire: placed and verified.",
+      "conditions": {
+        "match": "all",
+        "rules": []
+      },
+      "actions": [
+        {
+          "type": "block",
+          "if": "{Wire count} = 0",
+          "message": "{Name} has no pinout yet: add its wires first."
+        },
+        {
+          "type": "create_record",
+          "table": "builds",
+          "values": {
+            "harness": "=RECORD_ID()"
+          },
+          "save_as": "build"
+        },
+        {
+          "type": "create_record",
+          "table": "checks",
+          "for_each": "wires",
+          "values": {
+            "build": "={build.Harness ID}",
+            "wire": "={item.Record id}"
+          }
+        }
+      ]
+    }
+  ],
+  "after_records": [
+    {
+      "table": "harnesses",
+      "find": {
+        "Name": "Burn-in rack loom"
+      },
+      "press": [
+        "Build"
+      ]
+    }
+  ]
 }

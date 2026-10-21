@@ -145,37 +145,79 @@ Share it with them?`)) {
   window.OSMIA.save = save;
 
   // -- Picker (records of a table) ---------------------------------------------------------
-  function openPicker({ table, title, multiple, selected, onDone }) {
-    let chosen = new Map((selected || []).map((s) => [s.id, s.name]));
-    const list = el('div', { class: 'picker-list' });
+  // A picker of records: search, browse by the tree they belong to (a part's category), a small picture and a line
+  // about each. With ``quantity`` it is a basket: what is picked gets a quantity, and Add returns them all.
+  function openPicker({ table, title, multiple, selected, onDone, quantity, addLabel }) {
+    const chosen = new Map((selected || []).map((s) => [s.id, { name: s.name, qty: s.qty || 1 }]));
+    multiple = multiple || !!quantity;
+    const list = el('div', { class: 'picker-list rich' });
+    const tree = el('div', { class: 'picker-tree' });
+    tree.hidden = true;
     const input = el('input', { type: 'search', placeholder: 'Search…', style: 'width:100%;margin-bottom:8px' });
+    const basket = quantity ? el('div', { class: 'picker-basket' }) : null;
     const back = el('div', { class: 'o-modal-back' });
     const close = () => back.remove();
-    const done = () => { close(); onDone([...chosen].map(([id, name]) => ({ id, name }))); };
-    const modal = el('div', { class: 'o-modal' },
-      el('header', {}, el('h3', { text: title || 'Pick' }),
-        multiple ? el('button', { class: 'btn small primary', type: 'button', text: 'Done', onclick: done }) : null,
+    const done = () => { close(); onDone([...chosen].map(([id, c]) => ({ id, name: c.name, qty: c.qty }))); };
+    const doneButton = multiple ? el('button', { class: 'btn small primary', type: 'button', text: quantity ? (addLabel || 'Add') : 'Done', onclick: done }) : null;
+    const modal = el('div', { class: 'o-modal picker-modal' },
+      el('header', {}, el('h3', { text: title || 'Pick' }), doneButton,
         el('button', { class: 'btn small ghost', type: 'button', text: '✕', onclick: close })),
-      el('div', { class: 'body' }, input, list));
+      el('div', { class: 'body' }, el('div', { class: 'picker-cols' }, tree, el('div', { class: 'picker-main' }, input, list)), basket));
     back.append(modal);
     back.addEventListener('click', (e) => { if (e.target === back) close(); });
     document.body.append(back);
-    let timer, active = -1;
+    let timer, active = -1, under = '', browsed = false;
+    const drawBasket = () => {
+      if (!basket) return;
+      basket.innerHTML = '';
+      if (!chosen.size) { basket.append(el('p', { class: 'muted small', text: 'Click what to add; set how many here.' })); return; }
+      for (const [id, c] of chosen) {
+        const qty = el('input', { type: 'number', min: '0', step: 'any', value: c.qty, 'aria-label': `How many ${c.name}` });
+        qty.addEventListener('input', () => { c.qty = qty.value; });
+        basket.append(el('div', { class: 'picker-basket-row' }, el('span', { text: c.name }), qty,
+          el('button', { type: 'button', class: 'link', text: '✕', title: 'Leave it out', onclick: () => { chosen.delete(id); drawBasket(); load(); } })));
+      }
+      if (doneButton) doneButton.textContent = `${addLabel || 'Add'} (${chosen.size})`;
+    };
+    const drawTree = (browse) => {
+      browsed = true;
+      if (!browse || !browse.nodes.length) return;
+      tree.hidden = false;
+      const pick = (value, node) => {
+        under = value;
+        $$('a', tree).forEach((a) => a.classList.toggle('on', a === node));
+        load();
+      };
+      const all = el('a', { href: '#', class: 'on', text: 'All' });
+      all.addEventListener('click', (e) => { e.preventDefault(); pick('', all); });
+      tree.append(el('div', { class: 'picker-tree-head', text: browse.name }), all);
+      for (const n of browse.nodes) {
+        const a = el('a', { href: '#', text: n.label, style: `padding-left:${8 + n.depth * 14}px` });
+        a.addEventListener('click', (e) => { e.preventDefault(); pick(`${browse.field}:${n.id}`, a); });
+        tree.append(a);
+      }
+    };
     async function load() {
       const q = input.value.trim();
-      const data = await api(`/api/tables/${table}/records/?limit=60&q=${encodeURIComponent(q)}`);
+      const data = await api(`/api/tables/${table}/records/?limit=60&rich=1&q=${encodeURIComponent(q)}${under ? `&under=${under}` : ''}`);
+      if (!browsed) drawTree(data.browse);
       list.innerHTML = '';
       active = -1;
       if (!data.records.length) list.append(el('p', { class: 'muted', text: 'Nothing found.' }));
       for (const r of data.records) {
-        const a = el('a', { href: '#', class: chosen.has(r.id) ? 'on' : '', text: r.label });
+        const thumb = r.thumb ? el('img', { class: 'picker-thumb', src: r.thumb, alt: '', loading: 'lazy' }) : el('span', { class: 'picker-thumb none' });
+        const a = el('a', { href: '#', class: chosen.has(r.id) ? 'on' : '' }, thumb,
+          el('span', { class: 'picker-text' }, el('span', { class: 'picker-label', text: r.label }),
+            r.detail ? el('span', { class: 'picker-detail', text: r.detail }) : null));
         a.addEventListener('click', (e) => {
           e.preventDefault();
           if (multiple) {
-            if (chosen.has(r.id)) chosen.delete(r.id); else chosen.set(r.id, r.label);
+            if (chosen.has(r.id)) chosen.delete(r.id); else chosen.set(r.id, { name: r.label, qty: 1 });
             a.classList.toggle('on');
+            drawBasket();
           } else {
-            chosen = new Map([[r.id, r.label]]);
+            chosen.clear();
+            chosen.set(r.id, { name: r.label, qty: 1 });
             done();
           }
         });
@@ -194,6 +236,7 @@ Share it with them?`)) {
         if (items[active]) items[active].click(); else if (multiple) done();
       } else if (e.key === 'Escape') close();
     });
+    drawBasket();
     load();
     setTimeout(() => input.focus(), 10);
   }
@@ -410,7 +453,8 @@ Share it with them?`)) {
     pairs.forEach((p) => addRow(p.name, p.value));
     const blank = addRow(typed !== undefined ? typed : '');
     // a row for each attribute the record should fill in and hasn't: its name, its hint as the placeholder
-    const expect = (wanted) => {
+    const expect = (wanted, replace) => {
+      if (replace) $$('.attr-row[data-expected]', rows).filter((r) => !$('.attr-in-value', r).value.trim()).forEach((r) => r.remove());
       const have = new Set($$('.attr-in-name', rows).map((i) => i.value.trim().toLowerCase()));
       let first = null;
       wanted.filter((w) => !have.has(w.name.toLowerCase())).forEach((w) => {
@@ -445,6 +489,23 @@ Share it with them?`)) {
     box.node.addEventListener('click', () => setTimeout(sync, 0));
     ta.hidden = true;
     ta.after(box.node);
+    const source = ta.dataset.source ? JSON.parse(ta.dataset.source) : null;
+    const picker = source && ta.form ? $(`.link-input[data-field="${source.link}"]`, ta.form) : null;
+    if (picker) {
+      const load = async () => {
+        const wanted = [];
+        for (const id of $$('input[type=hidden]', picker).map((i) => i.value).filter(Boolean)) {
+          try {
+            const rec = await (await fetch(`/api/records/${id}/`, { credentials: 'same-origin' })).json();
+            (((rec.cells || {})[source.field] || {}).raw || []).forEach((p) => wanted.push({ name: p.name, hint: p.value }));
+          } catch (e) { /* that one can't be read: its names aren't offered */ }
+        }
+        box.expect(wanted, true);
+        sync();
+      };
+      picker.addEventListener('change', load);
+      load();
+    }
   });
 
   function gridCells(cell) {
@@ -536,26 +597,6 @@ Share it with them?`)) {
 
   // -- Adding records, links and buttons --------------------------------------------------
   document.addEventListener('click', async (e) => {
-    const add = e.target.closest('#add-record');
-    if (add) {
-      try {
-        await api(`/api/tables/${add.dataset.table}/create/`, { values: {} });
-        window.location.reload();
-      } catch (err) {
-        window.location = add.dataset.form;  // required fields: use the form
-      }
-      return;
-    }
-    const quick = e.target.closest('.quick-add');
-    if (quick) {
-      try {
-        await api(`/api/tables/${quick.dataset.table}/create/`, { values: { [quick.dataset.field]: [Number(quick.dataset.record)] } });
-        window.location.reload();
-      } catch (err) {
-        if (quick.dataset.form) window.location = quick.dataset.form; else toast(err.message, true);
-      }
-      return;
-    }
     const linkAdd = e.target.closest('.link-add');
     if (linkAdd) {
       const rec = await recordData(linkAdd.dataset.record);
@@ -611,9 +652,28 @@ Share it with them?`)) {
       if (!items.length) box.append(el('input', { type: 'hidden', name: box.dataset.name, value: '' }));
       box.append(el('button', { type: 'button', class: 'btn small', text: multiple || !items.length ? '＋ Choose' : 'Change',
         onclick: () => openPicker({ table: box.dataset.target, title: 'Choose', multiple, selected: items, onDone: (chosen) => { items = chosen; render(); } }) }));
+      box.dispatchEvent(new Event('change'));   // e.g. a part's category: the attributes it lists to fill in
     };
     render();
   });
+
+  // -- Record page: add rows by picking what they are about (an order's lines by their part) ----------------
+  $$('.pick-add').forEach((b) => b.addEventListener('click', () => {
+    openPicker({
+      table: b.dataset.pickTable, title: b.dataset.title, quantity: !!b.dataset.qtyField, addLabel: 'Add',
+      onDone: async (picked) => {
+        if (!picked.length) return;
+        try {
+          for (const p of picked) {
+            const values = { [b.dataset.linkField]: [Number(b.dataset.record)], [b.dataset.pickField]: [p.id] };
+            if (b.dataset.qtyField) values[b.dataset.qtyField] = p.qty;
+            await api(`/api/tables/${b.dataset.table}/create/`, { values });
+          }
+          location.reload();
+        } catch (err) { toast(err.message, true); }
+      },
+    });
+  }));
 
   // -- Record page: side tabs and uploads -------------------------------------------------------
   $$('.side-tabs button').forEach((b) => b.addEventListener('click', () => {

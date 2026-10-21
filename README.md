@@ -62,7 +62,7 @@ need (a task links to its project, its team and the location it is about). Paren
 
 People hold **access tags**; records, spaces and pages carry them. Something carrying tags is seen only by people who
 hold **every one** of them, or with whom that one record was shared. Everyone else doesn't see it at all: not in
-views, links, lookups, rollups and counts, search, history, notifications, pages or the AI assistant's prompt, and
+views, links, lookups, rollups and counts, search, history, notifications, pages or the AI prompt generator's prompt, and
 not even that it's there. Tags are not ranks: holding one gives nothing in any other, and administrators are no
 exception (they build every app, and see the records their tags allow). See `core/access.py`.
 
@@ -155,25 +155,27 @@ page stays cheap with big tables: it works out at most 500 rows of a table and 1
 version history with restore, and pins. A page carries its space's access tags, and can have its own. Page HTML is
 cleaned against an allowlist when it's saved. Data belongs in apps: pages explain it and show it live.
 
-**Harnesses** (a template, no screens of its own) keeps a wire harness as its pinout: its connectors on side A or B (a
-designator, a part from Parts and the part's gender, read from its attributes) and its wires, A contact to B contact,
-with the function at each end, the set type (straight, twisted, shielded twisted, shielded), colour, AWG, length and the
-wire's part. A harness's page lists its wires as **A | B | Wire details**: a sub-header for each pair of connectors, the
-A connector above side A and the B connector above side B (left out when it is the same as above), the pinout in the
-middle (A function, A contact, B contact, B function); the ＋ on a sub-header adds a wire between those two
-connectors. That layout is a setting of any multiple link field (**On the record's page**: its columns, their order,
-sub-headers, and in a template the bands above the columns and the columns each sub-header value heads), so any app can
-list linked records the same way. Migration 0008 brings an installed Harnesses app to sides A and B. The old harness designer extension is gone; migration 0007 deletes the Harness and
-Devices apps it brought.
+**Harnesses** (a template, no screens of its own) keeps a wire harness as its **parts** (a bill of materials:
+connectors, contacts, wire, cable ties, ..., with how many; a connector also has a designator, a side, A or B, and the
+part's gender, read from its attributes) and its **pinout**, A contact to B contact between its connectors, with the
+function at each end, the set type (straight, twisted, shielded twisted, shielded), colour, AWG, length and the wire's
+part; its **build time** is a time per wire times the wires of the pinout. A harness's page lists its pinout as
+**A | B | Wire details**, with a line between them: a sub-header for each pair of connectors, the A connector above
+side A and the B connector above side B (left out when it is the same as above), the contacts side by side in the
+middle; the ＋ on a sub-header adds a wire between those two connectors. That layout is a setting of any multiple link
+field (**On the record's page**: its columns, their order, sub-headers, and in a template the bands above the columns
+and the columns each sub-header value heads), so any app can list linked records the same way. Migrations 0008 and
+0010 bring an installed Harnesses app up to date. The old harness designer extension is gone; migration 0007 deletes the
+Harness and Devices apps it brought.
 
-`extensions/assistant` (✨ AI assistant in the launcher) changes Osmia with any AI chat, without an API key: you describe
+`extensions/assistant` (✨ AI prompt generator in the launcher) changes Osmia with any AI chat, without an API key: you describe
 a change; Osmia writes a prompt around it (the answer format, the field types, and the trees of spaces, apps, fields
 and pages you may see, records only if you tick the box) for you to paste into the AI; you paste its JSON answer back.
 Osmia then tries every change inside a transaction with automations paused and undoes it, shows you each change with ✓
 or the exact problem (and a message to send back to the AI), and makes them only when you say so, all or none, with
 your own permissions. It can add spaces, make apps (tables, fields with links, lookups, rollups and formulas, views,
 records), tables, fields, views and pages, and change apps, fields, records and pages; it never deletes anything.
-Changes go through the same code as the website and show "AI assistant" in the history; every request and what it
+Changes go through the same code as the website and show "AI prompt generator" in the history; every request and what it
 changed is kept (`assistant.Run`). See `extensions/assistant/plan.py` for the answer format.
 
 ### Tutorials
@@ -213,7 +215,7 @@ deleting one record and several, links, comments, stars and files, the view tool
 drop, form views, CSV export; building apps, fields of every kind, views, automations and buttons, and what can't be
 removed; Home with its tabs, space pages and app home pages with the slash menu; Documentation pages (versions, comments,
 pins, moving, pictures, live values and calculations); access tags and sharing; templates, users, teams, extensions,
-the AI assistant and the tutorials. It checks what the page shows and what is in the database, and fails on any
+the AI prompt generator and the tutorials. It checks what the page shows and what is in the database, and fails on any
 JavaScript error. Without Playwright or a browser it is skipped.
 
 | Piece | Where |

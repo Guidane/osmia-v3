@@ -113,6 +113,10 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
   .form.form-table .field > :not(:first-child), .form.form-table .field > label:first-child { grid-column: 1; padding-top: 0; }
 }
 
+/* -- Notes (long text) in a card of their own, beside the rest of a record --------------------------- */
+.props.note-props { display: block; }
+.note-card .v { min-height: 40px; white-space: pre-wrap; padding: 6px 4px; border-radius: 6px; }
+
 /* -- Linked records on a record's page, under sub-headers --------------------------------------- */
 table.sub tbody.sub-group + tbody.sub-group .sub-group-head th { border-top: 2px solid var(--border-strong); }
 table.sub .sub-group-head th { background: var(--panel-2); text-align: left; font-weight: 600; padding: 7px 10px; }
@@ -120,8 +124,22 @@ table.sub .sub-group-head.aligned th { white-space: nowrap; vertical-align: midd
 table.sub .sub-bands th { text-align: center; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border); }
 table.sub .sub-bands th:not(:empty) + th:not(:empty), table.sub .sub-group-head.aligned th + th { border-left: 1px solid var(--border); }
 /* grouped: as wide as what is in it, so what belongs together stays together (a pinout's two contacts) */
-table.sub.grouped { width: auto; min-width: 50%; }
-table.sub.grouped td, table.sub.grouped thead th { padding-right: 22px; }
+table.sub.grouped { width: 100%; }
+/* a wide grouped table fits the page: no side to side scrolling; chips are square, the colour fills the cell */
+table.sub.grouped th, table.sub.grouped td { white-space: normal; }
+table.sub.grouped .chip { border-radius: 2px; display: block; text-align: center; }
+table.sub .link-chip.lines { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.25; padding: 3px 8px; white-space: nowrap; }
+table.sub .link-chip.lines span + span { font-weight: 400; font-size: 12px; color: var(--muted); }
+table.sub tfoot .sub-foot td { padding: 8px 10px; border-top: 2px solid var(--border-strong); background: var(--panel-2); }
+.sub-foot-empty { padding: 0 14px 12px; }
+/* rows kept together (a set of wires, e.g. a twisted pair): an outline around them */
+table.sub tr.set-row td:first-child { box-shadow: inset 3px 0 0 var(--brand); }
+table.sub tr.set-row td:last-child { box-shadow: inset -3px 0 0 var(--brand); }
+table.sub tr.set-row td { background: color-mix(in srgb, var(--brand-soft) 45%, transparent); }
+table.sub tr.set-first td { border-top: 3px solid var(--brand); }
+table.sub tr.set-last td { border-bottom: 3px solid var(--brand); }
+table.sub col.band-edge { border-left: 3px solid var(--muted); }   /* where a band starts: A | B | wire details */
+table.sub.grouped td, table.sub.grouped thead th { padding-left: 8px; padding-right: 8px; }
 table.sub .sub-group-head .sub-group-join { color: var(--muted); margin: 0 10px; }
 table.sub .sub-group-head .sub-group-add { float: right; color: var(--muted); padding: 0 6px; border-radius: 6px; }
 table.sub .sub-group-head .sub-group-add:hover { background: var(--brand-soft); color: var(--brand); text-decoration: none; }
@@ -254,8 +272,6 @@ table.grid { border-collapse: separate; border-spacing: 0; min-width: 100%; font
 .grid tr:hover .rownum .open { display: inline; }
 .grid tr.group td { background: var(--panel-2); font-weight: 600; position: sticky; left: 0; }
 .grid tr.totals td { background: var(--panel-2); color: var(--muted); font-weight: 600; position: sticky; bottom: 0; z-index: 2; }
-.grid tr.add-row td { color: var(--muted); cursor: pointer; }
-.grid tr.add-row td:hover { color: var(--brand); }
 .grid tr.dragging td { opacity: .4; }
 .pager { padding: 8px 16px; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; background: var(--panel); border-top: 1px solid var(--border); }
 
@@ -281,6 +297,28 @@ table.grid { border-collapse: separate; border-spacing: 0; min-width: 100%; font
 .o-modal .picker-list a:hover, .o-modal .picker-list a.active { background: var(--hover); text-decoration: none; }
 .o-modal .picker-list a.on { font-weight: 600; color: var(--brand-dark); }
 .o-modal .picker-list a.on::before { content: "✓ "; }
+/* the picker: a tree to browse on the left, pictures and a line about each, a basket of what to add */
+.o-modal.picker-modal { width: min(860px, 100%); }
+.picker-cols { display: flex; gap: 12px; min-height: 0; }
+.picker-tree { flex: 0 0 210px; max-height: 58vh; overflow-y: auto; border-right: 1px solid var(--border); padding-right: 8px; }
+.picker-tree-head { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 4px 8px; }
+.picker-tree a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--text); font-size: 13px; }
+.picker-tree a:hover { background: var(--hover); text-decoration: none; }
+.picker-tree a.on { background: var(--brand-soft); color: var(--brand-dark); font-weight: 600; }
+.picker-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.picker-list.rich { max-height: 52vh; overflow-y: auto; }
+.o-modal .picker-list.rich a { display: flex; align-items: center; gap: 10px; }
+.o-modal .picker-list.rich a.on::before { content: none; }
+.o-modal .picker-list.rich a.on { background: var(--brand-soft); }
+.picker-thumb { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 6px; object-fit: cover; background: var(--panel-2); border: 1px solid var(--border); }
+.picker-thumb.none::after { content: "▦"; display: flex; align-items: center; justify-content: center; height: 100%; color: var(--border-strong); }
+.picker-text { display: flex; flex-direction: column; min-width: 0; }
+.picker-label { font-weight: 600; }
+.picker-detail { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-basket { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 22vh; overflow-y: auto; }
+.picker-basket-row { display: grid; grid-template-columns: minmax(0, 1fr) 110px auto; gap: 8px; align-items: center; }
+.picker-basket-row input { width: 100%; }
+@media (max-width: 640px) { .picker-cols { flex-direction: column; } .picker-tree { flex: none; max-height: 24vh; border-right: 0; border-bottom: 1px solid var(--border); } }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2328; color: #fff; padding: 10px 16px; border-radius: 8px; z-index: 90; max-width: min(640px, 90vw); box-shadow: var(--shadow); white-space: pre-wrap; }
 .toast.error { background: var(--danger); }
 

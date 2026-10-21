@@ -223,11 +223,16 @@ class RecordTests(BrowserTestCase):
     def count(self):
         return Record.objects.filter(table=self.books).count()
 
-    def test_add_one_record_in_the_grid(self):
+    def test_add_one_record_with_the_new_button_then_change_it_in_the_grid(self):
         self.go(self.grid.get_absolute_url())
         rows = self.page.locator('#grid tbody tr[data-record]')
         expect(rows).to_have_count(3)
-        self.page.click('#add-record')
+        expect(self.page.locator('#add-record, .add-row')).to_have_count(0)   # no adding in the table itself
+        self.page.click('a.btn:has-text("New")')
+        self.page.fill(f'#f_{self.f["title"].pk}', 'Untitled')
+        self.page.click('#record-form button.primary')
+        self.settle()
+        self.go(self.grid.get_absolute_url())
         expect(rows).to_have_count(4)
         new = Record.objects.filter(table=self.books).order_by('-pk').first()
         self.edit_cell(new, self.f['title'], 'The Left Hand of Darkness')
@@ -293,12 +298,14 @@ class RecordTests(BrowserTestCase):
         for title in ('Earthsea', 'The Lathe of Heaven', 'Always Coming Home'):
             self.see(title)
 
-    def test_add_several_records_in_the_grid(self):
-        self.go(self.grid.get_absolute_url())
-        for n in range(3):
-            self.page.click('#add-record')
-            expect(self.page.locator('#grid tbody tr[data-record]')).to_have_count(4 + n)
-        self.assertEqual(self.count(), 6)
+    def test_add_several_records_with_the_form(self):
+        for n, title in enumerate(('One', 'Two', 'Three')):
+            self.go(self.grid.get_absolute_url())
+            self.page.click('a.btn:has-text("New")')
+            self.page.fill(f'#f_{self.f["title"].pk}', title)
+            self.page.click('#record-form button.primary')
+            self.settle()
+            self.assertEqual(self.count(), 4 + n)
 
     def test_add_many_records_from_a_csv_file(self):
         path = Path(tempfile.mkdtemp()) / 'books.csv'
@@ -472,8 +479,10 @@ class RecordTests(BrowserTestCase):
         self.settle()
         expect(self.page.locator(f'#section-{inverse.pk} tbody tr')).to_have_count(2)
         self.assertEqual(self.text(book, self.f['author']), '')
-        # a new linked row
-        self.page.locator(f'#section-{inverse.pk} .quick-add').click()
+        # a new linked one, in a form
+        self.page.locator(f'#section-{inverse.pk} a.btn:has-text("New")').click()
+        self.page.fill(f'#f_{self.f["title"].pk}', 'The Word for World Is Forest')
+        self.page.click('#record-form button.primary')
         self.settle()
         expect(self.page.locator(f'#section-{inverse.pk} tbody tr')).to_have_count(3)
         self.assertEqual(self.count(), 4)
@@ -621,7 +630,7 @@ class RecordTests(BrowserTestCase):
         book = self.record(self.books, 'Invisible Cities')
         self.go(self.grid.get_absolute_url())
         self.see('You can look at Library but not change it')
-        expect(self.page.locator('#add-record')).to_have_count(0)
+        expect(self.page.locator('a.btn:has-text("New")')).to_have_count(0)
         self.cell(book, self.f['title']).dblclick()
         expect(self.page.locator('.editor')).to_have_count(0)
         self.go(book.get_absolute_url())
@@ -805,7 +814,8 @@ class BuilderTests(BrowserTestCase):
         # it runs: a machine made in the grid gets the state
         self.go(table.get_absolute_url())
         self.settle()
-        self.page.click('#add-record')
+        self.page.click('a.btn:has-text("New")')
+        self.page.click('#record-form button.primary')
         self.settle()
         record = self.eventually(lambda: Record.objects.filter(table=table).first())
         self.eventually(lambda: self.text(record, table.fields.get(name='State')) == 'New')
@@ -931,11 +941,11 @@ class SpaceTests(BrowserTestCase):
     def test_land_in_my_home_space(self):
         self.log_in(self.alice)
         self.go('/')
-        self.see('your home space')
+        self.see('your own page')
         self.see('My work')
         expect(self.page.locator('h1')).to_contain_text('Alice Martin')
-        # the crumbs show where it is in the organisation
-        expect(self.page.locator('.space-head .crumbs')).to_contain_text('Engineering')
+        # her roles are tabs next to her own page, with where they are in the organisation
+        expect(self.page.locator('.home-tabs')).to_contain_text('Engineering')
         # my work: assigned, recent, starred
         self.see('Write the test procedure')
         self.page.click('.work-tabs button[data-side="recent"]')
@@ -949,9 +959,9 @@ class SpaceTests(BrowserTestCase):
         self.log_in(dan)
         self.go('/')
         self.see('Dan Brown')
-        self.see('your home space')
-        org = Table.objects.get(app__blueprint='departments', key='departments')
-        self.assertIsNotNone(self.record(org, 'Dan Brown'))
+        self.see('your own page')
+        self.see('You hold no role yet')   # roles come from an administrator; their own page is there from the start
+        expect(self.page.locator('a.btn:has-text("Edit page")')).to_have_count(1)
 
     def test_edit_my_home_space_with_the_slash_menu(self):
         self.log_in(self.alice)
@@ -994,8 +1004,8 @@ class SpaceTests(BrowserTestCase):
         self.page.click('.o-modal button[data-do="link"]')
         self.page.click('.edit-foot button.primary')
         self.settle()
-        self.see('The page is saved')
-        body = Layout.objects.get(record__data__person=self.alice.pk).body
+        self.see('Your page is saved')
+        body = Layout.objects.get(user=self.alice, title='').body
         for part in ('<h1>Alice at work</h1>', '<li>Finish the bench</li>', 'class="panel info"', 'data-cols="2"',
                      'data-app="tasks"', 'data-block="notifications"', 'class="embed-view"', 'class="record-ref"'):
             self.assertIn(part, body)
@@ -1339,7 +1349,7 @@ class AccessTests(BrowserTestCase):
 
 
 # =========================================================================================
-# Administration, the AI assistant and the tutorials
+# Administration, the AI prompt generator and the tutorials
 # =========================================================================================
 
 class AdminTests(BrowserTestCase):

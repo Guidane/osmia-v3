@@ -3,7 +3,7 @@
 A page is read by whoever can see its space (the record) and holds the page's
 tags; it is written by the people who may edit its space's page (core.space).
 Writing goes through ``write_page``, the one way pages are made and changed
-(the editor, the AI assistant)."""
+(the editor, the AI prompt generator)."""
 import re
 
 from django.core.exceptions import ValidationError

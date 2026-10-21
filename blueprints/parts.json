@@ -3,7 +3,7 @@
   "name": "Parts",
   "icon": "📦",
   "color": "#0891b2",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "position": 30,
   "group": "Production",
   "description": "The parts catalogue: part numbers, nested categories, datasheets and pictures, which parts fit into which, and the tools to work with them.",
@@ -67,7 +67,8 @@
       {"Name": "Connectors", "Attributes to fill in": [{"name": "Positions", "value": "how many"}, {"name": "Gender", "value": "male or female"}]},
       {"Name": "D-sub", "Part of": "Connectors", "Attributes to fill in": [{"name": "Positions", "value": "how many"}, {"name": "Gender", "value": "male or female"}, {"name": "Mounting", "value": "cable or panel"}]},
       {"Name": "Contacts", "Part of": "Connectors", "Attributes to fill in": [{"name": "Gender", "value": "male or female"}, {"name": "Wire size", "value": "AWG"}, {"name": "Plating", "value": "e.g. gold"}]},
-      {"Name": "Wire", "Attributes to fill in": [{"name": "Wire size", "value": "AWG"}, {"name": "Colour", "value": ""}, {"name": "Insulation", "value": "e.g. PVC"}]}
+      {"Name": "Wire", "Attributes to fill in": [{"name": "Wire size", "value": "AWG"}, {"name": "Colour", "value": ""}, {"name": "Insulation", "value": "e.g. PVC"}]},
+      {"Name": "Harness accessories", "Attributes to fill in": [{"name": "Length", "value": "mm"}, {"name": "Width", "value": "mm"}, {"name": "Material", "value": "e.g. nylon"}]}
     ],
     "parts": [
       {"Part number": "RES-10K-0603", "Description": "Resistor 10 kΩ 1% 0603", "Category": "Resistors", "Manufacturer": "Yageo", "Attributes": [{"name": "Resistance", "value": "10 kΩ"}, {"name": "Power", "value": "0.1 W"}, {"name": "Tolerance", "value": "1%"}, {"name": "Package", "value": "0603"}]},
@@ -76,7 +77,8 @@
       {"Part number": "DSUB-9-PLUG", "Description": "D-sub 9 plug housing, crimp", "Category": "D-sub", "Manufacturer": "TE", "Accepts": ["DSUB-9-CONTACT"], "Attributes": [{"name": "Positions", "value": "9"}, {"name": "Gender", "value": "male"}, {"name": "Mounting", "value": "cable"}]},
       {"Part number": "DSUB-9-RECEPT", "Description": "D-sub 9 receptacle, panel mount", "Category": "D-sub", "Manufacturer": "TE", "Mates with": ["DSUB-9-PLUG"], "Attributes": [{"name": "Positions", "value": "9"}, {"name": "Gender", "value": "female"}, {"name": "Mounting", "value": "panel"}]},
       {"Part number": "WIRE-22-RED", "Description": "Hook-up wire 22 AWG red", "Category": "Wire", "Unit": "m", "Attributes": [{"name": "Wire size", "value": "22 AWG"}, {"name": "Colour", "value": "red"}, {"name": "Insulation", "value": "PVC"}]},
-      {"Part number": "WIRE-22-BLK", "Description": "Hook-up wire 22 AWG black", "Category": "Wire", "Unit": "m", "Attributes": [{"name": "Wire size", "value": "22 AWG"}, {"name": "Colour", "value": "black"}, {"name": "Insulation", "value": "PVC"}]}
+      {"Part number": "WIRE-22-BLK", "Description": "Hook-up wire 22 AWG black", "Category": "Wire", "Unit": "m", "Attributes": [{"name": "Wire size", "value": "22 AWG"}, {"name": "Colour", "value": "black"}, {"name": "Insulation", "value": "PVC"}]},
+      {"Part number": "TIE-100", "Description": "Cable tie 100 x 2.5 mm, nylon", "Category": "Harness accessories", "Attributes": [{"name": "Length", "value": "100 mm"}, {"name": "Width", "value": "2.5 mm"}, {"name": "Material", "value": "nylon"}]}
     ]
   }
 }

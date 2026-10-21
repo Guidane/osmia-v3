@@ -20,7 +20,6 @@
       {% else %}
         {% for row in rows %}{% include "core/views/_grid_row.html" %}{% endfor %}
       {% endif %}
-      {% if can_edit_records %}<tr class="add-row"><td class="rownum">＋</td><td colspan="{{ columns|length }}" id="add-record" data-table="{{ table.pk }}" data-form="{% url 'core:record_new' app.slug table.slug %}?next={{ request.get_full_path|urlencode }}">Add a record</td></tr>{% endif %}
       {% if totals %}<tr class="totals"><td class="rownum">Σ</td>{% for t in totals %}<td class="num">{{ t }}</td>{% endfor %}</tr>{% endif %}
     </tbody>
   </table>

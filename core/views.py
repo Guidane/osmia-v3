@@ -11,7 +11,7 @@ from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -89,9 +89,28 @@ def fields_meta(data, tables):
     return meta
 
 
-def form_items(request, fields, data, preset=None):
+def copied_values(data, record, fields):
+    """A record's values to start a copy with: (preset lists, single values), by field id. Files aren't copied."""
+    preset, initial = {}, {}
+    for f in fields:
+        if f.type == 'attachment':
+            continue
+        raw = data.raw(record, f)
+        if raw in (None, '', []):
+            continue
+        if f.type in ('link', 'user', 'multiselect'):
+            items = raw if isinstance(raw, list) else [raw]
+            preset[f.pk] = [i.get('id', i) if isinstance(i, dict) else i for i in items]
+        elif f.type == 'attributes':
+            initial[f.pk] = '\n'.join(f"{p['name']}: {p['value']}" if p['value'] else p['name'] for p in raw)
+        else:
+            initial[f.pk] = raw
+    return preset, initial
+
+
+def form_items(request, fields, data, preset=None, initial=None):
     """Each field of a form with what to show in it: what was sent, ?f_<id>= in
-    the address, a preset link, or the field's default."""
+    the address, a preset link, a copied value, or the field's default."""
     items = []
     posted = request.POST if request.method == 'POST' else None
     for f in fields:
@@ -103,6 +122,9 @@ def form_items(request, fields, data, preset=None):
             value, values = request.GET.get(name), request.GET.getlist(name)
         elif preset and f.pk in preset:
             values = list(preset[f.pk])
+        elif initial and f.pk in initial:
+            value = initial[f.pk]
+            values = [value]
         elif f.kind.stored:
             default = f.kind.default(f)
             if isinstance(default, list):
@@ -117,8 +139,10 @@ def form_items(request, fields, data, preset=None):
         if f.type == 'user':
             values = [int(v) for v in values if str(v).isdigit()]
         names = json.dumps(f.kind.names(f)) if f.type == 'attributes' else '[]'
+        source = f.kind.source(f) if f.type == 'attributes' else None   # e.g. the category lists what to fill in
         items.append({'f': f, 'pk': f.pk, 'name': name, 'value': value, 'values': values, 'json': json.dumps(linked),
-                      'names_json': names})
+                      'names_json': names,
+                      'source_json': json.dumps({'link': source[0].pk, 'field': source[1].pk}) if source else ''})
     return items
 
 
@@ -303,7 +327,7 @@ def record_context(request, record, data):
     table = data.table(record.table_id)
     app = table.app
     fields = data.fields(table)
-    main, sections, files = [], [], []
+    main, sections, files, notes = [], [], [], []
     for f in fields:
         if f.type == 'link' and f.opt('multiple'):
             target = data.table(f.opt('target'))
@@ -315,6 +339,8 @@ def record_context(request, record, data):
             files.append({'field': f, 'items': data.value(record, f)})
         elif f.type == 'button':
             continue
+        elif f.type == 'longtext':   # notes and the like: a card of their own, beside the rest
+            notes.append(cell(data, record, f))
         else:
             main.append(cell(data, record, f))
     buttons = [{'field': f, 'html': data.html(record, f)} for f in fields if f.type == 'button']
@@ -325,6 +351,7 @@ def record_context(request, record, data):
         'record_table': table,
         'record_app': app,
         'main_cells': main,
+        'note_cells': notes,
         'sections': sections,
         'file_fields': files,
         'buttons': buttons,
@@ -353,7 +380,31 @@ def linked_section(request, data, record, field, target, inverse):
     group = [by_key[k] for k in show.get('group_by') or [] if k in by_key]
     for f in reversed(group + sort):
         records = sorted(records, key=lambda r, f=f: f.kind.sort_key(data.value(r, f)))
-    rows = [{'record': r, 'cells': [cell(data, r, c) for c in cols]} for r in records]
+    # "keep_together": rows with the same value of it (a harness's wires of one set) stay next to each other, where
+    # the first of them is, with an outline around them
+    together = by_key.get(show.get('keep_together')) if show.get('keep_together') else None
+    sets = {}
+    if together is not None:
+        def bucket(r):
+            value = data.text(r, together)
+            return (tuple(str(data.value(r, g)) for g in group), value) if value else None
+        buckets = {}
+        for r in records:
+            if bucket(r) is not None:
+                buckets.setdefault(bucket(r), []).append(r)
+        ordered, placed = [], set()
+        for r in records:
+            b = bucket(r)
+            if b is None:
+                ordered.append(r)
+            elif b not in placed:
+                placed.add(b)
+                ordered += buckets[b]
+                if len(buckets[b]) > 1:
+                    for i, m in enumerate(buckets[b]):
+                        sets[m.pk] = 'set-row' + (' set-first' if i == 0 else '') + (' set-last' if i == len(buckets[b]) - 1 else '')
+        records = ordered
+    rows = [{'record': r, 'cells': [cell(data, r, c) for c in cols], 'set': sets.get(r.pk, '')} for r in records]
     groups = []
     if group:
         new_url = reverse('core:record_new', args=[target.app.slug, target.slug])
@@ -364,7 +415,8 @@ def linked_section(request, data, record, field, target, inverse):
             if not groups or groups[-1]['key'] != key:
                 presets = ''.join(f'&f_{g.pk}={i}' for g, v in zip(group, values) if isinstance(v, Records) for i in v.ids)
                 groups.append({'key': key, 'rows': [], 'presets': presets,
-                               'headers': [data.html(r, g) for g in group]})
+                               'headers': [group_lines(data, v, show['group_lines']) if show.get('group_lines') and isinstance(v, Records)
+                                           else data.html(r, g) for g, v in zip(group, values)]})
             groups[-1]['rows'].append(row)
     keys = [c.key for c in cols]
     # "group_columns": {"from": ["a_function", "source_contact"]}: the From connector heads those columns (one key or
@@ -403,9 +455,69 @@ def linked_section(request, data, record, field, target, inverse):
                 bands[-1]['span'] += 1
             else:
                 bands.append({'label': label, 'span': 1})
-    return {'field': field, 'target': target, 'columns': cols, 'rows': rows, 'inverse': inverse, 'groups': groups,
-            'group_join': show.get('group_join') or ' · ', 'aligned': aligned, 'bands': bands,
-            'can_add': can(request.user, target.app, 'editor')}
+    # a line down the table where a band starts (between A and B, and before the wire details)
+    edges = []
+    for i, b in enumerate(bands):
+        edges += [i > 0] + [False] * (b['span'] - 1)
+    # "add_by": a link of the rows to pick them by (an order's lines by their part), "add_quantity": how many of it;
+    # "link_existing": false where rows belong to this record alone (an order's lines): no ⇄ Link
+    pick = by_key.get(show.get('add_by')) if show.get('add_by') else None
+    pick = pick if pick is not None and pick.type == 'link' else None
+    can_add = show.get('add', True) and can(request.user, target.app, 'editor')
+    return {'footer': add_below(request, data, record, show, target, inverse, bands, len(cols)) if can_add else [],
+            'field': field, 'target': target, 'columns': cols, 'rows': rows, 'inverse': inverse, 'groups': groups,
+            'pick': pick, 'pick_qty': by_key.get(show.get('add_quantity')) if pick else None,
+            'link_existing': show.get('link_existing', True),
+            'group_join': show.get('group_join') or ' · ', 'aligned': aligned, 'bands': bands, 'edges': edges,
+            'can_add': can_add}
+
+
+def group_lines(data, value, lines):
+    """A sub-header's linked record in lines, "group_lines": [["part"], ["designator", "gender"]]: its part above,
+    its designator and gender under it."""
+    out = []
+    for pk in value.ids:
+        linked = data.record(pk)
+        if linked is None:
+            continue
+        fields = {f.key: f for f in data.fields(linked.table)}
+        texts = [' · '.join(t for t in (data.text(linked, fields[k]) for k in line if k in fields) if t) for line in lines]
+        out.append(format_html('<a class="link-chip lines" href="{}">{}</a>', linked.get_absolute_url(),
+                               format_html_join('', '<span>{}</span>', ((t,) for t in texts if t))))
+    return format_html_join('', '{}', ((h,) for h in out))
+
+
+def add_below(request, data, record, show, target, inverse, bands, width):
+    """Buttons in a row at the bottom of a section, under the band they belong to, "add_below": [{"band": "A",
+    "label": "Connector", "link": "connectors", "values": {"side": "A"}}, {"band": "Wire details", "label": "Wire"}]:
+    a new one in a form, linked to this record, through the record's own link "link" (this section's, without it)
+    and with "values" filled in."""
+    wanted = show.get('add_below') or []
+    if not wanted:
+        return []
+    own = {f.key: f for f in data.fields(record.table)}
+    here = request.get_full_path()
+    buttons = []
+    for b in wanted:
+        table, link_field = target, inverse
+        if b.get('link'):
+            through = own.get(b['link'])
+            if through is None or through.type != 'link' or not through.opt('inverse'):
+                continue
+            table = Table.objects.filter(pk=through.opt('target')).first()
+            link_field = Field.objects.filter(pk=through.opt('inverse')).first()
+        if table is None or link_field is None or not can(request.user, table.app, 'editor'):
+            continue
+        fields = {f.key: f for f in data.fields(table)}
+        presets = ''.join(f'&f_{fields[k].pk}={v}' for k, v in (b.get('values') or {}).items() if k in fields)
+        url = (reverse('core:record_new', args=[table.app.slug, table.slug]) +
+               f'?link_field={link_field.pk}&link_to={record.pk}{presets}&next={here}')
+        buttons.append((b.get('band', ''), format_html('<a class="btn small ghost" href="{}">＋ {}</a>', url, b.get('label') or table.name)))
+    cells = [{'span': band['span'], 'buttons': [h for name, h in buttons if name == band['label']]} for band in bands] \
+        or [{'span': width, 'buttons': [h for _, h in buttons]}]
+    placed = {name for name, _ in buttons} & {band['label'] for band in bands}
+    cells[0]['buttons'] += [h for name, h in buttons if name not in placed]
+    return cells
 
 
 def access_context(request, record, table):
@@ -471,6 +583,15 @@ def record_new(request, app_slug, table_slug):
     link_to = request.GET.get('link_to') or request.POST.get('link_to')
     if link_field and link_to and link_field.isdigit() and link_to.isdigit():
         preset[int(link_field)] = [int(link_to)]
+    initial, copied = {}, None
+    copy = request.GET.get('copy', '')
+    if copy.isdigit():
+        copied = data.record(int(copy))
+        if copied is not None and copied.table_id == table.pk:
+            preset, initial = copied_values(data, copied, fields)
+            if request.method == 'GET':
+                messages.info(request, f'A copy of {data.label(copied)}: change what differs, then save. '
+                                       'Its files and comments are not copied.')
     needs_share = False
     if request.method == 'POST':
         values, _ = _form_values(request, fields)
@@ -494,7 +615,7 @@ def record_new(request, app_slug, table_slug):
                 return redirect(request.get_full_path())
             return redirect(local_next(request) or record.get_absolute_url())
     return render(request, 'core/record_new.html', {
-        **app_context(app, request.user), 'table': table, 'items': form_items(request, fields, data, preset),
+        **app_context(app, request.user), 'table': table, 'items': form_items(request, fields, data, preset, initial),
         'all_users': get_user_model().objects.filter(is_active=True), 'next': local_next(request),
         'link_field': link_field or '', 'link_to': link_to or '', 'needs_share': needs_share,
         'tag_choices': _tag_choices(request), 'chosen_tags': request.POST.getlist('tags'),

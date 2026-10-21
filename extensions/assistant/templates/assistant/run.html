@@ -1,9 +1,9 @@
 {% extends "base.html" %}{% load static %}
-{% block title %}AI assistant · {{ run.request|truncatechars:40 }}{% endblock %}
+{% block title %}AI prompt generator · {{ run.request|truncatechars:40 }}{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'assistant/assistant.css' %}">{% endblock %}
 {% block content_class %}narrow{% endblock %}
 {% block content %}
-<div class="crumbs"><a href="{% url 'assistant:index' %}">✨ AI assistant</a> › request</div>
+<div class="crumbs"><a href="{% url 'assistant:index' %}">✨ AI prompt generator</a> › request</div>
 <div class="card"><div class="muted small">You asked</div><div class="assistant-request">{{ run.request|linebreaksbr }}</div></div>
 
 <section class="card assistant-step">
@@ -41,7 +41,7 @@
   {% if run.status == 'ready' %}
     <form method="post" action="{% url 'assistant:apply' run.pk %}">{% csrf_token %}
       <div class="actions"><button class="btn primary">✓ Make {{ run.results|length }} change{{ run.results|length|pluralize }}</button>
-        <span class="muted small">All of them, or none if one fails. Changes show "AI assistant" in the history.</span></div>
+        <span class="muted small">All of them, or none if one fails. Changes show "AI prompt generator" in the history.</span></div>
     </form>
   {% elif run.status == 'problems' %}
     <p class="muted small">Nothing was changed. Send this to the AI so it can fix its answer, then paste the new answer above:</p>

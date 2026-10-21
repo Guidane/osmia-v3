@@ -224,3 +224,65 @@ class ToolsTemplateTests(WorkspaceTestCase):
         from core.trees import Tree
         self.assertEqual(data.label(Tree(data, types).ancestors(meter.pk)[-1]), 'Test equipment')
         self.assertIn('attributes', tools.views.get(name='Tools').config['fields'])
+
+
+class CopyAndFormTests(WorkspaceTestCase):
+    def setUp(self):
+        super().setUp()
+        from django.contrib.auth import get_user_model
+        self.boss = get_user_model().objects.create_superuser('boss', 'b@example.com', 'x')
+        blueprints.install_many(['parts'], user=self.boss, sample=True)
+        self.table = Table.objects.get(app__blueprint='parts', key='parts')
+        self.client.force_login(self.boss)
+
+    def part(self, label):
+        data = Data()
+        return next(r for r in data.records(self.table) if data.label(r) == label)
+
+    def test_copy_starts_a_new_part_from_one(self):
+        from django.urls import reverse
+        cap = self.part('CAP-100N-0603')
+        page = self.client.get(cap.get_absolute_url())
+        url = reverse('core:record_new', args=[self.table.app.slug, self.table.slug]) + f'?copy={cap.pk}'
+        self.assertContains(page, url.replace('&', '&amp;'))
+        form = self.client.get(url)
+        self.assertContains(form, 'value="Capacitor 100 nF 50 V X7R 0603"')
+        self.assertContains(form, 'Capacitance: 100 nF')                     # its attributes
+        self.assertContains(form, 'A copy of CAP-100N-0603')
+        data = Data()
+        fields = {f.key: f for f in data.fields(self.table)}
+        sent = {f'f_{fields["part_number"].pk}': 'CAP-1U-0603', f'f_{fields["description"].pk}': 'Capacitor 1 µF',
+                f'f_{fields["attributes"].pk}': 'Capacitance: 1 µF\nVoltage: 25 V',
+                f'f_{fields["category"].pk}': str(data.raw(cap, fields['category'])[0]['id'])
+                if isinstance(data.raw(cap, fields['category'])[0], dict) else str(data.raw(cap, fields['category'])[0])}
+        self.client.post(url, sent)
+        copy = self.part('CAP-1U-0603')
+        self.assertEqual(Data().text(copy, fields['category']), 'Capacitors')
+        self.assertEqual(self.part('CAP-100N-0603').pk, cap.pk)   # the original stays as it was
+
+    def test_a_new_parts_form_knows_where_its_attributes_to_fill_in_are(self):
+        from django.urls import reverse
+        data = Data()
+        attrs, category = data.field_named(self.table, 'Attributes'), data.field_named(self.table, 'Category')
+        listed = Table.objects.get(app__blueprint='parts', key='categories').fields.get(key='attribute_names')
+        form = self.client.get(reverse('core:record_new', args=[self.table.app.slug, self.table.slug]))
+        self.assertContains(form, f'data-source="{{&quot;link&quot;: {category.pk}, &quot;field&quot;: {listed.pk}}}"')
+        self.assertContains(form, f'class="link-input" data-field="{category.pk}"')
+
+
+class DeliveryDateTests(WorkspaceTestCase):
+    def test_placing_an_order_fills_in_the_delivery_date_from_the_lead_time(self):
+        from datetime import timedelta
+        from django.contrib.auth import get_user_model
+        from django.utils import timezone
+        boss = get_user_model().objects.create_superuser('boss', 'b@example.com', 'x')
+        blueprints.install_many(['orders', 'parts'], user=boss, sample=True)
+        table = Table.objects.get(app__blueprint='orders', key='orders')
+        data = Data()
+        placed = [r for r in data.records(table) if data.text(r, data.field_named(table, 'Status')) != 'Draft']
+        self.assertTrue(placed)
+        for r in placed:
+            self.assertTrue(data.text(r, data.field_named(table, 'Delivery date')), data.label(r))
+        acme = next(r for r in placed if data.text(r, data.field_named(table, 'Supplier')) == 'Acme Components')
+        self.assertEqual(data.value(acme, data.field_named(table, 'Delivery date')), timezone.localdate() + timedelta(days=5))
+        self.assertTrue(table.views.filter(name='Deliveries', type='calendar').exists())

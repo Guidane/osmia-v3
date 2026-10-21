@@ -3,7 +3,7 @@
   "name": "Orders",
   "icon": "🧾",
   "color": "#ea580c",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "position": 35,
   "group": "Purchasing",
   "description": "Purchase orders (PO-0001) from a vendor, charged to a budget, with lines of parts. Place, receive line by line or all at once (booked into stock at the location picked for each line), or cancel: all done by automations behind buttons.",
@@ -126,6 +126,12 @@
           }
         },
         {
+          "key": "delivery_date",
+          "name": "Delivery date",
+          "type": "date",
+          "description": "When it is to arrive. Placing the order fills it in from the supplier's lead time, if it's still empty."
+        },
+        {
           "key": "received_at",
           "name": "Received at",
           "type": "datetime",
@@ -183,6 +189,7 @@
               "total",
               "open_lines",
               "placed_at",
+              "delivery_date",
               "requested_by"
             ],
             "sorts": [
@@ -202,7 +209,8 @@
               "number",
               "supplier",
               "total",
-              "open_lines"
+              "open_lines",
+              "delivery_date"
             ]
           }
         },
@@ -215,6 +223,14 @@
               "supplier",
               "status"
             ]
+          }
+        },
+        {
+          "name": "Deliveries",
+          "type": "calendar",
+          "config": {
+            "date_field": "delivery_date",
+            "color_field": "status"
           }
         }
       ]
@@ -245,7 +261,12 @@
             "inverse": {
               "key": "lines",
               "name": "Lines",
-              "multiple": true
+              "multiple": true,
+              "show": {
+                "link_existing": false,
+                "add_by": "part",
+                "add_quantity": "quantity"
+              }
             }
           }
         },
@@ -481,7 +502,8 @@
           "target": "this",
           "values": {
             "status": "Placed",
-            "placed_at": "=NOW()"
+            "placed_at": "=NOW()",
+            "delivery_date": "=IF(ISBLANK({Delivery date}), IF(ISBLANK({Supplier.Lead time (days)}), BLANK(), DATEADD(TODAY(), {Supplier.Lead time (days)}, \"days\")), {Delivery date})"
           }
         }
       ]

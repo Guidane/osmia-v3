@@ -25,7 +25,6 @@
       {% empty %}
         <tr><td colspan="{{ columns|length|add:1 }}" class="empty">No records.</td></tr>
       {% endfor %}
-      {% if can_edit_records %}<tr class="add-row"><td class="rownum">＋</td><td colspan="{{ columns|length }}" id="add-record" data-table="{{ table.pk }}" data-form="{% url 'core:record_new' app.slug table.slug %}?next={{ request.get_full_path|urlencode }}">Add a record</td></tr>{% endif %}
     </tbody>
   </table>
 </div>

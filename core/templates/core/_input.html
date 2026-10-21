@@ -2,7 +2,7 @@
   <label for="f_{{ i.f.pk }}" class="{% if i.f.required %}required{% endif %}">{{ i.f.name }}</label>
   {% with t=i.f.type name=i.name %}
   {% if t == 'attributes' %}
-    <textarea id="{{ name }}" name="{{ name }}" rows="4" data-attributes data-names="{{ i.names_json }}" placeholder="Resistance: 10 kΩ&#10;Power: 0.1 W">{{ i.value|default:'' }}</textarea>
+    <textarea id="{{ name }}" name="{{ name }}" rows="4" data-attributes data-names="{{ i.names_json }}" data-source="{{ i.source_json }}" placeholder="Resistance: 10 kΩ&#10;Power: 0.1 W">{{ i.value|default:'' }}</textarea>
   {% elif t == 'longtext' or t == 'json' %}
     <textarea id="{{ name }}" name="{{ name }}" rows="4">{{ i.value|default:'' }}</textarea>
   {% elif t == 'checkbox' %}

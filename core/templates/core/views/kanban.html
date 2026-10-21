@@ -16,7 +16,7 @@
           </a>
         {% endfor %}
       </div>
-      {% if can_edit_records %}<a class="add" href="{% url 'core:record_new' app.slug table.slug %}?next={{ request.get_full_path|urlencode }}">＋ Add</a>{% endif %}
+      {% if can_edit_records %}<a class="add" href="{% url 'core:record_new' app.slug table.slug %}?f_{{ group_field.pk }}={{ col.value|urlencode }}&next={{ request.get_full_path|urlencode }}">＋ Add</a>{% endif %}
     </section>
   {% endfor %}
 </div>

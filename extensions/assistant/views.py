@@ -1,4 +1,4 @@
-"""The AI assistant's pages: ask, copy the prompt, paste the answer, check, make."""
+"""The AI prompt generator's pages: ask, copy the prompt, paste the answer, check, make."""
 from dataclasses import asdict
 
 from django.contrib import messages

@@ -177,27 +177,32 @@ TUTORIALS = [
     ),
     Tutorial(
         'harness', 'Make a wire harness', '🧵', 'howto',
-        'A harness is its connectors and the wires between them, contact to contact: its page shows the pinout.',
+        'A harness is its parts (connectors, contacts, wire, cable ties, ...) and its pinout, contact to contact; '
+        'its build time comes from a time per wire.',
         [
             'Install the <b>Harnesses</b> template if it isn\'t there (⚙ › App templates; it needs Parts). Open <b>Harnesses</b> '
-            'and click <b>＋ New</b>: give the harness a name.',
-            'On the harness\'s page, under <b>Connectors</b>, click <b>＋ Row</b> for each connector: its <i>Designator</i> '
-            '(X1, Y1, ...), its <i>Side</i> (A or B) and its <i>Part</i>. Its gender comes from the part\'s attributes, '
-            'so a connector reads <i>X1 · DSUB-9-PLUG · male</i>.',
-            'Under <b>Wires</b>, click <b>＋ Form</b> for the first wire between two connectors: the <i>A connector</i>, its '
+            'and click <b>＋ New</b>: give the harness a name, and the <i>Time per wire (min)</i>.',
+            'On the harness\'s page, under <b>Parts</b>, click <b>＋ Add part</b>: browse the categories, pick each part it is made of and its <i>Quantity</i> '
+            '(pieces, or metres of wire). A connector also gets a <i>Designator</i> (X1, Y1, ...) and a <i>Side</i> (A or B); its '
+            'gender comes from the part\'s attributes. Or click <b>＋ Connector on A</b> / <b>＋ Connector on B</b> at the bottom of the pinout.',
+            'At the bottom of the <b>Pinout</b>, click <b>＋ Wire</b> for the first wire between two connectors: the <i>A connector</i>, its '
             '<i>A contact</i> and <i>A function</i>, the <i>B connector</i>, its <i>B contact</i> and <i>B function</i>, then '
-            'the <i>Set type</i> (straight, twisted, shielded twisted, shielded), colour, AWG, length and the wire\'s part.',
-            'The wires show as <b>A | B | Wire details</b>: each pair of connectors has a sub-header, the A connector above side A '
-            'and the B connector above side B (left out when it is the same as above). The pinout is in the middle: A function, '
-            'A contact, B contact, B function. Click <b>＋</b> on a sub-header to add a wire between those two connectors: they '
-            'are filled in already.',
-            'Click a value in the list to change it, as in a grid. The <b>Wires</b> and <b>Connectors</b> tabs of the app list '
-            'every harness\'s, to filter, sort or export.',
+            'the <i>Set</i> and <i>Set type</i>, colour, AWG, length and the wire\'s part. Wires of one set (P1: a twisted pair) '
+            'share a <i>Set</i>: they stay next to each other, with an outline around them. A shielded set\'s shield is a row of '
+            'its own in the set, set type <i>Shield</i>, on the contacts it is connected to.',
+            'Click <b>Build harness</b> to build one: it gets a harness ID (SN-00001, ...) under <b>Builds</b>, and its page has a '
+            'checklist of every wire, to tick <i>Placed</i> and <i>Verified</i> as you go.',
+            'The pinout shows as <b>A | B | Wire details</b>, a line between them: each pair of connectors has a sub-header, the '
+            'A connector above side A and the B connector above side B (left out when it is the same as above), the contacts '
+            'side by side in the middle. Click <b>＋</b> on a sub-header to add a wire between those two connectors: they are '
+            'filled in already.',
+            '<i>Build time (min)</i> is the time per wire times the wires of the pinout. The <b>Harness parts</b> and '
+            '<b>Pinout</b> tabs of the app list every harness\'s, to filter, sort or export.',
         ],
         pictures='harness',
         try_url='core:launcher', try_label='Open the Apps page',
         related=['own-list', 'record-page'],
-        keywords='harness wire wiring pinout loom cable connector contact pin awg colour length',
+        keywords='harness wire wiring pinout loom cable connector contact pin awg colour length parts bill of materials bom build time estimate',
     ),
     Tutorial(
         'group-apps', 'Put apps in groups', '▦', 'howto',
@@ -312,7 +317,7 @@ TUTORIALS = [
         'Records, pages and spaces with access tags are seen only by people holding every one of those tags.',
         [
             'An <b>access tag</b> (say <i>Payroll</i>) is held by some people. A record carrying it is seen only by them: everyone '
-            'else doesn\'t see it at all, not in views, links, totals, search, pages or the AI assistant, not even that it exists.',
+            'else doesn\'t see it at all, not in views, links, totals, search, pages or the AI prompt generator, not even that it exists.',
             'Tags are not ranks: holding one gives nothing in any other. A record with two tags needs both. Administrators are no '
             'exception: they build every app, but see only what their tags allow.',
             'Tags come along: a record carries the tags of its <b>parent</b> in a tree and of the <b>spaces it links to</b>. Tag a '
@@ -422,7 +427,7 @@ TUTORIALS = [
             'A link to the <b>same table</b> (e.g. <i>Part of</i> on locations or budgets) nests records: show them as a '
             '<a href="/tutorials/tree/">tree</a>.',
             'On a record\'s page, linked records are shown as a table you can edit in place; <b>⇄ Link</b> picks existing ones, '
-            '<b>＋ Row</b> adds a new one.',
+            '<b>＋ New</b> adds a new one, in a form.',
         ],
         try_url='core:home', try_label='Open an app you build', audience='builders',
         related=['formulas', 'record-page', 'tree'],
@@ -488,7 +493,7 @@ TUTORIALS = [
             '<kbd>Delete</kbd> empties the cell; <kbd>Ctrl</kbd>+<kbd>C</kbd> copies it and <kbd>Ctrl</kbd>+<kbd>V</kbd> pastes '
             'into it. A checkbox changes with one click.',
             'Drag the edge of a column title to make it wider; the view remembers it. Number columns get a total at the bottom.',
-            'Hover over a row number and click ⤢ to open the whole record. <b>Add a record</b> under the last row adds one.',
+            'Hover over a row number and click ⤢ to open the whole record. <b>＋ New</b> above the table adds one, in a form.',
             'If a value isn\'t allowed (a required field left empty, a choice that may not follow the one before, an automation '
             'that refuses it) the cell turns red and Osmia says why.',
         ],
@@ -601,8 +606,7 @@ TUTORIALS = [
             'Open a record by clicking it in a kanban, gallery or calendar, or ⤢ next to its row in a grid.',
             'Its fields are listed on the left; <b>click a value to change it</b>, just like in the grid.',
             'Records linked to it (an order\'s lines, a project\'s tasks) are tables below, which you can edit in place. '
-            '<b>⇄ Link</b> picks existing records, <b>＋ Row</b> adds a new one linked to this record, <b>＋ Form</b> opens the full '
-            'form, ✕ unlinks one.',
+            '<b>⇄ Link</b> picks existing records, <b>＋ New</b> adds a new one linked to this record, in a form; ✕ unlinks one.',
             'Buttons (e.g. <i>Place order</i>) are next to the title; <b>▶ Run</b> has the automations you can run by hand.',
             'On the right: <b>Comments</b>, the <b>History</b> (who changed what, old → new, and which automation did it) and the '
             '<b>Automations</b> that ran for this record. ↑ ↓ go to the previous and next record; ⋯ deletes it.',
@@ -765,7 +769,7 @@ TUTORIALS = [
         'Apps made in code, with screens of their own, that keep their data in ordinary apps.',
         [
             'Apps are made on the website. An <b>extension app</b> is made in code and has fixed screens of its own, like '
-            'Documentation, the AI assistant or these tutorials. It shows up in the launcher like any app.',
+            'Documentation, the AI prompt generator or these tutorials. It shows up in the launcher like any app.',
             'Its data is in ordinary tables (Documentation keeps its pages in its own). It can also add to every '
             'app: blocks for the slash menu, tabs, boxes on record pages, field types, view types and automation actions.',
             'In ⚙ pick <b>Extensions</b>. <b>Switch on…</b> lists what the extension needs that isn\'t there and installs it with it, '

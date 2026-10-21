@@ -30,7 +30,7 @@ MAX_CHANGES = 50          # changes in one answer
 MAX_RECORDS = 200         # records one change adds or changes
 COMPUTED = ('lookup', 'rollup', 'formula')
 VIEWS = ('grid', 'kanban', 'gallery', 'calendar')
-SOURCE = 'AI assistant'   # what the history says made the change
+SOURCE = 'AI prompt generator'   # what the history says made the change
 
 
 def field_types():
